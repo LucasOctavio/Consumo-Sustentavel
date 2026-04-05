@@ -16,7 +16,7 @@ def fun_criar(dados, session, busca):
 
     # comita no banco
     session.commit()
-    return {"mensagem": f"Pedido criado com sucesso. Id do pedido {novo_consumo.con_id}"}
+    return {"mensagem": f"Consumo criado com sucesso. ID: {novo_consumo.con_id}"}
 
 # NOTE - funcao de listar
 
@@ -24,10 +24,15 @@ def fun_listar(usuario, session):
     # busca os consumo cadastrados no usuario
     consumos = session.query(Consumo).filter(Consumo.user_id==usuario.user_id).all()
     
-    # retorna eles em uma lista
-    return {
-        "consumo": consumos
-    }
+    # se tiver
+    if consumos:
+        # retorna eles em uma lista
+        return {
+            "consumos": consumos
+        }
+    
+    else:
+        return{"mensagem": "Sem consumos cadastrados"}
 
 # NOTE - funcao de delete
 
@@ -47,15 +52,14 @@ def fun_delete(con_id, session, usuario):
     # se nao tiver
     else:
         # erro
-        raise HTTPException(status_code=400, detail="Esse consumo nao existe")
+        raise HTTPException(status_code=404, detail="Consumo não encontrado")
     
 # NOTE - funcao de atualizar consumo
 
 def fun_atualizar(dados, user_id, session):
-    busca = session.query(Consumo).filter(Consumo.user_id==user_id)
-    consumo = session.get(Consumo, dados.con_id)
+    consumo = session.query(Consumo).filter(Consumo.con_id == dados.con_id, Consumo.user_id == user_id).first()
 
-    if consumo not in busca:
+    if not consumo:
         raise HTTPException(status_code=404, detail="Consumo não encontrado")
     
     for key, value in dados.dict(exclude_unset=True).items():

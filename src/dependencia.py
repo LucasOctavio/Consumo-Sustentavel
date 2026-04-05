@@ -30,19 +30,22 @@ def pegar_sessao():
 def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depends(pegar_sessao)):
     # tenta
     try:
-        dic_info = jwt.decode(token, SECRET_KEY, ALGORITHM)
+        # decodificar o token
+        dic_info = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        # pega o id do token
         user_id = int(dic_info.get("user_id"))
 
     # erro ao tentar entrar com o token errado
     except JWTError:
         raise HTTPException(status_code=401, detail="Acesso Negado, verifique a validade do token")
 
-    # extrair o id do usuario do token
-    id = session.query(Usuario).filter(Usuario.user_id==user_id).first()
+    # busca o usuario com o id do token
+    usuario = session.query(Usuario).filter(Usuario.user_id==user_id).first()
 
     # se nao tiver um usuario
-    if not id:
+    if not usuario:
         raise HTTPException(status_code=401, detail="Acesso Invalido")
 
-    # retorna o id
-    return id
+    # retorna o usuario
+    return usuario

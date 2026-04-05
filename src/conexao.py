@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# definindo a url do banco
 db = os.getenv("db")
 
 # criando a conexao do banco

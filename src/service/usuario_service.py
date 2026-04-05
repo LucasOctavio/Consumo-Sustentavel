@@ -16,7 +16,7 @@ def fun_criar(nome, email, senha, session):
     # se tiver
     if busca:
         # retorna mensagem de erro
-        raise HTTPException(status_code=400, detail="Esse nome ou email, já é cadastrado")
+        raise HTTPException(status_code=409, detail="Nome ou email já cadastrado")
     
     # se nao
     else:
@@ -37,13 +37,13 @@ def fun_criar(nome, email, senha, session):
 
 # funcao de logar conta
 def fun_logar(nome, senha, session):
-    # busca no banco
+    # verifica se a senha e o nome esta correto
     busca = autenticar_usuario(nome, senha, session)
 
-    # se nao tiver nada na busca
+    # se nao tiver um usuario com esse nome e senha
     if not busca:
         # levanta aviso de erro
-        raise HTTPException(status_code=400, detail="Usuario nao encontrado ou credenciais invalidas")
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
     
     # se tiver algo
     else:
@@ -51,7 +51,7 @@ def fun_logar(nome, senha, session):
         access_token = criar_token(busca.user_id)
         refrush_token = criar_token(busca.user_id, duracao_token=timedelta(days=7))
         
-        # e retorna e token pro usuario
+        # e retorna token pro usuario
         return {
             "access_token": access_token,
             "refresh_token": refrush_token,
@@ -60,13 +60,13 @@ def fun_logar(nome, senha, session):
 
 # funcao de logar no forms
 def fun_login_form(dados_formulario, session):
-    # busca no banco
+    # verifica se a senha e o nome esta correto
     busca = autenticar_usuario(dados_formulario.username, dados_formulario.password, session)
 
-    # se nao tiver nada na busca
+    # se nao tiver um usuario com esse nome e senha
     if not busca:
         # levanta aviso de erro
-        raise HTTPException(status_code=400, detail="Usuario nao encontrado ou credenciais invalidas")
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
     
     # se tiver
     else:
@@ -82,13 +82,13 @@ def fun_login_form(dados_formulario, session):
 # NOTE - funcao de deletar
 
 def fun_delete(busca, session):
-    # depois de verificar o token busca se tem esse id
-    buscar = session.query(Usuario).filter(Usuario.user_id==busca.user_id).first()
+    # depois de verificar o token, busca se tem esse id
+    usuario = session.query(Usuario).filter(Usuario.user_id==busca.user_id).first()
 
     # se existir esse token
-    if buscar:
+    if usuario:
         # deleta o usuario com o id
-        session.delete(buscar)
+        session.delete(usuario)
 
         # comita
         session.commit()
@@ -97,7 +97,7 @@ def fun_delete(busca, session):
     # se nao
     else:
         # erro
-        raise HTTPException(status_code=400, detail="essa conta nao existe")
+        raise HTTPException(status_code=404, detail="Conta não encontrada")
 
 # NOTE - funcao de autentificar/login
 
@@ -119,30 +119,47 @@ def autenticar_usuario(nome, senha, session):
 # NOTE - funcao de atualizar
 
 def fun_atualizar(dados, user_id, session):
+    # pega as informacoes do seu usuario
     usuario = session.get(Usuario, user_id)
+
+    # se nao conseguir pegar as informacoes
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
+    # se o usuario tiver passado informacao de atualizar nome do usuario
     if dados.user_name:
+        # busca se o nome do usuario ja existe
         existe = session.query(Usuario).filter(Usuario.user_name == dados.user_name, Usuario.user_id != user_id).first()
+        
+        # se sim
         if existe:
-            raise HTTPException(status_code=400, detail="Nome já cadastrado para outro usuário")
+            raise HTTPException(status_code=409, detail="Nome já cadastrado")
 
+    # se o usuario tiver passado informacao de atualizar email do usuario
     if dados.user_email:
+        # busca se o email do usuario ja existe
         existe = session.query(Usuario).filter(Usuario.user_email == dados.user_email, Usuario.user_id != user_id).first()
-        if existe:
-            raise HTTPException(status_code=400, detail="Email já cadastrado para outro usuário")
 
+        # se sim
+        if existe:
+            raise HTTPException(status_code=409, detail="Email já cadastrado")
+
+    # se o usuario tiver passado informacao de atualizar senha do usuario
     if dados.user_senha:
         # criptografa senha
         dados.user_senha = bcrypt_context.hash(dados.user_senha)
 
+    # para cada informacao enviada pelo usuario
     for key, value in dados.dict(exclude_unset=True).items():
+        # ele verifica se tem campos vazios nas informacoes passadas
         if hasattr(usuario, key):
+            # defini as informacoes com as novas informacoes
             setattr(usuario, key, value)
     
+    # comita
     session.commit()
     
+    # atualiza o banco
     session.refresh(usuario)
 
     return {"mensagem": "Dados da conta atualizado"}
@@ -171,4 +188,5 @@ def criar_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE))
     # codifica o dicionario gerando um token
     token = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
 
+    # retorna o token
     return token

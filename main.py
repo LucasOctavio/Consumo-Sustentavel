@@ -7,14 +7,19 @@ from fastapi.security import OAuth2PasswordBearer
 
 load_dotenv()
 
+# defini a secret key pra codificar o token
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# defini o algorithm pra codificar o token
 ALGORITHM = os.getenv("ALGORITHM")
 
+# defini o tempo para expirar o token
 ACCESS_TOKEN_EXPIRE_MINUTE = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTE"))
 
+# usado para criptografar senhas
+bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# usado para pegar o token que vem na head da requisicao
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="usuario/login_form")
 
 # criaçao do fastAPI
