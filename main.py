@@ -53,9 +53,3 @@ app.include_router(meta_roteador)
 # migracao de banco
 # alembic revision --autogenerate -m "initial migration"
 # alembic upgrade head
-
-# oque deve ter no .env:
-# db = url_banco
-# SECRET_KEY = secretkeygenerator
-# ALGORITHM = HS256
-# ACCESS_TOKEN_EXPIRE_MINUTE = tempo para expirar o token

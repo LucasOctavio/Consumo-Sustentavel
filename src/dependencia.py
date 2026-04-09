@@ -1,6 +1,6 @@
 # importaçoes
 from sqlalchemy.orm import sessionmaker, Session
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from src.model.usuario_model import Usuario
 from jose import jwt, JWTError
 from dotenv import load_dotenv
@@ -49,3 +49,12 @@ def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depe
 
     # retorna o usuario
     return usuario
+
+# verificar token por url
+def verificar_token_query(token: str = Query(...)):
+    try:
+        # decodifica o token da url
+        dic = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return dic
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
