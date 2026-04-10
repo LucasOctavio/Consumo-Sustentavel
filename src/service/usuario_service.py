@@ -323,7 +323,7 @@ async def enviar_email_deletar(emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta. </p> 
-                <a href="http://localhost:8000/usuario/delete?token={verification_token}" 
+                <a href="http://localhost:8000/usuario/delete_via_email?token={verification_token}" 
                 style="
                 display:inline-block;
                 margin-top:20px;
