@@ -35,7 +35,7 @@ app.include_router(usuario_roteador)
 app.include_router(consumo_roteador)
 app.include_router(meta_roteador)
 
-# uvicorn main:app --reload / roda o fastAPI
+# uvicorn src.main:app --reload / roda o fastAPI
 
 # SQLALCHEMY REQUISISOES
 # CRUD

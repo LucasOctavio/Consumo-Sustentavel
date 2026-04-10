@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Query
 from src.model.usuario_model import Usuario
 from jose import jwt, JWTError
 from dotenv import load_dotenv
-from main import SECRET_KEY, ALGORITHM, oauth2_schema
+from src.main import SECRET_KEY, ALGORITHM, oauth2_schema
 from src.conexao import engine
 
 # funcao de sessao

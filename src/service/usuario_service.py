@@ -1,7 +1,7 @@
 # importacao
 from fastapi import HTTPException
 from src.model.usuario_model import Usuario
-from main import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTE, SECRET_KEY
+from src.main import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTE, SECRET_KEY
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
