@@ -4,7 +4,7 @@ from src.models.meta_model import Meta
 
 # NOTE - funcao de criar
 
-def fun_criar(dados, session, busca):
+def fun_create(dados, session, busca):
     # cria um nova meta
     nova_meta = Meta(dados.tipo, dados.valor, dados.medida, dados.dt_inicio, dados.dt_fim)
 
@@ -20,7 +20,7 @@ def fun_criar(dados, session, busca):
 
 # NOTE - funcao de listar
 
-def fun_listar(usuario, session):
+def fun_read(usuario, session):
     # busca as metas cadastrados no usuario
     metas = session.query(Meta).filter(Meta.user_id==usuario.user_id).all()
     
@@ -56,7 +56,7 @@ def fun_delete(meta_id, session, usuario):
     
 # NOTE - funcao de atualizar consumo
 
-def fun_atualizar(dados, user_id, session):
+def fun_update(dados, user_id, session):
     # busca a meta selecionada e verifica se pertence ao usuario
     meta = session.query(Meta).filter(Meta.meta_id==dados.meta_id, Meta.user_id==user_id).first()
 

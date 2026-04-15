@@ -4,7 +4,7 @@ from src.models.consumo_model import Consumo
 
 # NOTE - funcao de criar
 
-def fun_criar(dados, session, busca):
+def fun_create(dados, session, busca):
     # cria um novo pedido
     novo_consumo = Consumo(dados.tipo, dados.valor, dados.medida, dados.dt, dados.simulado)
 
@@ -20,7 +20,7 @@ def fun_criar(dados, session, busca):
 
 # NOTE - funcao de listar
 
-def fun_listar(usuario, session):
+def fun_read(usuario, session):
     # busca os consumo cadastrados no usuario
     consumos = session.query(Consumo).filter(Consumo.user_id==usuario.user_id).all()
     
@@ -56,7 +56,7 @@ def fun_delete(con_id, session, usuario):
     
 # NOTE - funcao de atualizar consumo
 
-def fun_atualizar(dados, user_id, session):
+def fun_update(dados, user_id, session):
     consumo = session.query(Consumo).filter(Consumo.con_id == dados.con_id, Consumo.user_id == user_id).first()
 
     if not consumo:

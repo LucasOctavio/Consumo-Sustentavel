@@ -27,9 +27,9 @@ oauth2_schema = OAuth2PasswordBearer(tokenUrl="usuario/login_form")
 app = FastAPI()
 
 # definiçao das rotas do fastAPI
-from src.rotes.usuario_rotas import usuario_roteador
-from src.rotes.consumo_rotas import consumo_roteador
-from src.rotes.meta_rotas import meta_roteador
+from src.routes.usuario_route import usuario_roteador
+from src.routes.consumo_route import consumo_roteador
+from src.routes.meta_route import meta_roteador
 
 # inclui as rotas no fastAPI
 app.include_router(usuario_roteador)

@@ -1,21 +1,20 @@
 # importacao
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
-from src.main import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTE, SECRET_KEY
+from src.main import *
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from src.main import conf
 
 # NOTE - funcao de criar
 
-def fun_criar(nome, email, senha, session):
+def fun_sign_in(nome, email, senha, session):
     # busca no banco de dados se já tem esse email ou esse nome
-    busca = session.query(Usuario).filter(or_(Usuario.user_email==email, Usuario.user_name==nome)).first()
+    query = session.query(Usuario).filter(or_(Usuario.user_email==email, Usuario.user_name==nome)).first()
 
     # se tiver
-    if busca:
+    if query:
         # retorna mensagem de erro
         raise HTTPException(status_code=409, detail="Nome ou email já cadastrado")
     
@@ -36,7 +35,7 @@ def fun_criar(nome, email, senha, session):
     
 # NOTE - funcao de listar
 
-def fun_listar(token, session):
+def fun_read(token, session):
     # depois de verificar o token, busca se tem esse id
     usuario = session.query(Usuario).filter(Usuario.user_id==token.user_id).first()
 
@@ -59,9 +58,9 @@ def fun_listar(token, session):
 # NOTE - funcao de logar
 
 # funcao de logar conta
-def fun_logar(nome, senha, session):
+def fun_login(nome, senha, session):
     # verifica se a senha e o nome esta correto
-    busca = autenticar_usuario(nome, senha, session)
+    busca = authenticate(nome, senha, session)
 
     # se nao tiver um usuario com esse nome e senha
     if not busca:
@@ -71,8 +70,8 @@ def fun_logar(nome, senha, session):
     # se tiver algo
     else:
         # cria um token de acesso e um token de refresh
-        access_token = criar_token(busca.user_id)
-        refrush_token = criar_token(busca.user_id, duracao_token=timedelta(days=7))
+        access_token = create_token(busca.user_id)
+        refrush_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
         
         # e retorna token pro usuario
         return {
@@ -84,7 +83,7 @@ def fun_logar(nome, senha, session):
 # funcao de logar no forms
 def fun_login_form(dados_formulario, session):
     # verifica se a senha e o nome esta correto
-    busca = autenticar_usuario(dados_formulario.username, dados_formulario.password, session)
+    busca = authenticate(dados_formulario.username, dados_formulario.password, session)
 
     # se nao tiver um usuario com esse nome e senha
     if not busca:
@@ -94,7 +93,7 @@ def fun_login_form(dados_formulario, session):
     # se tiver
     else:
         # cria um token de acesso
-        access_token = criar_token(busca.user_id)
+        access_token = create_token(busca.user_id)
 
         # retorna o token
         return {
@@ -124,7 +123,7 @@ def fun_delete(busca, session):
 
 # NOTE - funcao de autentificar/login
 
-def autenticar_usuario(nome, senha, session):
+def authenticate(nome, senha, session):
     # busca o usuario no banco
     busca = session.query(Usuario).filter(Usuario.user_name==nome).first()
 
@@ -141,7 +140,7 @@ def autenticar_usuario(nome, senha, session):
 
 # NOTE - funcao de atualizar
 
-def fun_atualizar(dados, user_id, session):
+def fun_update(dados, user_id, session):
     # pega as informacoes do seu usuario
     usuario = session.get(Usuario, user_id)
 
@@ -190,9 +189,9 @@ def fun_atualizar(dados, user_id, session):
 # NOTE - funcoes token 
 
 # funcao de refresh token
-def refresh_token(busca):
+def fun_refresh_token(busca):
     # cria um token baseado no refresh token
-    access_token = criar_token(busca.user_id)
+    access_token = create_token(busca.user_id)
 
     # retorna o token
     return {
@@ -201,7 +200,7 @@ def refresh_token(busca):
         }
 
 # funcao de criar token
-def criar_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)):
+def create_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)):
     # defini a data de expiracao baseada no tempo definido para cada token
     data_expiracao = datetime.now(timezone.utc) + duracao_token
 
@@ -217,7 +216,7 @@ def criar_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE))
 # NOTE - funcoes email verificacao
 
 # funcao de verificar email
-async def verificar_email_service(session, token):
+async def fun_verificar_via_email(session, token):
 
     # busca se tem um usuario com esse id
     busca = session.query(Usuario).filter(Usuario.user_id == token).first()
@@ -246,7 +245,7 @@ async def verificar_email_service(session, token):
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
          
 # funcao para enviar email de verificao para o email
-async def enviar_email_verificar(emails, user_id, session):
+async def fun_send_verify_email(emails, user_id, session):
 
     # busca se tem um usuario com esse email
     busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
@@ -254,7 +253,7 @@ async def enviar_email_verificar(emails, user_id, session):
     # se tiver
     if busca:
         # cria um token com o id do usuario
-        verification_token = criar_token(user_id)
+        verification_token = create_token(user_id)
         
         # html do email enviado
         html = f"""
@@ -303,14 +302,14 @@ async def enviar_email_verificar(emails, user_id, session):
         raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
 
 # funcao para enviar email de confirmacao de deletar conta
-async def enviar_email_deletar(emails, user_id, session):
+async def fun_send_delete_email(emails, user_id, session):
     # busca se tem um usuario com esse email
     busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
     
     # se tiver
     if busca:
         # cria um token
-        verification_token = criar_token(user_id)
+        verification_token = create_token(user_id)
         
         # html do email enviado
         html = f"""
