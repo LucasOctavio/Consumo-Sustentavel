@@ -1,7 +1,7 @@
 # importaçoes
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import Depends, HTTPException, Query
-from src.model.usuario_model import Usuario
+from src.models.usuario_model import Usuario
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 from src.main import SECRET_KEY, ALGORITHM, oauth2_schema

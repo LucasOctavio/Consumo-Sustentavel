@@ -1,6 +1,6 @@
 # importaçoes
 from fastapi import APIRouter, Depends
-from src.service.usuario_service import *
+from src.services.usuario_service import *
 from src.schemas.usuario_schema import *
 from src.schemas.mail_schema import *
 from src.dependencia import *

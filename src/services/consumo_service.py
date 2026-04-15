@@ -1,6 +1,6 @@
 # importacao
 from fastapi import HTTPException
-from src.model.consumo_model import Consumo
+from src.models.consumo_model import Consumo
 
 # NOTE - funcao de criar
 

@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.dependencia import pegar_sessao, verificar_token
 from src.schemas.meta_schema import *
-from src.model.usuario_model import Usuario
-from src.service.meta_service import *
+from src.models.usuario_model import Usuario
+from src.services.meta_service import *
 
 # defini o prefixo dele
 meta_roteador = APIRouter(prefix="/meta", tags=["meta"], dependencies=[Depends(verificar_token)])

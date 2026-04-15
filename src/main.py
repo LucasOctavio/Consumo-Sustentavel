@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 import os
 from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
+from fastapi_mail import ConnectionConfig
 
 load_dotenv()
 
@@ -34,6 +35,20 @@ from src.rotes.meta_rotas import meta_roteador
 app.include_router(usuario_roteador)
 app.include_router(consumo_roteador)
 app.include_router(meta_roteador)
+
+# configuracao do email remetente
+conf = ConnectionConfig(
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+    MAIL_FROM=os.getenv("MAIL_FROM"),
+    MAIL_PORT=587,
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_FROM_NAME="Consumo_sustentavel_app",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False,
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=True,
+)
 
 # uvicorn src.main:app --reload / roda o fastAPI
 

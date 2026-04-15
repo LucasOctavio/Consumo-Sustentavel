@@ -1,12 +1,12 @@
 # importacao
 from fastapi import HTTPException
-from src.model.usuario_model import Usuario
+from src.models.usuario_model import Usuario
 from src.main import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTE, SECRET_KEY
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from src.config.mail_config import conf
+from src.main import conf
 
 # NOTE - funcao de criar
 

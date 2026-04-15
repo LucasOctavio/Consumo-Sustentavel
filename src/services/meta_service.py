@@ -1,6 +1,6 @@
 # importacao
 from fastapi import HTTPException
-from src.model.meta_model import Meta
+from src.models.meta_model import Meta
 
 # NOTE - funcao de criar
 
