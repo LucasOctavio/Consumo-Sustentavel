@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Query
 from src.models.usuario_model import Usuario
 from jose import jwt, JWTError
 from dotenv import load_dotenv
-from src.main import SECRET_KEY, ALGORITHM, oauth2_schema
+from src.config import SECRET_KEY, ALGORITHM, oauth2_schema
 from src.conexao import engine
 
 # funcao de sessao
@@ -55,6 +55,15 @@ def verificar_token_query(token: str = Query(...)):
     try:
         # decodifica o token da url
         dic = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return dic
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+# verificar token por url
+def verificar_dados_query(dados: str = Query(...)):
+    try:
+        # decodifica o token da url
+        dic = jwt.decode(dados, SECRET_KEY, algorithms=[ALGORITHM])
         return dic
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")

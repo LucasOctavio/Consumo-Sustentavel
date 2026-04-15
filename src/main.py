@@ -1,27 +1,7 @@
 # importaçoes
+
 from fastapi import FastAPI
-from passlib.context import CryptContext
-import os
-from dotenv import load_dotenv
-from fastapi.security import OAuth2PasswordBearer
-from fastapi_mail import ConnectionConfig
-
-load_dotenv()
-
-# defini a secret key pra codificar o token
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-# defini o algorithm pra codificar o token
-ALGORITHM = os.getenv("ALGORITHM")
-
-# defini o tempo para expirar o token
-ACCESS_TOKEN_EXPIRE_MINUTE = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTE"))
-
-# usado para criptografar senhas
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# usado para pegar o token que vem na head da requisicao
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="usuario/login_form")
+from src.config import *
 
 # criaçao do fastAPI
 app = FastAPI()
@@ -36,19 +16,7 @@ app.include_router(usuario_roteador)
 app.include_router(consumo_roteador)
 app.include_router(meta_roteador)
 
-# configuracao do email remetente
-conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_FROM_NAME="Consumo_sustentavel_app",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
-)
+# config is loaded from src.config
 
 # uvicorn src.main:app --reload / roda o fastAPI
 

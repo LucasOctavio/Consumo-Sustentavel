@@ -1,7 +1,7 @@
 # importacao
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
-from src.main import *
+from src.config import *
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
@@ -155,7 +155,7 @@ def fun_update(dados, user_id, session):
         
         # se sim
         if existe:
-            raise HTTPException(status_code=409, detail="Nome já cadastrado")
+            raise HTTPException(status_code=409, detail="Já cadastrado")
 
     # se o usuario tiver passado informacao de atualizar email do usuario
     if dados.user_email:
@@ -164,7 +164,7 @@ def fun_update(dados, user_id, session):
 
         # se sim
         if existe:
-            raise HTTPException(status_code=409, detail="Email já cadastrado")
+            raise HTTPException(status_code=409, detail="Já cadastrado")
 
     # se o usuario tiver passado informacao de atualizar senha do usuario
     if dados.user_senha:
@@ -215,8 +215,19 @@ def create_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)
 
 # NOTE - funcoes email verificacao
 
+# funcao de verificar atualizacao
+async def fun_verify_update(token, session):
+    # busca se tem um usuario com esse id
+    busca = session.query(Usuario).filter(Usuario.user_id == token).first()
+
+    if busca:
+        return {"message": "Atualização permitida"}
+    
+    else:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
 # funcao de verificar email
-async def fun_verificar_via_email(session, token):
+async def fun_verify_via_email(session, token):
 
     # busca se tem um usuario com esse id
     busca = session.query(Usuario).filter(Usuario.user_id == token).first()
@@ -342,6 +353,63 @@ async def fun_send_delete_email(emails, user_id, session):
         # schema do email enviado
         message = MessageSchema(
             subject="Consumo Sustentável - Deletar Conta",
+            recipients=emails,
+            body=html,
+            subtype=MessageType.html)
+
+        # configuracao do email remetente
+        fm = FastMail(conf)
+        
+        # envia a mensagem
+        await fm.send_message(message)
+        
+        return {"message": "email enviado"}
+    
+    # se nao tiver um usuario com esse email
+    else:
+        raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
+    
+# funcao para enviar email de confirmacao de atualizar conta
+async def fun_send_update_email(emails, user_id, session):
+    # busca se tem um usuario com esse email
+    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
+    
+    # se tiver
+    if busca:
+        # cria um token
+        verification_token = create_token(user_id)
+
+        # html do email enviado
+        html = f"""
+        <tr> 
+            <td style="
+            padding:30px;
+            text-align:center;"> 
+                <h2 style="
+                color:#333;">Confirmar atualização</h2> 
+                <p style="
+                color:#555;f
+                ont-size:16px;"> Clique no botão abaixo para confirmar a atualização da sua conta. </p> 
+                <a href="http://localhost:8000/usuario/update_via_email?token={verification_token}" 
+                style="
+                display:inline-block;
+                margin-top:20px;
+                padding:15px 25px;
+                background-color:#28a745;
+                color:#ffffff;
+                text-decoration:none;
+                border-radius:5px;
+                font-weight:bold;"> Atualizar Conta </a> 
+                <p style="
+                margin-top:30px;
+                color:#999;
+                font-size:12px;"> Se você não solicitou a atualização das informações, pode ignorar este email. </p> 
+            </td> 
+        </tr> """
+
+        # schema do email enviado
+        message = MessageSchema(
+            subject="Consumo Sustentável - Atualizar Conta",
             recipients=emails,
             body=html,
             subtype=MessageType.html)

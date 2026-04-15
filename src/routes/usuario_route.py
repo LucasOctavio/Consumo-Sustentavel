@@ -5,9 +5,11 @@ from src.schemas.usuario_schema import *
 from src.schemas.mail_schema import *
 from src.dependencia import *
 from fastapi.security import OAuth2PasswordRequestForm
+from src.models.usuario_model import Usuario
+from sqlalchemy.orm import Session
 
 # defini o prefixo dele
-usuario_roteador = APIRouter(prefix="/usuario", tags={"usuario"})
+usuario_roteador = APIRouter(prefix="/usuario", tags=["usuario"])
 
 # rota inicial
 @usuario_roteador.get("/")
@@ -37,7 +39,7 @@ async def verify_via_email(token: Usuario = Depends(verificar_token_query), sess
     Essa é a rota verificar o usuario recebendo o token dele do email enviado, ele pede o token que deve estar na url
     """
     # defini funcao
-    return await fun_verificar_via_email(session, token["user_id"])
+    return await fun_verify_via_email(session, token["user_id"])
 
 # rota de deletar via email
 @usuario_roteador.get("/delete_via_email")
@@ -47,6 +49,15 @@ async def delete_via_email(token: Usuario = Depends(verificar_token_query), sess
     """
     # defini funcao
     return fun_delete(token["user_id"], session)
+
+# rota de atualizar via email
+@usuario_roteador.get("/update_via_email")
+async def update_via_email(token: Usuario = Depends(verificar_token_query), session : Session = Depends(pegar_sessao)):
+    """
+    Essa é a rota atualizar o usuario recebendo o token dele do email enviado, ele pede o token que deve estar na url
+    """
+    # chama a função assíncrona que verifica a possibilidade de atualização
+    return await fun_verify_update(token.get("user_id"), session)
 
 # NOTE - rota de token refresh
 
@@ -92,12 +103,11 @@ async def login_form(dados_formulario : OAuth2PasswordRequestForm = Depends(), s
 # NOTE - rotas de email verificacao
 
 # rota de mandar email de verificacao
-@usuario_roteador.post("send_verify_email")
+@usuario_roteador.post("/send_verify_email")
 async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     """
     Essa é a rota de mandar um email para verificação do usuario, ele pede o seu email para enviar um email de verificação
     """
-    
     # defini funcao
     return await fun_send_verify_email(email.email, token.user_id, session)
 
@@ -109,6 +119,15 @@ async def send_delete_email(email: EmailSchema, token: Usuario = Depends(verific
     """
     # defini funcao
     return await fun_send_delete_email(email.email, token.user_id, session)
+
+# rota de mandar email de atualização
+@usuario_roteador.post("/send_update_email")
+async def send_update_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+    """
+    Essa é a rota de mandar um email para verificar se voce deseja atualizar a conta mesmo, ele pede o seu email para enviar um email de verificação
+    """
+    # defini funcao
+    return await fun_send_update_email(email.email, token.user_id, session)
 
 # NOTE - rota de deletar
 
@@ -128,5 +147,5 @@ async def update(dados: UsuarioUpdate, token: Usuario = Depends(verificar_token)
     Essa é a rota de atualizar um usuario, ele pede os dados que deseja alterar e token do usuario
     """
     # defini funcao
-    return fun_update(dados, token, session)
+    return fun_update(dados, token.user_id, session)
 
