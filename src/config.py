@@ -1,3 +1,4 @@
+# importacao
 from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext

@@ -51,19 +51,40 @@ def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depe
     return usuario
 
 # verificar token por url
-def verificar_token_query(token: str = Query(...)):
+def verificar_token_query(token: str = Query(...), session: Session = Depends(pegar_sessao)):
+    # tenta
     try:
-        # decodifica o token da url
-        dic = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return dic
+        # decodificar o token
+        dic_info = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        # pega o id do token
+        user_id = int(dic_info.get("user_id"))
+
+    # erro ao tentar entrar com o token errado
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido")
-    
-# verificar token por url
-def verificar_dados_query(dados: str = Query(...)):
+        raise HTTPException(status_code=401, detail="Acesso Negado, verifique a validade do token")
+
+    # busca o usuario com o id do token
+    usuario = session.query(Usuario).filter(Usuario.user_id==user_id).first()
+
+    # se nao tiver um usuario
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Acesso Invalido")
+
+    # retorna o usuario
+    return usuario
+
+# verificar dados de atualização codificados na URL
+def verificar_dados_query(dados: str = Query(...), session: Session = Depends(pegar_sessao)):
+    # tenta
     try:
-        # decodifica o token da url
-        dic = jwt.decode(dados, SECRET_KEY, algorithms=[ALGORITHM])
-        return dic
+        # decodificar o token que contém os dados de atualização
+        dic_info = jwt.decode(dados, SECRET_KEY, algorithms=[ALGORITHM])
+
+    # erro ao tentar entrar com o token errado
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        raise HTTPException(status_code=401, detail="Acesso Negado, verifique a validade do token")
+
+    # remove campos de expiração antes de retornar os dados
+    dic_info.pop("exp", None)
+    return dic_info

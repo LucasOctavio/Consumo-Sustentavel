@@ -5,7 +5,6 @@ from src.config import *
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
-from fastapi_mail import FastMail, MessageSchema, MessageType
 
 # NOTE - funcao de criar
 
@@ -200,228 +199,23 @@ def fun_refresh_token(busca):
         }
 
 # funcao de criar token
-def create_token(id, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)):
+def create_token(data, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)):
     # defini a data de expiracao baseada no tempo definido para cada token
     data_expiracao = datetime.now(timezone.utc) + duracao_token
 
-    # guarda as informacoes em um dicionario
-    dic_info = {"user_id": str(id), "exp": data_expiracao}
+    # permite gerar token para um id ou para um payload de dados
+    if hasattr(data, "dict") and callable(data.dict):
+        dic_info = data.dict(exclude_unset=True)
+    elif isinstance(data, dict):
+        dic_info = data.copy()
+    else:
+        dic_info = {"user_id": str(data)}
+
+    # adiciona expiração ao payload
+    dic_info["exp"] = data_expiracao
 
     # codifica o dicionario gerando um token
     token = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
 
     # retorna o token
     return token
-
-# NOTE - funcoes email verificacao
-
-# funcao de verificar atualizacao
-async def fun_verify_update(token, session):
-    # busca se tem um usuario com esse id
-    busca = session.query(Usuario).filter(Usuario.user_id == token).first()
-
-    if busca:
-        return {"message": "Atualização permitida"}
-    
-    else:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-
-# funcao de verificar email
-async def fun_verify_via_email(session, token):
-
-    # busca se tem um usuario com esse id
-    busca = session.query(Usuario).filter(Usuario.user_id == token).first()
-
-    # se sim
-    if busca:
-        # e se ja for um usuario verifacado
-        if busca.user_verified:
-            # erro
-            raise HTTPException(status_code=400, detail="Email já verificado")
-        
-        # se nao for um usuario verificado
-        # altera o estado de verificado para verdadeiro
-        busca.user_verified = True
-
-        # comita no banco
-        session.commit()
-
-        # atualiza o banco
-        session.refresh(busca)
-        return {"message": "Email verificado com sucesso"}
-    
-    # se nao tiver um usuario com esse id
-    else:
-        # erro
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-         
-# funcao para enviar email de verificao para o email
-async def fun_send_verify_email(emails, user_id, session):
-
-    # busca se tem um usuario com esse email
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
-    
-    # se tiver
-    if busca:
-        # cria um token com o id do usuario
-        verification_token = create_token(user_id)
-        
-        # html do email enviado
-        html = f"""
-        <tr> 
-            <td style="
-            padding:30px;
-            text-align:center;"> 
-                <h2 style="
-                color:#333;">Confirme seu email</h2> 
-                <p style="
-                color:#555;f
-                ont-size:16px;"> Obrigado por criar sua conta! Clique no botão abaixo para verificar seu email. </p> 
-                <a href="http://localhost:8000/usuario/verificar?token={verification_token}" 
-                style="
-                display:inline-block;
-                margin-top:20px;
-                padding:15px 25px;
-                background-color:#28a745;
-                color:#ffffff;
-                text-decoration:none;
-                border-radius:5px;
-                font-weight:bold;"> Confirmar Conta </a> 
-                <p style="
-                margin-top:30px;
-                color:#999;
-                font-size:12px;"> Se você não criou essa conta, pode ignorar este email. </p> 
-            </td> 
-        </tr> """
-
-        # schema de mensagem para ser enviado
-        message = MessageSchema(
-            subject="Consumo Sustentável - Verificação de Email",
-            recipients=emails,
-            body=html,
-            subtype=MessageType.html)
-
-        # configuracao do email remetente
-        fm = FastMail(conf)
-
-        # manda o email
-        await fm.send_message(message)
-        return {"message": "email enviado"}
-    
-    # se nao tiver um usuario com esse email
-    else:
-        raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
-
-# funcao para enviar email de confirmacao de deletar conta
-async def fun_send_delete_email(emails, user_id, session):
-    # busca se tem um usuario com esse email
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
-    
-    # se tiver
-    if busca:
-        # cria um token
-        verification_token = create_token(user_id)
-        
-        # html do email enviado
-        html = f"""
-        <tr> 
-            <td style="
-            padding:30px;
-            text-align:center;"> 
-                <h2 style="
-                color:#333;">Confirmar Exclusão</h2> 
-                <p style="
-                color:#555;f
-                ont-size:16px;"> Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta. </p> 
-                <a href="http://localhost:8000/usuario/delete_via_email?token={verification_token}" 
-                style="
-                display:inline-block;
-                margin-top:20px;
-                padding:15px 25px;
-                background-color:#28a745;
-                color:#ffffff;
-                text-decoration:none;
-                border-radius:5px;
-                font-weight:bold;"> Excluir Conta </a> 
-                <p style="
-                margin-top:30px;
-                color:#999;
-                font-size:12px;"> Se você não solicitou a exclusão, pode ignorar este email. </p> 
-            </td> 
-        </tr> """
-
-        # schema do email enviado
-        message = MessageSchema(
-            subject="Consumo Sustentável - Deletar Conta",
-            recipients=emails,
-            body=html,
-            subtype=MessageType.html)
-
-        # configuracao do email remetente
-        fm = FastMail(conf)
-        
-        # envia a mensagem
-        await fm.send_message(message)
-        
-        return {"message": "email enviado"}
-    
-    # se nao tiver um usuario com esse email
-    else:
-        raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
-    
-# funcao para enviar email de confirmacao de atualizar conta
-async def fun_send_update_email(emails, user_id, session):
-    # busca se tem um usuario com esse email
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
-    
-    # se tiver
-    if busca:
-        # cria um token
-        verification_token = create_token(user_id)
-
-        # html do email enviado
-        html = f"""
-        <tr> 
-            <td style="
-            padding:30px;
-            text-align:center;"> 
-                <h2 style="
-                color:#333;">Confirmar atualização</h2> 
-                <p style="
-                color:#555;f
-                ont-size:16px;"> Clique no botão abaixo para confirmar a atualização da sua conta. </p> 
-                <a href="http://localhost:8000/usuario/update_via_email?token={verification_token}" 
-                style="
-                display:inline-block;
-                margin-top:20px;
-                padding:15px 25px;
-                background-color:#28a745;
-                color:#ffffff;
-                text-decoration:none;
-                border-radius:5px;
-                font-weight:bold;"> Atualizar Conta </a> 
-                <p style="
-                margin-top:30px;
-                color:#999;
-                font-size:12px;"> Se você não solicitou a atualização das informações, pode ignorar este email. </p> 
-            </td> 
-        </tr> """
-
-        # schema do email enviado
-        message = MessageSchema(
-            subject="Consumo Sustentável - Atualizar Conta",
-            recipients=emails,
-            body=html,
-            subtype=MessageType.html)
-
-        # configuracao do email remetente
-        fm = FastMail(conf)
-        
-        # envia a mensagem
-        await fm.send_message(message)
-        
-        return {"message": "email enviado"}
-    
-    # se nao tiver um usuario com esse email
-    else:
-        raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
