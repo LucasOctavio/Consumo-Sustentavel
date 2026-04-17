@@ -118,7 +118,7 @@ async def fun_send_verify_email(emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Obrigado por criar sua conta! Clique no botão abaixo para verificar seu email. </p> 
-                <a href="http://localhost:8000/usuario/verify_via_email?token={verification_token}" 
+                <a href="https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}" 
                 style="
                 display:inline-block;
                 margin-top:20px;
@@ -175,7 +175,7 @@ async def fun_send_permission_email(emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Clique no botão abaixo para permitir a entrada na conta. </p> 
-                <a href="http://localhost:8000/usuario/permission_via_email?token={verification_token}" 
+                <a href="https://consumo-sustentavel.onrender.com/usuario/permission_via_email?token={verification_token}" 
                 style="
                 display:inline-block;
                 margin-top:20px;
@@ -232,7 +232,7 @@ async def fun_send_delete_email(emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta. </p> 
-                <a href="http://localhost:8000/usuario/delete_via_email?token={verification_token}" 
+                <a href="https://consumo-sustentavel.onrender.com/usuario/delete_via_email?token={verification_token}" 
                 style="
                 display:inline-block;
                 margin-top:20px;
@@ -290,7 +290,7 @@ async def fun_send_update_email(dados, emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Clique no botão abaixo para confirmar a atualização da sua conta. </p> 
-                <a href="http://localhost:8000/usuario/update_via_email?token={verification_token}&dados={verification_dados}" 
+                <a href="https://consumo-sustentavel.onrender.com/usuario/update_via_email?token={verification_token}&dados={verification_dados}" 
                 style="
                 display:inline-block;
                 margin-top:20px;
