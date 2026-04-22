@@ -9,45 +9,46 @@ from src.services.meta_service import *
 # defini o prefixo dele
 meta_roteador = APIRouter(prefix="/meta", tags=["meta"], dependencies=[Depends(verificar_token)])
 
-# rota inicial
-@meta_roteador.get("/")
-async def meta():
-    """
-    Essa é a rota de meta
-    """
-    return {"mensagem": "Você entrou na rota de meta"}
-
 # NOTE - rota de listar
 
-@meta_roteador.get("/read")
+@meta_roteador.get("/read", summary='Ler meta')
 async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
-    """
-    Essa é a rota de ler as metas cadastradas no usuario, ele pede um token
-    """
+    '''\n \n \n Atualizar uma meta. \n \n \
+    '''
     return fun_read(usuario, session)
 
 # NOTE - rota de criar
 
-@meta_roteador.post("/create")
+@meta_roteador.post("/create", summary='Criar meta')
 async def create(dados: MetaSchema, session: Session = Depends(pegar_sessao), busca: Usuario = Depends(verificar_token)):
-    """
-    Essa é a rota de criar uma meta, ela pede os dados da nova meta e de um token
-    """
+    '''\n \n \n Criar uma meta. \n \n \
+    tipo = str \n \n \
+    valor = int \n \n \
+    medida = str \n \n \
+    dt_inicio = date \n \n \
+    dt_fim = date \n \n \
+    '''
     return fun_create(dados, session, busca)
 
 # NOTE - rota de delete
-@meta_roteador.delete("/delete")
+@meta_roteador.delete("/delete", summary='Deletar meta')
 async def delete(meta_id, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
-    """
-    Essa é a rota de deletar uma meta, ela pede o id da meta que deseja deletar e o token
-    """
+    '''\n \n \n Deletar uma meta. \n \n \
+    id = int \n \n \
+    '''
     return fun_delete(meta_id, session, usuario)
 
 # NOTE - rota de atualizar
 
-@meta_roteador.patch("/update")
+@meta_roteador.patch("/update", summary='Atualizar meta')
 async def update(dados: MetaUpdate, busca: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
-    """
-    Essa é a rota de atualizar uma meta, ela pede os dados que deseja alterar da meta, id da meta e um token
-    """
+    '''\n \n \n Atualizar uma meta. \n \n \
+    id = int \n \n \
+    tipo = str \n \n \
+    valor = int \n \n \
+    medida = str \n \n \
+    dt_inicio = date \n \n \
+    dt_fim = date \n \n \
+    '''
     return fun_update(dados, busca.user_id, session)
+    

@@ -4,6 +4,8 @@ from src.models.usuario_model import Usuario
 from src.config import *
 from src.services.usuario_service import create_token
 from fastapi_mail import FastMail, MessageSchema, MessageType
+from src.services.usuario_service import authenticate
+from datetime import timedelta
 
 # NOTE - funcoes de alterar informacoes usando email
 
@@ -55,12 +57,31 @@ def fun_update_via_email(dados, user_id, session):
     return {"mensagem": "Dados da conta atualizado"}
 
 # funcao de permitir a entrada na conta
-async def fun_permission_via_email(token, session):
+async def fun_login_via_email(dados, token, session):
     # busca se tem um usuario com esse id
-    busca = session.query(Usuario).filter(Usuario.user_id == token).first()
+    usuario = session.get(Usuario, token)
 
-    if busca:
-        return {"message": "Entrada permitida"}
+    if usuario:
+        # verifica se a senha e o nome esta correto
+        busca = authenticate(dados.get("nome"), dados.get("senha"), session)
+
+        # se nao tiver um usuario com esse nome e senha
+        if not busca:
+            # levanta aviso de erro
+            raise HTTPException(status_code=401, detail="Credenciais inválidas")
+        
+        # se tiver algo
+        else:
+            # cria um token de acesso e um token de refresh
+            access_token = create_token(busca.user_id)
+            refrush_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
+            
+            # e retorna token pro usuario
+            return {
+                "access_token": access_token,
+                "refresh_token": refrush_token,
+                "token_type": "Bearer"
+            }
     
     else:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -73,6 +94,7 @@ async def fun_verify_via_email(session, token):
 
     # se sim
     if busca:
+        
         # e se ja for um usuario verifacado
         if busca.user_verified:
             # erro
@@ -154,7 +176,7 @@ async def fun_send_verify_email(emails, user_id, session):
         raise HTTPException(status_code=404, detail="Email não cadastrado, verifique o email digitado")
 
 # funcao para enviar email de verificao para o email
-async def fun_send_permission_email(emails, user_id, session):
+async def fun_send_login_email(emails, user_id, dados, session):
 
     # busca se tem um usuario com esse email
     busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
@@ -163,7 +185,8 @@ async def fun_send_permission_email(emails, user_id, session):
     if busca:
         # cria um token com o id do usuario
         verification_token = create_token(user_id)
-        
+        verification_dados = create_token(dados)
+
         # html do email enviado
         html = f"""
         <tr> 
@@ -175,7 +198,7 @@ async def fun_send_permission_email(emails, user_id, session):
                 <p style="
                 color:#555;f
                 ont-size:16px;"> Clique no botão abaixo para permitir a entrada na conta. </p> 
-                <a href="https://consumo-sustentavel.onrender.com/usuario/permission_via_email?token={verification_token}" 
+                <a href="https://consumo-sustentavel.onrender.com/usuario/login_via_email?token={verification_token}&dados={verification_dados}" 
                 style="
                 display:inline-block;
                 margin-top:20px;

@@ -21,3 +21,12 @@ class UsuarioUpdate(BaseModel):
     # configuracao para ele ser identificado com uma classe que vai ser transformada em um sql
     class Config:
         from_attributes = True
+
+# esquema de login usuario
+class UsuarioLogin(BaseModel):
+    nome: str
+    senha: str
+
+    # configuracao para ele ser identificado com uma classe que vai ser transformada em um sql
+    class Config:
+        from_attributes = True
