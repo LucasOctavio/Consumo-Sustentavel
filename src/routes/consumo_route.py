@@ -1,4 +1,4 @@
-# importaçoes
+ # importaçoes
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.dependencia import pegar_sessao, verificar_token
@@ -22,10 +22,10 @@ async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depe
 @consumo_roteador.post("/create", summary='Criar consumo')
 async def create(dados: ConsumoSchema, session: Session = Depends(pegar_sessao), busca: Usuario = Depends(verificar_token)):
     '''\n \n \n Criar um consumo. \n \n \
-    tipo = str \n \n \
+    tipo = "str" \n \n \
     valor = int \n \n \
-    medida = str \n \n \
-    dt = date \n \n \
+    medida = "str" \n \n \
+    dt = "date" \n \n \
     simulado = bool \n \n \
     '''
     return fun_create(dados, session, busca)
@@ -45,10 +45,10 @@ async def delete(con_id, usuario: Usuario = Depends(verificar_token), session: S
 async def update(dados: ConsumoUpdate, busca: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar um consumo. \n \n \
     id = int \n \n \
-    tipo = str \n \n \
+    tipo = "str" \n \n \
     valor = int \n \n \
-    medida = str \n \n \
-    dt = date \n \n \
+    medida = "str" \n \n \
+    dt = "date" \n \n \
     simulado = bool \n \n \
     '''
     return fun_update(dados, busca.user_id, session)

@@ -17,7 +17,7 @@ email_roteador = APIRouter(prefix="/usuario", tags=["email"])
 @email_roteador.post("/send_verify_email", summary='enviar e-mail Verificão')
 async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Mandar verificador via e-mail da conta. \n \n \
-    email = Emailstr   \n \n \
+    email = "Emailstr"   \n \n \
     '''
     # defini funcao
     return await fun_send_verify_email(email.email, token.user_id, session)
@@ -26,9 +26,9 @@ async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verific
 @email_roteador.post("/send_login_email", summary='enviar e-mail login')
 async def send_login_email(dados: UsuarioLogin, email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Mandar acesso via e-mail. \n \n \
-    nome = str    \n \n \
-    senha = str   \n \n \
-    email = Emailstr   \n \n \
+    nome = "str"    \n \n \
+    senha = "str"   \n \n \
+    email = "Emailstr"   \n \n \
     '''
     # defini funcao
     return await fun_send_login_email(email.email, token.user_id, dados, session)
@@ -37,7 +37,7 @@ async def send_login_email(dados: UsuarioLogin, email: EmailSchema, token: Usuar
 @email_roteador.post("/send_delete_email", summary='enviar e-mail Deletar')
 async def send_delete_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar uma conta pelo e-mail. \n \n \
-    email = Emailstr \n \n \
+    email = "Emailstr" \n \n \
     '''
     # defini funcao
     return await fun_send_delete_email(email.email, token.user_id, session)
@@ -46,11 +46,11 @@ async def send_delete_email(email: EmailSchema, token: Usuario = Depends(verific
 @email_roteador.post("/send_update_email", summary='Atualizar e-mail')
 async def send_update_email(dados: UsuarioUpdate, email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualiza uma conta pelo e-mail. \n \n \
-    user_name = str \n \n \
-    user_email = Emailstr \n \n \
-    user_senha = str \n \n \
+    user_name = "str" \n \n \
+    user_email = "Emailstr" \n \n \
+    user_senha = "str" \n \n \
     \n \n \
-    email = Emailstr \n \n \
+    email = "Emailstr" \n \n \
     '''
     # defini funcao
     return await fun_send_update_email(dados, email.email, token.user_id, session)

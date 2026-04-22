@@ -22,11 +22,11 @@ async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depe
 @meta_roteador.post("/create", summary='Criar meta')
 async def create(dados: MetaSchema, session: Session = Depends(pegar_sessao), busca: Usuario = Depends(verificar_token)):
     '''\n \n \n Criar uma meta. \n \n \
-    tipo = str \n \n \
+    tipo = "str" \n \n \
     valor = int \n \n \
-    medida = str \n \n \
-    dt_inicio = date \n \n \
-    dt_fim = date \n \n \
+    medida = "str" \n \n \
+    dt_inicio = "date" \n \n \
+    dt_fim = "date" \n \n \
     '''
     return fun_create(dados, session, busca)
 
@@ -44,11 +44,11 @@ async def delete(meta_id, usuario: Usuario = Depends(verificar_token), session: 
 async def update(dados: MetaUpdate, busca: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar uma meta. \n \n \
     id = int \n \n \
-    tipo = str \n \n \
+    tipo = "str" \n \n \
     valor = int \n \n \
-    medida = str \n \n \
-    dt_inicio = date \n \n \
-    dt_fim = date \n \n \
+    medida = "str" \n \n \
+    dt_inicio = "date" \n \n \
+    dt_fim = "date" \n \n \
     '''
     return fun_update(dados, busca.user_id, session)
     

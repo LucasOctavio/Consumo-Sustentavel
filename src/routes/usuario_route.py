@@ -38,9 +38,9 @@ async def refresh_token(busca: Usuario = Depends(verificar_token)):
 @usuario_roteador.post("/sign_in", summary='Cadastar conta')
 async def sign_in(dados: UsuarioSchema, session: Session = Depends(pegar_sessao)):
     '''\n \n \n Adicionar uma conta. \n \n \
-    nome = str \n \n \
-    email = Emailstr \n \n \
-    senha = str \n \n \
+    nome = "str" \n \n \
+    email = "Emailstr" \n \n \
+    senha = "str" \n \n \
     '''
     # defini funcao
     return fun_sign_in(dados.nome, dados.email, dados.senha, session)
@@ -51,8 +51,8 @@ async def sign_in(dados: UsuarioSchema, session: Session = Depends(pegar_sessao)
 @usuario_roteador.post("/login", summary='Acessar conta')
 async def login(dados: UsuarioLogin, session: Session = Depends(pegar_sessao)):
     '''\n \n \n Acessar uma conta. \n \n \
-    nome = str \n \n \
-    senha = str \n \n \
+    nome = "str" \n \n \
+    senha = "str" \n \n \
     '''
     # defini funcao
     return fun_login(dados.nome, dados.senha, session)
@@ -79,9 +79,9 @@ async def delete(token: Usuario = Depends(verificar_token), session : Session = 
 @usuario_roteador.patch("/update", summary='Atualizar conta')
 async def update(dados: UsuarioUpdate, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar uma conta. \n \n \
-    name = str \n \n \
-    email = Emailstr \n \n \
-    senha = str \n \n \
+    name = "str" \n \n \
+    email = "Emailstr" \n \n \
+    senha = "str" \n \n \
     '''
     # defini funcao
     return fun_update(dados, token.user_id, session)
