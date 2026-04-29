@@ -170,6 +170,7 @@ def fun_update(dados, user_id, session):
         # criptografa senha
         dados.user_senha = bcrypt_context.hash(dados.user_senha)
 
+        dados.dict = {k: v for k, v in dados_brutos.items() if v != ""}
     # para cada informacao enviada pelo usuario
     for key, value in dados.dict(exclude_unset=True).items():
         # ele verifica se tem campos vazios nas informacoes passadas
