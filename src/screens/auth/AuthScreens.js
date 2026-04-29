@@ -1,46 +1,30 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
-import { FontAwesome5 } from '@expo/vector-icons';
 import { AuthLayout } from '../../components/AuthLayout';
 import { Card } from '../../components/Card';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { AuthContext, useTheme } from '../../navigation/AppNavigator';
 
-const Separator = () => {
-  return (
-    <View style={styles.separatorContainer}>
-      <View style={styles.separatorLine} />
-      <Text style={styles.separatorText}>Entrar com</Text>
-      <View style={styles.separatorLine} />
-    </View>
-  );
-};
+
 
 export const LoginScreen = ({ navigation }) => {
-  const { login, register } = useContext(AuthContext);
-  const [name, setName] = useState('');
+  const { login } = useContext(AuthContext);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!name || !password) {
+    if (!email || !password) {
       setError("Por favor, preencha todos os campos.");
       return;
     }
     
     setError('');
-    const result = await login(name, password);
+    const result = await login(email, password);
     if (!result.success) {
       setError(result.message);
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    // Mock Google Login
-    const googleName = "Google User";
-    await register(googleName, "google@user.com", "google-oauth-pass");
-    Alert.alert("Sucesso", "Logado com Google!");
   };
 
   return (
@@ -49,9 +33,10 @@ export const LoginScreen = ({ navigation }) => {
         <Text style={styles.title}>Faça o login</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Input 
-          placeholder="Nome" 
-          value={name} 
-          onChangeText={(t) => { setName(t); setError(''); }} 
+          placeholder="Email" 
+          keyboardType="email-address"
+          value={email} 
+          onChangeText={(t) => { setEmail(t); setError(''); }} 
         />
         <Input 
           placeholder="Senha" 
@@ -59,6 +44,7 @@ export const LoginScreen = ({ navigation }) => {
           value={password} 
           onChangeText={(t) => { setPassword(t); setError(''); }} 
         />
+
         <Button 
           title="Entrar" 
           onPress={handleLogin} 
@@ -66,20 +52,18 @@ export const LoginScreen = ({ navigation }) => {
         />
       </Card>
       
-      <Separator />
-      
-      <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
-        <FontAwesome5 name="google" size={24} color="#DB4437" />
-      </TouchableOpacity>
-
       <View style={styles.footerLinks}>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.footerLinkText}>
             Não tem uma conta ainda? <Text style={styles.linkBlue}>cadastrar</Text>
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Recovery')} style={{marginTop: 5}}>
-          <Text style={styles.linkBlue}>Esqueceu a senha?</Text>
+        
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Recovery')} 
+          style={{ marginTop: 15 }}
+        >
+          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </View>
     </AuthLayout>
@@ -87,7 +71,7 @@ export const LoginScreen = ({ navigation }) => {
 };
 
 export const RegisterScreen = ({ navigation }) => {
-  const { register, login } = useContext(AuthContext);
+  const { register } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,11 +98,6 @@ export const RegisterScreen = ({ navigation }) => {
     if (!result.success) {
       setError(result.message);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    register("Google User", "google@user.com", "google-oauth-pass");
-    Alert.alert("Sucesso", "Cadastrado via Google!");
   };
 
   return (
@@ -150,12 +129,6 @@ export const RegisterScreen = ({ navigation }) => {
         />
       </Card>
       
-      <Separator />
-      
-      <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
-        <FontAwesome5 name="google" size={24} color="#3779dbff" />
-      </TouchableOpacity>
-
       <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
           Já tem cadastro faça seu <Text style={styles.linkBlue}>login</Text>
@@ -352,39 +325,9 @@ const styles = StyleSheet.create({
     height: 55,
     marginTop: 15,
   },
-  separatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 30,
-    width: '100%',
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1.5,
-    backgroundColor: '#000',
-  },
-  separatorText: {
-    marginHorizontal: 15,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  googleBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    marginBottom: 30,
-  },
   footerLinks: {
     alignItems: 'center',
+    marginTop: 30,
   },
   footerLinkText: {
     fontSize: 15,
@@ -393,6 +336,12 @@ const styles = StyleSheet.create({
   },
   linkBlue: {
     color: '#00D1FF',
+  },
+  forgotPasswordText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
   backBtn: {
     alignSelf: 'flex-start',

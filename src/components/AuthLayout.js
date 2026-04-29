@@ -18,10 +18,6 @@ export const AuthLayout = ({ children }) => {
           <Logo showText={true} />
           {children}
         </View>
-        <View style={styles.bottomFooter}>
-          <Text style={styles.footerText}>©2026 Entertainment, Inc.</Text>
-          <FontAwesome5 name="mouse-pointer" size={20} color="#FFFFFF" style={{marginTop: 15}} />
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -38,18 +34,9 @@ const styles = StyleSheet.create({
   topSection: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  bottomFooter: {
-    backgroundColor: '#1E2C5A', // The dark footer from the original overview
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 30,
-  },
-  footerText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
+    paddingHorizontal: 25,
+    paddingTop: 40,
+    paddingBottom: 40,
   }
 });

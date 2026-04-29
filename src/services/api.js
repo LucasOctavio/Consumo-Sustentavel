@@ -2,7 +2,10 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
+  // URL para produção (Render)
   baseURL: 'https://consumo-sustentavel.onrender.com',
+  // URL para desenvolvimento local (descomente para usar o backend local)
+  // baseURL: 'http://localhost:8000', 
 });
 
 // Interceptor to add the token to every request
@@ -62,9 +65,10 @@ export const consumptionService = {
     // API expect: { valor, data, tipo, medida } (guessing based on docs)
     const response = await api.post('/consumo/create', {
       valor: parseFloat(data.value),
-      data: data.date,
+      dt: data.date, // 'dt' conforme o backend
       tipo: data.type,
-      medida: data.unit
+      medida: data.unit,
+      simulado: false // Campo obrigatório no backend
     });
     return response.data;
   },
@@ -84,8 +88,8 @@ export const goalService = {
       valor: parseFloat(data.value),
       tipo: data.type,
       medida: data.unit,
-      data_inicio: data.start,
-      data_fim: data.end
+      dt_inicio: data.start, // 'dt_inicio' conforme o backend
+      dt_fim: data.end      // 'dt_fim' conforme o backend
     });
     return response.data;
   },

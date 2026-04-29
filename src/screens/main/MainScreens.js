@@ -42,8 +42,13 @@ const AddButtonFull = ({ onPress }) => {
   );
 };
 
-export const HomeScreen = () => {
+export const HomeScreen = ({ navigation }) => {
   const { colors } = useTheme();
+  const { consumptions, goals } = useContext(AuthContext);
+  
+  const latestConsumption = consumptions[0] || { type: 'N/A', value: 0, unit: '-' };
+  const currentGoal = goals[0] || null;
+
   const tips = [
     "Higiene sustentável - feche a torneira ao escovar os dentes e reduza banhos para 5 minutos.",
     "Utilize lâmpadas LED para economizar até 80% de energia.",
@@ -64,12 +69,13 @@ export const HomeScreen = () => {
   const dayOfYear = Math.floor(diff / oneDay);
   const dailyTip = tips[dayOfYear % tips.length];
   
+  const chartConsumptions = consumptions.slice(0, 5).reverse();
   const barData = {
-    labels: ["S1", "S2", "S3", "S4", "S5"],
+    labels: chartConsumptions.length > 0 ? chartConsumptions.map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]) : ["-"],
     datasets: [
       {
-        data: [35, 75, 95, 55, 85],
-        colors: [() => colors.chart.barBlue, () => colors.chart.barOrange, () => colors.chart.barBlue, () => colors.chart.barOrange, () => colors.chart.barBlue]
+        data: chartConsumptions.length > 0 ? chartConsumptions.map(c => Number(c.value) || 0) : [0],
+        colors: chartConsumptions.map((_, i) => i % 2 === 0 ? () => colors.chart.barBlue : () => colors.chart.barOrange)
       }
     ]
   };
@@ -78,36 +84,44 @@ export const HomeScreen = () => {
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Tela Inicial</Text>
       
-      <Card>
-        <Text style={[styles.cardHeader, { color: colors.text }]}>Consumo Recentes</Text>
-        <BarChart
-          data={barData}
-          width={screenWidth}
-          height={180}
-          chartConfig={getChartConfig(colors)}
-          fromZero
-          style={styles.chart}
-        />
-      </Card>
+      <TouchableOpacity onPress={() => navigation.navigate('Consumption')}>
+        <Card>
+          <Text style={[styles.cardHeader, { color: colors.text }]}>Consumo Recentes</Text>
+          <BarChart
+            data={barData}
+            width={screenWidth}
+            height={180}
+            chartConfig={getChartConfig(colors)}
+            fromZero
+            style={styles.chart}
+          />
+        </Card>
+      </TouchableOpacity>
 
-      <Card>
-        <Text style={[styles.cardHeader, { color: colors.text }]}>Meta Atual</Text>
-        <View style={styles.metaContentRow}>
-          <View style={styles.metaDetailsGroup}>
-            <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
-              <Text style={[styles.metaInfoLine, { color: colors.text }]}>Consumo: 50   Medida: kWh</Text>
-              <Text style={[styles.metaInfoLine, { color: colors.text }]}>Tipo: Energia</Text>
+      <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
+        <Card>
+          <Text style={[styles.cardHeader, { color: colors.text }]}>Meta Atual</Text>
+          {currentGoal ? (
+            <View style={styles.metaContentRow}>
+              <View style={styles.metaDetailsGroup}>
+                <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
+                  <Text style={[styles.metaInfoLine, { color: colors.text }]}>Consumo: {currentGoal.value} Medida: {currentGoal.unit}</Text>
+                  <Text style={[styles.metaInfoLine, { color: colors.text }]}>Tipo: {currentGoal.type}</Text>
+                </View>
+                <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
+                  <Text style={[styles.metaInfoLine, { color: colors.text }]}>Inicio: {currentGoal.start}</Text>
+                  <Text style={[styles.metaInfoLine, { color: colors.text }]}>Fim: {currentGoal.end}</Text>
+                </View>
+              </View>
+              <View style={styles.progressBox}>
+                <CircularProgress percentage={currentGoal.progress} radius={40} color={colors.progress.orange} />
+              </View>
             </View>
-            <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
-              <Text style={[styles.metaInfoLine, { color: colors.text }]}>Inicio: 22/09/2008</Text>
-              <Text style={[styles.metaInfoLine, { color: colors.text }]}>Fim: 22/09/2009</Text>
-            </View>
-          </View>
-          <View style={styles.progressBox}>
-            <CircularProgress percentage={52} radius={40} color={colors.progress.orange} />
-          </View>
-        </View>
-      </Card>
+          ) : (
+            <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>Nenhuma meta definida</Text>
+          )}
+        </Card>
+      </TouchableOpacity>
 
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Dica do dia</Text>
       <Card style={{ marginBottom: 20, borderLeftWidth: 5, borderLeftColor: '#FFD700' }}>
@@ -124,16 +138,32 @@ export const HomeScreen = () => {
 
 export const ConsumptionScreen = () => {
   const { colors } = useTheme();
+  const { consumptions, addConsumption } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
-  const [period, setPeriod] = useState('1 semana');
-  const [items, setItems] = useState([
-    { id: 1, type: 'Água', value: 50, date: '20/05/2009', unit: 'L' },
-    { id: 2, type: 'Energia', value: 12, date: '20/05/2008', unit: 'kWh' }
-  ]);
+  const [period, setPeriod] = useState('1 sem');
+
+  const filterDataByPeriod = (data, periodStr) => {
+    const now = new Date();
+    let days = 7;
+    if (periodStr.includes('2 sem')) days = 14;
+    else if (periodStr.includes('3 sem')) days = 21;
+    else if (periodStr.includes('1 mês')) days = 30;
+    else if (periodStr.includes('2 mê')) days = 60;
+    else if (periodStr.includes('3 mê')) days = 90;
+
+    const cutoff = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+    
+    return data.filter(item => {
+      const [day, month, year] = item.date.split('/').map(Number);
+      const itemDate = new Date(year, month - 1, day);
+      return itemDate >= cutoff;
+    }).reverse();
+  };
+
+  const filteredConsumptions = filterDataByPeriod(consumptions, period);
 
   const handleAdd = (data) => {
-    const newItem = { id: items.length + 1, ...data };
-    setItems([newItem, ...items]);
+    addConsumption(data);
     setModalVisible(false);
   };
 
@@ -161,8 +191,10 @@ export const ConsumptionScreen = () => {
         </ScrollView>
         <BarChart
           data={{
-            labels: ["S1", "S2", "S3", "S4"],
-            datasets: [{ data: [40, 80, 50, 90] }]
+            labels: filteredConsumptions.length > 0 ? filteredConsumptions.map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]) : ["-"],
+            datasets: [{ 
+              data: filteredConsumptions.length > 0 ? filteredConsumptions.map(c => Number(c.value) || 0) : [0]
+            }]
           }}
           width={screenWidth}
           height={180}
@@ -172,47 +204,52 @@ export const ConsumptionScreen = () => {
         />
       </Card>
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Registros atuais</Text>
-      {items.length === 0 ? (
-        <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há dados registrados</Text></Card>
-      ) : (
-        items.map(item => (
-          <Card key={item.id} style={{ marginBottom: 15 }}>
-            <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
-            <View style={styles.registerEntryRow}>
-              <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-              <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-            </View>
-            <View style={styles.registerEntryRow}>
-              <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-              <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-            </View>
-          </Card>
-        ))
-      )}
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const todayItems = consumptions.filter(item => item.date === today);
+        
+        return todayItems.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registro atual</Text></Card>
+        ) : (
+          todayItems.map(item => (
+            <Card key={item.id} style={{ marginBottom: 15 }}>
+              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+              </View>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+              </View>
+            </Card>
+          ))
+        );
+      })()}
 
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Registros anteriores</Text>
-      <Card style={{ marginBottom: 15 }}>
-        <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Tipo: Água</Text>
-          <Text style={{ color: colors.text }}>Data: 15/04/2008</Text>
-        </View>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Consumo: 45</Text>
-          <Text style={{ color: colors.text }}>Medida: L</Text>
-        </View>
-      </Card>
-      <Card style={{ marginBottom: 15 }}>
-        <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Tipo: Energia</Text>
-          <Text style={{ color: colors.text }}>Data: 10/01/2007</Text>
-        </View>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Consumo: 150</Text>
-          <Text style={{ color: colors.text }}>Medida: kWh</Text>
-        </View>
-      </Card>
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const olderItems = consumptions.filter(item => item.date !== today);
+        
+        return olderItems.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registros anteriores</Text></Card>
+        ) : (
+          olderItems.map(item => (
+            <Card key={item.id} style={{ marginBottom: 15 }}>
+              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+              </View>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+              </View>
+            </Card>
+          ))
+        );
+      })()}
       <AddModal visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar Consumo" onAdd={handleAdd} />
     </AppLayout>
   );
@@ -220,16 +257,32 @@ export const ConsumptionScreen = () => {
 
 export const SimulatedScreen = () => {
   const { colors } = useTheme();
+  const { simulations, addSimulation } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
-  const [period, setPeriod] = useState('1 semana');
-  const [items, setItems] = useState([
-    { id: 1, type: 'Água', value: 50, date: '12/10/2009', unit: 'L' },
-    { id: 2, type: 'Energia', value: 12, date: '31/03/2005', unit: 'kWh' }
-  ]);
+  const [period, setPeriod] = useState('1 sem');
+
+  const filterDataByPeriod = (data, periodStr) => {
+    const now = new Date();
+    let days = 7;
+    if (periodStr.includes('2 sem')) days = 14;
+    else if (periodStr.includes('3 sem')) days = 21;
+    else if (periodStr.includes('1 mês')) days = 30;
+    else if (periodStr.includes('2 mê')) days = 60;
+    else if (periodStr.includes('3 mê')) days = 90;
+
+    const cutoff = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+    
+    return data.filter(item => {
+      const [day, month, year] = item.date.split('/').map(Number);
+      const itemDate = new Date(year, month - 1, day);
+      return itemDate >= cutoff;
+    }).reverse();
+  };
+
+  const filteredSimulations = filterDataByPeriod(simulations, period);
 
   const handleAdd = (data) => {
-    const newItem = { id: items.length + 1, ...data };
-    setItems([newItem, ...items]);
+    addSimulation(data);
     setModalVisible(false);
   };
 
@@ -257,8 +310,13 @@ export const SimulatedScreen = () => {
         </ScrollView>
         <LineChart
           data={{
-            labels: ["S1", "S2", "S3", "S4"],
-            datasets: [{ data: [20, 50, 40, 90], color: () => colors.chart.barOrange }, { data: [30, 45, 60, 85], color: () => colors.success }]
+            labels: filteredSimulations.length > 0 ? filteredSimulations.map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]) : ["-"],
+            datasets: [
+              { 
+                data: filteredSimulations.length > 0 ? filteredSimulations.map(c => Number(c.value) || 0) : [0], 
+                color: () => colors.chart.barOrange 
+              }
+            ]
           }}
           width={screenWidth}
           height={180}
@@ -268,32 +326,52 @@ export const SimulatedScreen = () => {
         />
       </Card>
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Registros atuais</Text>
-      {items.map(item => (
-        <Card key={item.id} style={{ marginBottom: 15 }}>
-          <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
-          <View style={styles.registerEntryRow}>
-            <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-            <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-          </View>
-          <View style={styles.registerEntryRow}>
-            <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-            <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-          </View>
-        </Card>
-      ))}
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const todayItems = simulations.filter(item => item.date === today);
+        
+        return todayItems.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registro atual</Text></Card>
+        ) : (
+          todayItems.map(item => (
+            <Card key={item.id} style={{ marginBottom: 15 }}>
+              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+              </View>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+              </View>
+            </Card>
+          ))
+        );
+      })()}
 
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Registros anteriores</Text>
-      <Card style={{ marginBottom: 15 }}>
-        <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Tipo: Energia</Text>
-          <Text style={{ color: colors.text }}>Data: 22/09/2008</Text>
-        </View>
-        <View style={styles.registerEntryRow}>
-          <Text style={{ color: colors.text }}>Consumo: 15</Text>
-          <Text style={{ color: colors.text }}>Medida: kWh</Text>
-        </View>
-      </Card>
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const olderItems = simulations.filter(item => item.date !== today);
+        
+        return olderItems.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registros anteriores</Text></Card>
+        ) : (
+          olderItems.map(item => (
+            <Card key={item.id} style={{ marginBottom: 15 }}>
+              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+              </View>
+              <View style={styles.registerEntryRow}>
+                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+              </View>
+            </Card>
+          ))
+        );
+      })()}
       <AddModal visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar ao Simulador" onAdd={handleAdd} />
     </AppLayout>
   );
@@ -301,18 +379,32 @@ export const SimulatedScreen = () => {
 
 export const GoalsScreen = () => {
   const { colors } = useTheme();
+  const { goals, addGoal } = useContext(AuthContext);
+  const [period, setPeriod] = useState('1 sem');
   const [modalVisible, setModalVisible] = useState(false);
-  const [goals, setGoals] = useState([
-    { id: 1, type: 'Energia', value: 50, unit: 'kWh', start: '22/09/2008', end: '22/09/2009', progress: 52 },
-  ]);
 
-  const pastGoals = [
-    { id: 101, type: 'Água', value: 1200, unit: 'L', start: '06/04/2008', end: '17/07/2011', progress: 52 }
-  ];
+  const filterDataByPeriod = (data, periodStr) => {
+    const now = new Date();
+    let days = 7;
+    if (periodStr.includes('2 sem')) days = 14;
+    else if (periodStr.includes('3 sem')) days = 21;
+    else if (periodStr.includes('1 mês')) days = 30;
+    else if (periodStr.includes('2 mê')) days = 60;
+    else if (periodStr.includes('3 mê')) days = 90;
+
+    const cutoff = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+    
+    return data.filter(item => {
+      const [day, month, year] = item.start.split('/').map(Number);
+      const itemDate = new Date(year, month - 1, day);
+      return itemDate >= cutoff;
+    });
+  };
+
+  const filteredGoalsForChart = filterDataByPeriod(goals, period);
 
   const handleAdd = (data) => {
-    const newGoal = { id: goals.length + 1, type: data.type, value: data.value, unit: data.unit, start: data.date, end: '31/12/2026', progress: 0 };
-    setGoals([newGoal, ...goals]);
+    addGoal(data);
     setModalVisible(false);
   };
 
@@ -321,47 +413,120 @@ export const GoalsScreen = () => {
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Metas</Text>
       <AddButtonFull onPress={() => setModalVisible(true)} />
       
-      <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Meta Atual</Text>
-      {goals.map(goal => (
-        <Card key={goal.id} style={{ marginBottom: 20 }}>
-          <View style={styles.metaContentRow}>
-            <View style={styles.metaDetailsGroup}>
-              <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
-              </View>
-              <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
-              </View>
-            </View>
-            <View style={styles.progressBox}>
-              <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.orange} />
-            </View>
+      <Card style={{ marginBottom: 20 }}>
+        <View style={styles.chartHeaderRow}>
+          <Text style={[styles.cardHeader, { color: colors.text, marginBottom: 0 }]}>Análise por Recurso</Text>
+          <View style={[styles.activePeriodBadge, { backgroundColor: colors.secondary + '20' }]}>
+            <Text style={[styles.activePeriodBadgeText, { color: colors.secondary }]}>{period}</Text>
           </View>
-        </Card>
-      ))}
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodSelectorScroll}>
+          {['1 sem', '2 sem', '3 sem', '1 mês', '2 mêses', '3 mêses'].map((option) => (
+            <TouchableOpacity 
+              key={option}
+              onPress={() => setPeriod(option)}
+              style={[styles.periodChip, { backgroundColor: period === option ? colors.secondary : colors.border + '30' }]}
+            >
+              <Text style={[styles.periodChipText, { color: period === option ? '#fff' : colors.text }]}>{option}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        {(() => {
+          const totals = filteredGoalsForChart.reduce((acc, goal) => {
+            acc[goal.type] = (acc[goal.type] || 0) + (Number(goal.value) || 0);
+            return acc;
+          }, {});
+          
+          const labels = Object.keys(totals);
+          const data = Object.values(totals);
+          
+          if (labels.length === 0) return <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>Nenhuma meta para analisar</Text>;
+
+          return (
+            <BarChart
+              data={{
+                labels: labels,
+                datasets: [{ 
+                  data: data,
+                  colors: labels.map(label => {
+                    if (label === 'Água') return () => colors.chart.barBlue;
+                    if (label === 'Energia') return () => colors.chart.barOrange;
+                    if (label === 'Gás') return () => colors.success;
+                    return () => colors.secondary;
+                  })
+                }]
+              }}
+              width={screenWidth}
+              height={180}
+              chartConfig={getChartConfig(colors)}
+              fromZero
+              flatColor={true}
+              withCustomBarColorFromData={true}
+              style={styles.chart}
+            />
+          );
+        })()}
+      </Card>
+      
+      <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Metas atuais</Text>
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const todayGoals = goals.filter(g => g.start === today);
+        
+        return todayGoals.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há meta atual</Text></Card>
+        ) : (
+          todayGoals.map(goal => (
+            <Card key={goal.id} style={{ marginBottom: 20 }}>
+              <View style={styles.metaContentRow}>
+                <View style={styles.metaDetailsGroup}>
+                  <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
+                  </View>
+                  <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
+                  </View>
+                </View>
+                <View style={styles.progressBox}>
+                  <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.orange} />
+                </View>
+              </View>
+            </Card>
+          ))
+        );
+      })()}
 
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Metas anteriores</Text>
-      {pastGoals.map(goal => (
-        <Card key={goal.id} style={{ marginBottom: 20 }}>
-          <View style={styles.metaContentRow}>
-            <View style={styles.metaDetailsGroup}>
-              <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
+      {(() => {
+        const today = new Date().toLocaleDateString('pt-BR');
+        const olderGoals = goals.filter(g => g.start !== today);
+        
+        return olderGoals.length === 0 ? (
+          <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há metas anteriores</Text></Card>
+        ) : (
+          olderGoals.map(goal => (
+            <Card key={goal.id} style={{ marginBottom: 20 }}>
+              <View style={styles.metaContentRow}>
+                <View style={styles.metaDetailsGroup}>
+                  <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
+                  </View>
+                  <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
+                    <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
+                  </View>
+                </View>
+                <View style={styles.progressBox}>
+                  <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.blue} />
+                </View>
               </View>
-              <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
-                <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
-              </View>
-            </View>
-            <View style={styles.progressBox}>
-              <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.blue} />
-            </View>
-          </View>
-        </Card>
-      ))}
+            </Card>
+          ))
+        );
+      })()}
       
       <AddModal visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar Meta" onAdd={handleAdd} />
     </AppLayout>
@@ -369,12 +534,13 @@ export const GoalsScreen = () => {
 };
 
 export const SettingsScreen = () => {
-  const { logout, userData, updateProfile } = useContext(AuthContext);
+  const { logout, userData, updateProfile, deleteAccount } = useContext(AuthContext);
   const { isDarkMode, setIsDarkMode, colors } = useContext(ThemeContext);
   const [expandedSection, setExpandedSection] = useState(null);
   
   const [name, setName] = useState(userData?.name || '');
   const [email, setEmail] = useState(userData?.email || '');
+  const [password, setPassword] = useState(userData?.password || '');
   const [profileImage, setProfileImage] = useState(userData?.profileImage || null);
   const [saving, setSaving] = useState(false);
 
@@ -397,11 +563,22 @@ export const SettingsScreen = () => {
 
   const handleSave = () => {
     setSaving(true);
-    updateProfile({ name, email, profileImage });
+    updateProfile({ name, email, password, profileImage });
     setTimeout(() => {
       setSaving(false);
       Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
     }, 500);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Excluir Conta",
+      "Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteAccount() }
+      ]
+    );
   };
 
   const CollapsibleCard = ({ title, icon, sectionKey, children }) => (
@@ -441,44 +618,63 @@ export const SettingsScreen = () => {
 
   return (
     <AppLayout>
-      <Text style={[styles.screenTitleText, { color: colors.text }]}>Configuração</Text>
-      <Card style={styles.profileEditCard}>
-        <Text style={[styles.cardHeader, { color: colors.text, textAlign: 'center' }]}>Editar Perfil</Text>
-        <View style={styles.profileImageContainer}>
-          <TouchableOpacity onPress={pickImage} style={[styles.avatarCircle, { backgroundColor: colors.border, overflow: 'hidden' }]}>
+      <View style={styles.profileHeaderContainer}>
+        <View style={styles.avatarWrapper}>
+          <TouchableOpacity onPress={pickImage} style={[styles.avatarLarge, { backgroundColor: colors.border }]}>
             {profileImage ? <Image source={{ uri: profileImage }} style={{ width: '100%', height: '100%' }} /> : <FontAwesome5 name="user-alt" size={40} color={colors.secondary} />}
-            <View style={styles.editImageBtn}><FontAwesome5 name="camera" size={14} color="#fff" /></View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickImage} style={[styles.avatarPlusBtn, { backgroundColor: colors.secondary }]}>
+            <FontAwesome5 name="plus" size={12} color="#fff" />
           </TouchableOpacity>
         </View>
-        <View style={styles.editSection}>
-          <Text style={[styles.editLabel, { color: colors.text }]}>Informações Pessoais</Text>
-          <Input label="Nome" value={name} onChangeText={setName} />
-          <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        </View>
-        <View style={styles.profileActionBtns}>
-          <TouchableOpacity style={[styles.saveProfileBtn, { backgroundColor: colors.secondary }]} onPress={handleSave} disabled={saving}>
-            <Text style={styles.btnTextWhite}>{saving ? "Salvando..." : "Salvar alterações"}</Text>
+        
+        <View style={styles.profileNameRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.profileNameText, { color: colors.text }]}>{name}</Text>
+            <FontAwesome5 name="chevron-down" size={14} color={colors.text} style={{ marginLeft: 8 }} />
+          </View>
+          <TouchableOpacity 
+            style={[styles.pencilEditBtn, { backgroundColor: colors.border + '50' }]}
+            onPress={() => setExpandedSection(expandedSection === 'profile' ? null : 'profile')}
+          >
+            <FontAwesome5 name="pen" size={14} color={colors.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.danger }]} onPress={logout}>
-            <Text style={[styles.logoutBtnText, { color: colors.danger }]}>Sair da conta</Text>
-          </TouchableOpacity>
         </View>
-      </Card>
+      </View>
+
+      {expandedSection === 'profile' && (
+        <Card style={{ marginTop: 10 }}>
+          <View style={styles.editSection}>
+            <Text style={[styles.editLabel, { color: colors.text }]}>Editar Informações</Text>
+            <Input label="Nome" value={name} onChangeText={setName} />
+            <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
+            <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry />
+          </View>
+          <View style={styles.profileActionBtns}>
+            <TouchableOpacity style={[styles.saveProfileBtn, { backgroundColor: colors.secondary }]} onPress={handleSave} disabled={saving}>
+              <Text style={styles.btnTextWhite}>{saving ? "Salvando..." : "Salvar alterações"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.danger }]} onPress={logout}>
+              <Text style={[styles.logoutBtnText, { color: colors.danger }]}>Sair da conta</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      )}
       <Card style={{ marginTop: 20 }}>
         <View style={styles.modeToggleRow}>
-          <Text style={[styles.modeText, { color: colors.text }]}>🌙 Modo Escuro</Text>
+          <Text style={[styles.modeText, { color: colors.text }]}><FontAwesome5 name="moon" size={18} color={colors.text} /> Modo Escuro</Text>
           <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{ false: '#767577', true: colors.secondary }} thumbColor={isDarkMode ? '#fff' : '#f4f3f4'} />
         </View>
       </Card>
       <CollapsibleCard title="Informações e Ajuda" icon="info-circle" sectionKey="info">
-        <Text style={[styles.legalSectionTitle, { color: colors.secondary, marginTop: 10 }]}>📄 Termos de Uso</Text>
+        <Text style={[styles.legalSectionTitle, { color: colors.secondary, marginTop: 10 }]}>Termos de Uso</Text>
         <LegalSection title="1. Objetivo" items={["Auxiliar no controle de gastos", "Incentivar práticas sustentáveis"]} />
         <LegalSection title="2. Cadastro" items={["Responsabilidade pelas informações", "Uso ético"]} />
         <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 20 }]} />
-        <Text style={[styles.legalSectionTitle, { color: colors.secondary }]}>🔒 Política de Privacidade</Text>
+        <Text style={[styles.legalSectionTitle, { color: colors.secondary }]}>Política de Privacidade</Text>
         <LegalSection title="1. Dados" items={["Nome e E-mail", "Gastos inseridos"]} />
         <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 20 }]} />
-        <Text style={[styles.legalSectionTitle, { color: colors.secondary }]}>❓ Central de Ajuda</Text>
+        <Text style={[styles.legalSectionTitle, { color: colors.secondary }]}>Central de Ajuda</Text>
         <LegalSection title="Dúvidas?" items={["Entre nas FAQ", "Contate o suporte"]} />
       </CollapsibleCard>
       <CollapsibleCard title="Suporte" icon="envelope" sectionKey="support">
@@ -487,6 +683,11 @@ export const SettingsScreen = () => {
           <Text style={[styles.supportEmail, { color: colors.secondary }]}>suporte.ccn@email.com</Text>
         </View>
       </CollapsibleCard>
+
+      <TouchableOpacity onPress={handleDeleteAccount} style={styles.deleteAccountButton}>
+        <FontAwesome5 name="trash-alt" size={14} color={colors.danger} style={{ marginRight: 10 }} />
+        <Text style={[styles.deleteAccountText, { color: colors.danger }]}>Excluir Conta Permanentemente</Text>
+      </TouchableOpacity>
     </AppLayout>
   );
 };
@@ -526,14 +727,30 @@ const styles = StyleSheet.create({
   legalItemText: { fontSize: 13, lineHeight: 20, flex: 1 },
   supportBox: { padding: 20, borderRadius: 15, alignItems: 'center', marginTop: 10 },
   supportEmail: { fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
-  profileEditCard: { borderRadius: 30, padding: 25 },
-  profileImageContainer: { alignItems: 'center', marginVertical: 20 },
-  avatarCircle: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  editImageBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#009DFF', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
+  profileHeaderContainer: { alignItems: 'center', marginVertical: 30 },
+  avatarWrapper: { position: 'relative' },
+  avatarLarge: { width: 110, height: 110, borderRadius: 55, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  avatarPlusBtn: { position: 'absolute', bottom: 5, right: 5, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  profileNameRow: { flexDirection: 'row', alignItems: 'center', marginTop: 15 },
+  profileNameText: { fontSize: 20, fontWeight: 'bold' },
+  profileUsernameText: { fontSize: 14, marginTop: 4 },
+  pencilEditBtn: { padding: 8, borderRadius: 20, marginLeft: 15 },
   editSection: { marginBottom: 20 },
   editLabel: { fontSize: 14, fontWeight: 'bold', marginBottom: 10, opacity: 0.7 },
   profileActionBtns: { marginTop: 10 },
   saveProfileBtn: { height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   logoutBtn: { height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  deleteAccountButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 40, 
+    marginBottom: 30,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 12
+  },
+  deleteAccountText: { fontSize: 14, fontWeight: 'bold' },
   btnTextWhite: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
