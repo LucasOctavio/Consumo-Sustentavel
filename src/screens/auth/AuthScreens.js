@@ -19,7 +19,7 @@ export const LoginScreen = ({ navigation }) => {
       setError("Por favor, preencha todos os campos.");
       return;
     }
-    
+
     setError('');
     const result = await login(email, password);
     if (!result.success) {
@@ -32,35 +32,35 @@ export const LoginScreen = ({ navigation }) => {
       <Card style={styles.card}>
         <Text style={styles.title}>Faça o login</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Input 
-          placeholder="Email" 
+        <Input
+          placeholder="Nome"
           keyboardType="email-address"
-          value={email} 
-          onChangeText={(t) => { setEmail(t); setError(''); }} 
+          value={email}
+          onChangeText={(t) => { setEmail(t); setError(''); }}
         />
-        <Input 
-          placeholder="Senha" 
-          secureTextEntry 
-          value={password} 
-          onChangeText={(t) => { setPassword(t); setError(''); }} 
+        <Input
+          placeholder="Senha"
+          secureTextEntry
+          value={password}
+          onChangeText={(t) => { setPassword(t); setError(''); }}
         />
 
-        <Button 
-          title="Entrar" 
-          onPress={handleLogin} 
+        <Button
+          title="Entrar"
+          onPress={handleLogin}
           style={styles.btn}
         />
       </Card>
-      
+
       <View style={styles.footerLinks}>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.footerLinkText}>
             Não tem uma conta ainda? <Text style={styles.linkBlue}>cadastrar</Text>
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('Recovery')} 
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Recovery')}
           style={{ marginTop: 15 }}
         >
           <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
@@ -105,30 +105,30 @@ export const RegisterScreen = ({ navigation }) => {
       <Card style={styles.card}>
         <Text style={styles.title}>Faça o cadastro</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Input 
-          placeholder="Nome" 
-          value={name} 
-          onChangeText={(t) => { setName(t); setError(''); }} 
+        <Input
+          placeholder="Nome"
+          value={name}
+          onChangeText={(t) => { setName(t); setError(''); }}
         />
-        <Input 
-          placeholder="Email" 
-          keyboardType="email-address" 
-          value={email} 
-          onChangeText={(t) => { setEmail(t); setError(''); }} 
+        <Input
+          placeholder="Email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={(t) => { setEmail(t); setError(''); }}
         />
-        <Input 
-          placeholder="Senha" 
-          secureTextEntry 
-          value={password} 
-          onChangeText={(t) => { setPassword(t); setError(''); }} 
+        <Input
+          placeholder="Senha"
+          secureTextEntry
+          value={password}
+          onChangeText={(t) => { setPassword(t); setError(''); }}
         />
-        <Button 
-          title="Entrar" 
-          onPress={handleRegister} 
+        <Button
+          title="Entrar"
+          onPress={handleRegister}
           style={styles.btn}
         />
       </Card>
-      
+
       <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
           Já tem cadastro faça seu <Text style={styles.linkBlue}>login</Text>
@@ -148,7 +148,7 @@ export const RecoveryScreen = ({ navigation }) => {
       setError("Por favor, insira um e-mail válido.");
       return;
     }
-    
+
     const userExists = checkEmail(email);
     if (!userExists) {
       setError("Este e-mail não está cadastrado.");
@@ -165,22 +165,22 @@ export const RecoveryScreen = ({ navigation }) => {
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'> Voltar'}</Text>
       </TouchableOpacity>
-      
+
       <Card style={styles.card}>
         <Text style={styles.title}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
           Insira o endereço de email da sua conta e enviaremos um código de segurança para alterar a senha da conta.
         </Text>
-        
+
         <Text style={styles.label}>Endereço de email</Text>
-        <Input 
-          placeholder="Email" 
-          keyboardType="email-address" 
-          value={email} 
-          onChangeText={(t) => { setEmail(t); setError(''); }} 
+        <Input
+          placeholder="Email"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={(t) => { setEmail(t); setError(''); }}
         />
-        
+
         <Button title="Enviar Código" onPress={handleSendCode} style={styles.btn} />
       </Card>
     </AuthLayout>
@@ -206,23 +206,23 @@ export const ResetCodeScreen = ({ navigation, route }) => {
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'> Voltar'}</Text>
       </TouchableOpacity>
-      
+
       <Card style={styles.card}>
         <Text style={styles.title}>Verificar Código</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
           Digite o código de 6 dígitos enviado para {email}.
         </Text>
-        
-        <Input 
-          placeholder="000000" 
-          keyboardType="numeric" 
+
+        <Input
+          placeholder="000000"
+          keyboardType="numeric"
           maxLength={6}
-          value={code} 
-          onChangeText={(t) => { setCode(t); setError(''); }} 
+          value={code}
+          onChangeText={(t) => { setCode(t); setError(''); }}
           style={{ textAlign: 'center', fontSize: 24, letterSpacing: 10 }}
         />
-        
+
         <Button title="Verificar" onPress={handleVerify} style={styles.btn} />
       </Card>
     </AuthLayout>
@@ -245,7 +245,7 @@ export const NewPasswordScreen = ({ navigation, route }) => {
       setError("As senhas não coincidem.");
       return;
     }
-    
+
     resetPassword(email, password);
     setError('');
     Alert.alert("Sucesso", "Sua senha foi redefinida com sucesso!");
@@ -260,20 +260,20 @@ export const NewPasswordScreen = ({ navigation, route }) => {
         <Text style={styles.subtitle}>
           Criando nova senha para: {email}
         </Text>
-        
-        <Input 
-          placeholder="Nova Senha" 
-          secureTextEntry 
-          value={password} 
-          onChangeText={(t) => { setPassword(t); setError(''); }} 
+
+        <Input
+          placeholder="Nova Senha"
+          secureTextEntry
+          value={password}
+          onChangeText={(t) => { setPassword(t); setError(''); }}
         />
-        <Input 
-          placeholder="Confirmar Senha" 
-          secureTextEntry 
-          value={confirmPassword} 
-          onChangeText={(t) => { setConfirmPassword(t); setError(''); }} 
+        <Input
+          placeholder="Confirmar Senha"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
         />
-        
+
         <Button title="Redefinir Senha" onPress={handleReset} style={styles.btn} />
       </Card>
     </AuthLayout>

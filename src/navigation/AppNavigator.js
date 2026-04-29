@@ -21,6 +21,20 @@ export const AppNavigator = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // ⚠️ Estados declarados ANTES de loadBackendData para evitar erro de referência
+  const [consumptions, setConsumptions] = useState([
+    { id: 1, type: 'Água', value: 50, date: '25/04/2026', unit: 'L' },
+    { id: 2, type: 'Energia', value: 12, date: '10/04/2026', unit: 'kWh' },
+    { id: 3, type: 'Gás', value: 8, date: '20/03/2026', unit: 'm³' }
+  ]);
+  const [simulations, setSimulations] = useState([
+    { id: 1, type: 'Água', value: 45, date: '27/04/2026', unit: 'L' },
+    { id: 2, type: 'Energia', value: 15, date: '15/04/2026', unit: 'kWh' }
+  ]);
+  const [goals, setGoals] = useState([
+    { id: 1, type: 'Energia', value: 50, unit: 'kWh', start: '01/04/2026', end: '30/04/2026', progress: 52 },
+  ]);
+
   // Load data from backend when authenticated
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -35,8 +49,8 @@ export const AppNavigator = () => {
         consumptionService.getAll(),
         goalService.getAll()
       ]);
-      setConsumptions(consumoData);
-      setGoals(metaData);
+      if (Array.isArray(consumoData)) setConsumptions(consumoData);
+      if (Array.isArray(metaData)) setGoals(metaData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -116,18 +130,7 @@ export const AppNavigator = () => {
     return { success: true };
   };
 
-  const [consumptions, setConsumptions] = useState([
-    { id: 1, type: 'Água', value: 50, date: '25/04/2026', unit: 'L' },
-    { id: 2, type: 'Energia', value: 12, date: '10/04/2026', unit: 'kWh' },
-    { id: 3, type: 'Gás', value: 8, date: '20/03/2026', unit: 'm³' }
-  ]);
-  const [simulations, setSimulations] = useState([
-    { id: 1, type: 'Água', value: 45, date: '27/04/2026', unit: 'L' },
-    { id: 2, type: 'Energia', value: 15, date: '15/04/2026', unit: 'kWh' }
-  ]);
-  const [goals, setGoals] = useState([
-    { id: 1, type: 'Energia', value: 50, unit: 'kWh', start: '01/04/2026', end: '30/04/2026', progress: 52 },
-  ]);
+
 
   const addConsumption = async (data) => {
     try {
