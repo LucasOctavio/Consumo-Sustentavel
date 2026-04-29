@@ -2,13 +2,13 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  // URL para produção (Render)
+  // URL base para produção (hospedado no Render)
   baseURL: 'https://consumo-sustentavel.onrender.com',
   // URL para desenvolvimento local (descomente para usar o backend local)
   // baseURL: 'http://localhost:8000', 
 });
 
-// Interceptor to add the token to every request
+// Interceptor: adiciona automaticamente o token de autenticação em todas as requisições
 api.interceptors.request.use(async (config) => {
   try {
     const token = await AsyncStorage.getItem('@CCN:token');
@@ -21,7 +21,9 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Serviço responsável pela autenticação e gestão do usuário
 export const authService = {
+  // Realiza o login do usuário
   login: async (name, password) => {
     const response = await api.post('/usuario/login', {
       nome: name,
@@ -75,36 +77,52 @@ const toIsoDate = (dateStr) => {
   return dateStr;
 };
 
+// Serviço responsável por gerenciar consumos e simulações
 export const consumptionService = {
+  // Busca todos os registros de consumo (reais e simulados)
   getAll: async () => {
     const response = await api.get('/consumo/read');
     return response.data;
   },
+  // Cria um novo registro de consumo real
   create: async (data) => {
-    // Mapping our local data keys to API expected keys if necessary
-    // API expect: { valor, data, tipo, medida } (guessing based on docs)
     const response = await api.post('/consumo/create', {
       valor: parseFloat(data.value),
-      dt: toIsoDate(data.date), // Converte para o formato do backend
+      dt: toIsoDate(data.date), // Converte para o formato YYYY-MM-DD aceito pelo backend
       tipo: data.type,
       medida: data.unit,
-      simulado: false // Campo obrigatório no backend
+      simulado: false // Define explicitamente que é um consumo real, não simulação
     });
     return response.data;
   },
+  // Cria um novo registro de simulação no banco de dados
+  createSimulation: async (data) => {
+    const response = await api.post('/consumo/create', {
+      valor: parseFloat(data.value),
+      dt: toIsoDate(data.date), // Converte a data para ISO
+      tipo: data.type,
+      medida: data.unit,
+      simulado: true // Define como simulação para diferenciar dos consumos reais
+    });
+    return response.data;
+  },
+  // Exclui um registro de consumo ou simulação pelo ID
   delete: async (id) => {
     const response = await api.delete(`/consumo/delete?id=${id}`);
     return response.data;
   }
 };
 
+// Serviço responsável por gerenciar as metas do usuário
 export const goalService = {
+  // Busca todas as metas criadas
   getAll: async () => {
     const response = await api.get('/meta/read');
     return response.data;
   },
+  // Cria uma nova meta no banco de dados
   create: async (data) => {
-    // O modal envia startDate/endDate; suporta também start/end por compatibilidade
+    // O backend espera dt_inicio e dt_fim, então usamos toIsoDate para garantir o formato correto
     const response = await api.post('/meta/create', {
       valor: parseFloat(data.value),
       tipo: data.type,
@@ -114,6 +132,7 @@ export const goalService = {
     });
     return response.data;
   },
+  // Exclui uma meta pelo ID
   delete: async (id) => {
     const response = await api.delete(`/meta/delete?id=${id}`);
     return response.data;

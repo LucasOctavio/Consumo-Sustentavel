@@ -30,6 +30,7 @@ const normalizeConsumption = (item) => ({
   value: item.valor !== undefined ? item.valor : item.value,
   date: normalizeDate(item.dt || item.date || ''),
   unit: item.medida || item.unit || '',
+  simulado: item.simulado || false, // Adicionado flag para diferenciar simulações de consumos reais
 });
 
 const normalizeGoal = (item) => ({
@@ -91,8 +92,12 @@ export const AppNavigator = () => {
         consumptionService.getAll(),
         goalService.getAll()
       ]);
-      // Normaliza os campos do backend para o formato esperado pela UI
-      if (Array.isArray(consumoData)) setConsumptions(consumoData.map(normalizeConsumption));
+      // Normaliza os campos do backend para o formato esperado pela UI e separa consumos de simulações
+      if (Array.isArray(consumoData)) {
+        const normalized = consumoData.map(normalizeConsumption);
+        setConsumptions(normalized.filter(c => !c.simulado)); // Apenas consumos reais
+        setSimulations(normalized.filter(c => c.simulado));   // Apenas simulações
+      }
       if (Array.isArray(metaData)) setGoals(metaData.map(normalizeGoal));
     } catch (error) {
       console.error('Error loading data:', error);
@@ -198,8 +203,25 @@ export const AppNavigator = () => {
     }
   };
 
-  const addSimulation = (data) => {
-    setSimulations([{ id: Date.now(), ...data }, ...simulations]);
+  const addSimulation = async (data) => {
+    // Adiciona simulação localmente para resposta rápida da UI
+    const localItem = {
+      id: Date.now(),
+      type: data.type,
+      value: data.value,
+      date: data.date,
+      unit: data.unit,
+      simulado: true
+    };
+    setSimulations(prev => [localItem, ...prev]);
+
+    try {
+      // Salva a simulação no banco de dados usando o novo serviço criado em api.js
+      await consumptionService.createSimulation(data);
+      await loadBackendData(); // Sincroniza dados com o banco após salvar
+    } catch (error) {
+      console.error('Error adding simulation:', error);
+    }
   };
 
   const addGoal = async (data) => {
@@ -240,6 +262,37 @@ export const AppNavigator = () => {
     return { success: true };
   };
 
+  // Helper para parsear data DD/MM/YYYY para Date do JS e poder comparar os prazos
+  const parseDateBr = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [day, month, year] = String(dateStr).split('/').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Calcula dinamicamente a porcentagem de progresso das metas com base nos consumos reais!
+  const goalsWithProgress = goals.map(goal => {
+    const goalStart = parseDateBr(goal.start);
+    const goalEnd = parseDateBr(goal.end);
+    
+    // Soma apenas os consumos que batem com o "tipo" da meta e ocorreram dentro do período estipulado
+    const totalConsumed = consumptions.reduce((acc, c) => {
+      if (c.type === goal.type) {
+        const cDate = parseDateBr(c.date);
+        if (cDate >= goalStart && cDate <= goalEnd) {
+          return acc + Number(c.value);
+        }
+      }
+      return acc;
+    }, 0);
+    
+    // Define a porcentagem do progresso (limita em 100% no máximo para não quebrar a UI do gráfico circular)
+    const progress = Number(goal.value) > 0 
+      ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100)) 
+      : 0;
+      
+    return { ...goal, progress };
+  });
+
   return (
     <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, colors }}>
       <AuthContext.Provider value={{ 
@@ -255,7 +308,7 @@ export const AppNavigator = () => {
         resetPassword,
         consumptions,
         simulations,
-        goals,
+        goals: goalsWithProgress, // Substitui as metas estáticas pelas metas com progresso calculado dinamicamente
         addConsumption,
         addSimulation,
         addGoal,
