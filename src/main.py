@@ -1,6 +1,7 @@
 # importaçoes
 from fastapi import FastAPI
 from src.config import *
+from fastapi.middleware.cors import CORSMiddleware
 
 # criaçao do fastAPI
 app = FastAPI(title="API de Consumo de Sustentável", description="API para gerenciamento de consumo de Sustentável", version="1.0.0",
@@ -31,6 +32,15 @@ app = FastAPI(title="API de Consumo de Sustentável", description="API para gere
             """
         },])
 
+# configurando CORS
+app.add_middleware(
+CORSMiddleware,
+allow_origins=["*"],
+allow_credentials=True,
+allow_methods=["*"],
+allow_headers=["*"]
+)
+
 # definiçao das rotas do fastAPI
 from src.routes.email_route import email_roteador
 from src.routes.usuario_route import usuario_roteador
@@ -43,13 +53,9 @@ app.include_router(usuario_roteador)
 app.include_router(consumo_roteador)
 app.include_router(meta_roteador)
 
-
-
-# config is loaded from src.config
-
 # uvicorn src.main:app --reload / roda o fastAPI
 
-# SQLALCHEMY REQUISISOES
+# REQUISICOES:
 # CRUD
 # POST - CREATE
 # GET - READ
