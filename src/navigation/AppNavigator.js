@@ -12,6 +12,36 @@ export const ThemeContext = createContext();
 
 export const useTheme = () => useContext(ThemeContext);
 
+// Converte datas do backend (ISO: '2026-04-29' ou '2026-04-29T00:00:00') para DD/MM/YYYY
+const normalizeDate = (dateStr) => {
+  if (!dateStr) return '';
+  // Formato ISO: '2026-04-29' ou '2026-04-29T00:00:00'
+  if (String(dateStr).includes('-')) {
+    const parts = String(dateStr).split('T')[0].split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return String(dateStr); // já está em DD/MM/YYYY
+};
+
+// Normaliza dados vindos do backend para o formato esperado pela UI
+const normalizeConsumption = (item) => ({
+  id: item.id || item.cons_id || Date.now(),
+  type: item.tipo || item.type || '?',
+  value: item.valor !== undefined ? item.valor : item.value,
+  date: normalizeDate(item.dt || item.date || ''),
+  unit: item.medida || item.unit || '',
+});
+
+const normalizeGoal = (item) => ({
+  id: item.id || item.meta_id || Date.now(),
+  type: item.tipo || item.type || '?',
+  value: item.valor !== undefined ? item.valor : item.value,
+  unit: item.medida || item.unit || '',
+  start: normalizeDate(item.dt_inicio || item.start || ''),
+  end: normalizeDate(item.dt_fim || item.end || ''),
+  progress: item.progress || 0,
+});
+
 export const AppNavigator = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -22,18 +52,30 @@ export const AppNavigator = () => {
   const [loading, setLoading] = useState(false);
 
   // ⚠️ Estados declarados ANTES de loadBackendData para evitar erro de referência
-  const [consumptions, setConsumptions] = useState([
-    { id: 1, type: 'Água', value: 50, date: '25/04/2026', unit: 'L' },
-    { id: 2, type: 'Energia', value: 12, date: '10/04/2026', unit: 'kWh' },
-    { id: 3, type: 'Gás', value: 8, date: '20/03/2026', unit: 'm³' }
-  ]);
-  const [simulations, setSimulations] = useState([
-    { id: 1, type: 'Água', value: 45, date: '27/04/2026', unit: 'L' },
-    { id: 2, type: 'Energia', value: 15, date: '15/04/2026', unit: 'kWh' }
-  ]);
-  const [goals, setGoals] = useState([
-    { id: 1, type: 'Energia', value: 50, unit: 'kWh', start: '01/04/2026', end: '30/04/2026', progress: 52 },
-  ]);
+  const [consumptions, setConsumptions] = useState([]);
+  const [simulations, setSimulations] = useState([]);
+  const [goals, setGoals] = useState([]);
+
+  // Check token on initial load
+  React.useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('@CCN:token');
+        if (token) {
+          const userInfo = await authService.getUserInfo();
+          setUserData({
+            ...userInfo,
+            name: userInfo.user_name,
+            email: userInfo.user_email
+          });
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.log('No token found or error validating token', error);
+      }
+    };
+    checkToken();
+  }, []);
 
   // Load data from backend when authenticated
   React.useEffect(() => {
@@ -49,8 +91,9 @@ export const AppNavigator = () => {
         consumptionService.getAll(),
         goalService.getAll()
       ]);
-      if (Array.isArray(consumoData)) setConsumptions(consumoData);
-      if (Array.isArray(metaData)) setGoals(metaData);
+      // Normaliza os campos do backend para o formato esperado pela UI
+      if (Array.isArray(consumoData)) setConsumptions(consumoData.map(normalizeConsumption));
+      if (Array.isArray(metaData)) setGoals(metaData.map(normalizeGoal));
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -107,17 +150,19 @@ export const AppNavigator = () => {
   const updateProfile = async (newInfo) => {
     try {
       await authService.update(newInfo);
-      // Recarregar dados do usuário após atualização
-      const userInfo = await authService.getUserInfo();
-      setUserData({
-        ...userInfo,
-        name: userInfo.user_name,
-        email: userInfo.user_email
-      });
+      // Atualiza o estado local com as informações editadas
+      // Não recarrega do backend para preservar dados que o backend não retorna (ex: profileImage)
+      setUserData(prev => ({
+        ...prev,
+        name: newInfo.name,
+        email: newInfo.email,
+        profileImage: newInfo.profileImage,
+      }));
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
-      return { success: false, message: "Erro ao atualizar perfil." };
+      const message = error.response?.data?.detail || "Erro ao atualizar perfil.";
+      return { success: false, message };
     }
   };
 
@@ -133,11 +178,23 @@ export const AppNavigator = () => {
 
 
   const addConsumption = async (data) => {
+    // Adiciona localmente de imediato para UI responsiva
+    const localItem = {
+      id: Date.now(),
+      type: data.type,
+      value: data.value,
+      date: data.date,
+      unit: data.unit,
+    };
+    setConsumptions(prev => [localItem, ...prev]);
+
     try {
       await consumptionService.create(data);
-      await loadBackendData(); // Recarrega do backend para garantir sincronia
+      // Sincroniza com backend após salvar com sucesso
+      await loadBackendData();
     } catch (error) {
       console.error('Error adding consumption:', error);
+      // Mantém o item adicionado localmente para não perder o dado
     }
   };
 
@@ -146,16 +203,38 @@ export const AppNavigator = () => {
   };
 
   const addGoal = async (data) => {
+    // Adiciona localmente de imediato com mapeamento correto dos campos de data
+    const localGoal = {
+      id: Date.now(),
+      type: data.type,
+      value: data.value,
+      unit: data.unit,
+      start: data.startDate || data.start,
+      end: data.endDate || data.end,
+      progress: 0,
+    };
+    setGoals(prev => [localGoal, ...prev]);
+
     try {
       await goalService.create(data);
+      // Sincroniza com backend após salvar com sucesso
       await loadBackendData();
     } catch (error) {
       console.error('Error adding goal:', error);
+      // Mantém a meta adicionada localmente para não perder o dado
     }
   };
 
-  const deleteAccount = () => {
-    setUsers(users.filter(u => u.email !== userData.email));
+  const deleteAccount = async () => {
+    try {
+      // Tenta deletar no backend primeiro
+      await authService.deleteAccount();
+    } catch (error) {
+      console.error('Error deleting account on backend:', error);
+      // Continua mesmo se o backend falhar (garante logout local)
+    }
+    // Remove token e limpa estado independente do resultado do backend
+    await AsyncStorage.removeItem('@CCN:token');
     setIsAuthenticated(false);
     setUserData(null);
     return { success: true };

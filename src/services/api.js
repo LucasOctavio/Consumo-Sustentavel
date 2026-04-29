@@ -45,14 +45,34 @@ export const authService = {
   },
  
   update: async (userData) => {
-    // API expects user_name, user_email, user_senha
-    const response = await api.patch('/usuario/update', {
+    // Monta apenas os campos preenchidos para não sobrescrever senha com string vazia
+    const payload = {
       user_name: userData.name,
       user_email: userData.email,
-      user_senha: userData.password
-    });
+    };
+    // Só envia a senha se o usuário realmente digitou uma nova
+    if (userData.password && userData.password.trim().length > 0) {
+      payload.user_senha = userData.password.trim();
+    }
+    const response = await api.patch('/usuario/update', payload);
+    return response.data;
+  },
+
+  deleteAccount: async () => {
+    // Remove a conta do usuário autenticado no backend
+    const response = await api.delete('/usuario/delete');
     return response.data;
   }
+};
+
+// Converte de DD/MM/YYYY para YYYY-MM-DD (para enviar ao backend)
+const toIsoDate = (dateStr) => {
+  if (!dateStr || !dateStr.includes('/')) return dateStr;
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
 };
 
 export const consumptionService = {
@@ -65,7 +85,7 @@ export const consumptionService = {
     // API expect: { valor, data, tipo, medida } (guessing based on docs)
     const response = await api.post('/consumo/create', {
       valor: parseFloat(data.value),
-      dt: data.date, // 'dt' conforme o backend
+      dt: toIsoDate(data.date), // Converte para o formato do backend
       tipo: data.type,
       medida: data.unit,
       simulado: false // Campo obrigatório no backend
@@ -84,12 +104,13 @@ export const goalService = {
     return response.data;
   },
   create: async (data) => {
+    // O modal envia startDate/endDate; suporta também start/end por compatibilidade
     const response = await api.post('/meta/create', {
       valor: parseFloat(data.value),
       tipo: data.type,
       medida: data.unit,
-      dt_inicio: data.start, // 'dt_inicio' conforme o backend
-      dt_fim: data.end      // 'dt_fim' conforme o backend
+      dt_inicio: toIsoDate(data.startDate || data.start),
+      dt_fim: toIsoDate(data.endDate || data.end)
     });
     return response.data;
   },

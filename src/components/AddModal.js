@@ -6,14 +6,22 @@ import { Input } from './Input';
 import { Button } from './Button';
 import { Dropdown } from './Dropdown';
 
+// Garante formato DD/MM/YYYY independente do ambiente/locale do dispositivo
+const formatDatePTBR = (d) => {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 export const AddModal = ({ visible, onClose, title, onAdd }) => {
   const { colors } = useTheme();
   const [value, setValue] = useState('');
   const [type, setType] = useState('Água');
   const [unit, setUnit] = useState('L');
-  const [date, setDate] = useState(new Date().toLocaleDateString('pt-BR'));
-  const [startDate, setStartDate] = useState(new Date().toLocaleDateString('pt-BR'));
-  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('pt-BR'));
+  const [date, setDate] = useState(formatDatePTBR(new Date()));
+  const [startDate, setStartDate] = useState(formatDatePTBR(new Date()));
+  const [endDate, setEndDate] = useState(formatDatePTBR(new Date()));
   const [error, setError] = useState('');
 
   const typeOptions = ['Água', 'Energia', 'Gás', 'Combustível'];
@@ -45,9 +53,9 @@ export const AddModal = ({ visible, onClose, title, onAdd }) => {
       setValue('');
       setType('Água');
       setUnit('L');
-      setDate(new Date().toLocaleDateString('pt-BR'));
-      setStartDate(new Date().toLocaleDateString('pt-BR'));
-      setEndDate(new Date().toLocaleDateString('pt-BR'));
+      setDate(formatDatePTBR(new Date()));
+      setStartDate(formatDatePTBR(new Date()));
+      setEndDate(formatDatePTBR(new Date()));
       setError('');
     }
   }, [visible]);
