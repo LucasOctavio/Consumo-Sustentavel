@@ -85,4 +85,3 @@ async def update(dados: UsuarioUpdate, token: Usuario = Depends(verificar_token)
     '''
     # defini funcao
     return fun_update(dados, token.user_id, session)
-

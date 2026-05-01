@@ -65,7 +65,7 @@ def fun_update(dados, user_id, session):
         # para cada valor dentro dos dados
         for key, value in dados.dict(exclude_unset=True).items():
             # verifica se tem campos vazios nas informacoes passadas
-            if hasattr(meta, key):
+            if hasattr(meta, key) and value is not None and value != "":
                 # defini o atributo com as novas informacoes
                 setattr(meta, key, value)
 

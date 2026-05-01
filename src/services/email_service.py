@@ -44,7 +44,7 @@ def fun_update_via_email(dados, user_id, session):
     # para cada informacao enviada pelo usuario
     for key, value in dados.items():
         # ele verifica se tem campos vazios nas informacoes passadas
-        if hasattr(usuario, key):
+        if hasattr(usuario, key) and value is not None and value != "":
             # defini as informacoes com as novas informacoes
             setattr(usuario, key, value)
     

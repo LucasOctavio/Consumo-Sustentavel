@@ -63,7 +63,7 @@ def fun_update(dados, user_id, session):
         raise HTTPException(status_code=404, detail="Consumo não encontrado")
     
     for key, value in dados.dict(exclude_unset=True).items():
-        if hasattr(consumo, key):
+        if hasattr(consumo, key) and value is not None and value != "":
             setattr(consumo, key, value)
     
     session.commit()

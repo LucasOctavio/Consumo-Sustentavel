@@ -30,6 +30,12 @@ app = FastAPI(title="API de Consumo de Sustentável", description="API para gere
             "description": """
             Operações relacionadas às metas. \n
             """
+        },
+        {
+            "name": "foto",
+            "description": """
+            Operações relacionadas à foto de perfil do usuário. \n
+            """
         },])
 
 # configurando CORS
@@ -46,12 +52,14 @@ from src.routes.email_route import email_roteador
 from src.routes.usuario_route import usuario_roteador
 from src.routes.consumo_route import consumo_roteador
 from src.routes.meta_route import meta_roteador
+from src.routes.foto_route import foto_roteador
 
 # inclui as rotas no fastAPI
 app.include_router(email_roteador)
 app.include_router(usuario_roteador)
 app.include_router(consumo_roteador)
 app.include_router(meta_roteador)
+app.include_router(foto_roteador)
 
 # uvicorn src.main:app --reload / roda o fastAPI
 
