@@ -1,30 +1,32 @@
-# importacao
 from pydantic import BaseModel
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-# esquema de meta
+# Valida os dados oriundos de uma requisição de atualização de metas (PATCH)
 class MetaUpdate(BaseModel):
+    # Identificador único da meta que sofrerá a alteração
     meta_id : int
+    
+    # Campos opcionais. O usuário manda apenas o que deseja alterar, e o Pydantic valida o tipo
     meta_tipo: Optional[str] = None
     meta_valor: Optional[Decimal] = None
     meta_medida: Optional[str] = None
     meta_dt_inicio: Optional[datetime] = None
     meta_dt_fim: Optional[datetime] = None
 
-    # configuracao para ele ser identificado com uma classe que vai ser transformada em um sql
     class Config:
+        # Atributo que converte modelos do banco de dados relacional em JSON legível pela API
         from_attributes = True
 
-# esquema de update meta
+# Valida os dados no momento da criação de uma nova meta (POST)
 class MetaSchema(BaseModel):
+    # Na modelagem atual, os campos foram marcados como opcionais, permitindo a criação inicial de metas "vazias" ou incompletas
     tipo: Optional[str] = None
     valor: Optional[Decimal] = None
     medida: Optional[str] = None
     dt_inicio: Optional[datetime] = None
     dt_fim: Optional[datetime] = None
 
-    # configuracao para ele ser identificado com uma classe que vai ser transformada em um sql
     class Config:
         from_attributes = True

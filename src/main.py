@@ -1,12 +1,10 @@
-# importaçoes
 from fastapi import FastAPI
-from src.config import *
 from fastapi.middleware.cors import CORSMiddleware
 
-# criaçao do fastAPI
+# Inicializa o objeto principal da aplicação FastAPI
+# Os parâmetros configuram a página de documentação interativa (Swagger UI) gerada automaticamente
 app = FastAPI(title="API de Consumo de Sustentável", description="API para gerenciamento de consumo de Sustentável", version="1.0.0",
               openapi_tags=[
-
         {
             "name": "email",
             "description": """
@@ -38,28 +36,31 @@ app = FastAPI(title="API de Consumo de Sustentável", description="API para gere
             """
         },])
 
-# configurando CORS
+# Adiciona o Middleware de CORS (Cross-Origin Resource Sharing)
+# Ele permite que o frontend (hospedado em um domínio diferente) faça requisições para esta API
+# O "allow_origins=['*']" indica que a API aceitará requisições de qualquer domínio (ideal para dev, mas requer cuidado em produção)
 app.add_middleware(
-CORSMiddleware,
-allow_origins=["*"],
-allow_credentials=True,
-allow_methods=["*"],
-allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos os métodos HTTP (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"]  # Permite envio de todos os tipos de cabeçalho
 )
 
-# definiçao das rotas do fastAPI
-from src.routes.email_route import email_roteador
-from src.routes.usuario_route import usuario_roteador
-from src.routes.consumo_route import consumo_roteador
-from src.routes.meta_route import meta_roteador
-from src.routes.foto_route import foto_roteador
+# Importações dos Roteadores (Controllers) que contém as rotas da nossa aplicação modularizada
+from src.routes.email_route import email_router
+from src.routes.usuario_route import usuario_router
+from src.routes.consumo_route import consumo_router
+from src.routes.meta_route import meta_router
+from src.routes.foto_route import foto_router
 
-# inclui as rotas no fastAPI
-app.include_router(email_roteador)
-app.include_router(usuario_roteador)
-app.include_router(consumo_roteador)
-app.include_router(meta_roteador)
-app.include_router(foto_roteador)
+# Registra os roteadores no objeto principal (app)
+# Essa estrutura garante que o arquivo principal não fique sobrecarregado, seguindo o padrão de projeto MVC
+app.include_router(email_router)
+app.include_router(usuario_router)
+app.include_router(consumo_router)
+app.include_router(meta_router)
+app.include_router(foto_router)
 
 # uvicorn src.main:app --reload / roda o fastAPI
 

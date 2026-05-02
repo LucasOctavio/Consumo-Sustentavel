@@ -1,46 +1,42 @@
-# importacao
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
-from src.config import *
+from src.config import bcrypt_context, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTE
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
 
-# NOTE - funcao de criar
+def criar_usuario(nome, email, senha, session):
+    """Cria uma nova conta de usuário."""
+    # Verifica se já existe um usuário cadastrado com o mesmo e-mail ou nome
+    # O comando 'or_' permite buscar por uma condição OU outra simultaneamente
+    query = session.query(Usuario).filter(or_(Usuario.user_email == email, Usuario.user_name == nome)).first()
 
-def fun_sign_in(nome, email, senha, session):
-    # busca no banco de dados se já tem esse email ou esse nome
-    query = session.query(Usuario).filter(or_(Usuario.user_email==email, Usuario.user_name==nome)).first()
-
-    # se tiver
+    # Se o usuário já existir, levanta um erro de conflito (409)
     if query:
-        # retorna mensagem de erro
-        raise HTTPException(status_code=409, detail="Nome ou email já cadastrado")
+        raise HTTPException(status_code=409, detail="Nome ou e-mail já cadastrado")
     
-    # se nao
-    else:
-        # criptografa senha
-        senha_criptografada = bcrypt_context.hash(senha)
-
-        # cria usuario
-        novo_usuario = Usuario(nome, email, senha_criptografada)
-
-        # adiciona no banco o usuario
-        session.add(novo_usuario)
-
-        # comita
-        session.commit()
-        return {"mensagem": "Conta cadastrada com sucesso"}
+    # Criptografa a senha em texto plano usando o algoritmo definido no bcrypt_context
+    senha_criptografada = bcrypt_context.hash(senha)
     
-# NOTE - funcao de listar
+    # Instancia um novo objeto Usuario com os dados fornecidos e a senha protegida
+    novo_usuario = Usuario(nome, email, senha_criptografada)
 
-def fun_read(token, session):
-    # depois de verificar o token, busca se tem esse id
-    usuario = session.query(Usuario).filter(Usuario.user_id==token.user_id).first()
+    # Adiciona a nova instância à sessão atual do banco de dados
+    session.add(novo_usuario)
+    
+    # Efetiva (commita) a transação no banco de dados, salvando o registro
+    session.commit()
+    
+    # Retorna uma mensagem de sucesso
+    return {"mensagem": "Conta cadastrada com sucesso"}
 
-    # se existir esse token
+def obter_usuario(token, session):
+    """Retorna as informações do perfil do usuário logado."""
+    # Busca o usuário no banco usando o user_id que foi extraído do token de autenticação
+    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+
+    # Se o usuário existir, retorna um dicionário com os seus dados principais
     if usuario:
-        # retorna as informacoes do usuario
         return {
             "user_id": usuario.user_id,
             "user_name": usuario.user_name,
@@ -48,174 +44,132 @@ def fun_read(token, session):
             "user_senha": usuario.user_senha,
             "user_verified": usuario.user_verified
         }
-    
-    # se nao
+    # Caso contrário, levanta um erro informando que a conta não foi encontrada (404)
     else:
-        # erro
         raise HTTPException(status_code=404, detail="Conta não encontrada")
 
-# NOTE - funcao de logar
-
-# funcao de logar conta
-def fun_login(nome, senha, session):
-    # verifica se a senha e o nome esta correto
+def autenticar_usuario(nome, senha, session):
+    """Autentica o usuário e retorna os tokens de acesso e renovação."""
+    # Utiliza a função auxiliar 'authenticate' para validar as credenciais
     busca = authenticate(nome, senha, session)
 
-    # se nao tiver um usuario com esse nome e senha
+    # Se as credenciais não baterem (nome de usuário ou senha errados), levanta erro 401
     if not busca:
-        # levanta aviso de erro
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
     
-    # se tiver algo
-    else:
-        # cria um token de acesso e um token de refresh
-        access_token = create_token(busca.user_id)
-        refrush_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
-        
-        # e retorna token pro usuario
-        return {
-            "access_token": access_token,
-            "refresh_token": refrush_token,
-            "token_type": "Bearer"
-        }
-
-# funcao de logar no forms
-def fun_login_form(dados_formulario, session):
-    # verifica se a senha e o nome esta correto
-    busca = authenticate(dados_formulario.username, dados_formulario.password, session)
-
-    # se nao tiver um usuario com esse nome e senha
-    if not busca:
-        # levanta aviso de erro
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    # Gera um Token de Acesso (JWT) que o cliente usará nas próximas requisições
+    access_token = create_token(busca.user_id)
     
-    # se tiver
-    else:
-        # cria um token de acesso
-        access_token = create_token(busca.user_id)
+    # Gera um Token de Renovação (Refresh Token) com uma validade mais extensa (ex: 7 dias)
+    refresh_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
+    
+    # Retorna os tokens e informa o tipo 'Bearer' (portador)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "Bearer"
+    }
 
-        # retorna o token
-        return {
-            "access_token": access_token,
-            "token_type": "Bearer"
-        }
+def deletar_usuario(user_id, session):
+    """Exclui a conta do usuário do sistema."""
+    # Busca o usuário pelo ID
+    usuario = session.query(Usuario).filter(Usuario.user_id == user_id).first()
 
-# NOTE - funcao de deletar
-
-def fun_delete(busca, session):
-    # depois de verificar o token, busca se tem esse id
-    usuario = session.query(Usuario).filter(Usuario.user_id==busca).first()
-
-    # se existir esse token
+    # Se o usuário for encontrado, remove o registro da sessão e commita no banco
     if usuario:
-        # deleta o usuario com o id
         session.delete(usuario)
-
-        # comita
         session.commit()
-        return{"mensagem": "Conta deletada com sucesso"}
-    
-    # se nao
+        return {"mensagem": "Conta deletada com sucesso"}
+    # Caso contrário, levanta erro 404
     else:
-        # erro
         raise HTTPException(status_code=404, detail="Conta não encontrada")
 
-# NOTE - funcao de autentificar/login
-
 def authenticate(nome, senha, session):
-    # busca o usuario no banco
-    busca = session.query(Usuario).filter(Usuario.user_name==nome).first()
+    """Verifica se o nome de usuário e a senha estão corretos."""
+    # Localiza o usuário unicamente pelo nome fornecido
+    busca = session.query(Usuario).filter(Usuario.user_name == nome).first()
 
-    # se nao tiver um usuario com esse nome
+    # Retorna falso imediatamente se o nome não existir no banco
     if not busca:
         return False
 
-    # se a senha estiver errada
-    elif not bcrypt_context.verify(senha, busca.user_senha):
+    # Compara a senha informada com a hash guardada no banco usando o 'bcrypt.verify'
+    if not bcrypt_context.verify(senha, busca.user_senha):
         return False
 
-    # se a senha estiver certa e o usuario existir
+    # Se o usuário existir e a senha for correta, retorna a instância do usuário
     return busca
 
-# NOTE - funcao de atualizar
-
-def fun_update(dados, user_id, session):
-    # pega as informacoes do seu usuario
+def atualizar_usuario(dados, user_id, session):
+    """Atualiza os dados cadastrais do usuário."""
+    # Pega a instância do usuário do banco pelo ID
     usuario = session.get(Usuario, user_id)
 
-    # se nao conseguir pegar as informacoes
+    # Se a conta não existir, encerra com 404
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     
-    # se o usuario tiver passado informacao de atualizar nome do usuario
+    # Se o usuário quiser mudar o nome
     if dados.user_name:
-        # busca se o nome do usuario ja existe
+        # Verifica se o novo nome já pertence a outra pessoa
         existe = session.query(Usuario).filter(Usuario.user_name == dados.user_name, Usuario.user_id != user_id).first()
-        
-        # se sim
         if existe:
-            raise HTTPException(status_code=409, detail="Já cadastrado")
+            raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
-    # se o usuario tiver passado informacao de atualizar email do usuario
+    # Se o usuário quiser mudar o e-mail
     if dados.user_email:
-        # busca se o email do usuario ja existe
+        # Verifica se o novo e-mail já pertence a outra conta
         existe = session.query(Usuario).filter(Usuario.user_email == dados.user_email, Usuario.user_id != user_id).first()
-
-        # se sim
         if existe:
-            raise HTTPException(status_code=409, detail="Já cadastrado")
+            raise HTTPException(status_code=409, detail="E-mail já cadastrado")
 
-    # se o usuario tiver passado informacao de atualizar senha do usuario
+    # Se o usuário forneceu uma nova senha, ela é criptografada antes de salvar
     if dados.user_senha:
-        # criptografa senha
         dados.user_senha = bcrypt_context.hash(dados.user_senha)
 
-    # para cada informacao enviada pelo usuario
+    # Passo 5: Itera de forma dinâmica pelas chaves e valores passados na requisição (JSON)
     for key, value in dados.dict(exclude_unset=True).items():
-        # ele verifica se tem campos vazios nas informacoes passadas
+        # Somente altera os campos que existem na classe 'Usuario' e não estão vazios
         if hasattr(usuario, key) and value is not None and value != "":
-            # defini as informacoes com as novas informacoes
             setattr(usuario, key, value)
     
-    # comita
+    # Passo 6: Efetiva as alterações no banco de dados e recarrega os dados do usuário em memória
     session.commit()
-    
-    # atualiza o banco
     session.refresh(usuario)
 
-    return {"mensagem": "Dados da conta atualizado"}
+    return {"mensagem": "Dados da conta atualizados"}
 
-# NOTE - funcoes token 
-
-# funcao de refresh token
-def fun_refresh_token(busca):
-    # cria um token baseado no refresh token
+def renovar_token(busca):
+    """Gera um novo token de acesso baseado no refresh token."""
+    # Passo 1: Recebe a identidade (busca) e cria um novo access token a partir do ID do usuário
     access_token = create_token(busca.user_id)
 
-    # retorna o token
+    # Passo 2: Retorna o novo token gerado
     return {
-            "access_token": access_token,
-            "token_type": "Bearer"
-        }
+        "access_token": access_token,
+        "token_type": "Bearer"
+    }
 
-# funcao de criar token
 def create_token(data, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTE)):
-    # defini a data de expiracao baseada no tempo definido para cada token
+    """Gera um token JWT com expiração configurada."""
+    # Passo 1: Calcula qual será o exato momento em que o token deve expirar
     data_expiracao = datetime.now(timezone.utc) + duracao_token
 
-    # permite gerar token para um id ou para um payload de dados
+    # Passo 2: Se o 'data' for um modelo Pydantic, convertemos para dicionário
     if hasattr(data, "dict") and callable(data.dict):
         dic_info = data.dict(exclude_unset=True)
+    # Passo 3: Se for um dicionário puro, criamos uma cópia para não alterar a referência original
     elif isinstance(data, dict):
         dic_info = data.copy()
+    # Passo 4: Se for apenas um valor (como um ID numérico ou string), encapsulamos em um dicionário
     else:
         dic_info = {"user_id": str(data)}
 
-    # adiciona expiração ao payload
+    # Passo 5: Adicionamos a propriedade 'exp' ao payload (o JWT exige isso para controlar expiração)
     dic_info["exp"] = data_expiracao
-
-    # codifica o dicionario gerando um token
+    
+    # Passo 6: Assina e codifica o payload utilizando nossa chave secreta e o algoritmo (ex: HS256)
     token = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
 
-    # retorna o token
+    # Retorna a string do token gerado
     return token
