@@ -19,7 +19,7 @@ from src.services.usuario_service import deletar_usuario
 email_router = APIRouter(prefix="/usuario", tags=["email"])
 
 # Endpoint para requisitar o envio de um e-mail com link de confirmação de cadastro
-@email_router.post("/send_verify_email", summary='enviar e-mail Verificação')
+@email_router.post("/send_verify_email", summary='Enviar e-mail verificação')
 async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Mandar verificador via e-mail da conta. \n \n \
     email = "Emailstr"   \n \n \
@@ -28,7 +28,7 @@ async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verific
     return await enviar_email_verificacao(email.email, token.user_id, session)
 
 # Endpoint para requisitar envio de um e-mail contendo um link para login rápido/seguro ("Magic Link")
-@email_router.post("/send_login_email", summary='enviar e-mail login')
+@email_router.post("/send_login_email", summary='Enviar e-mail login')
 async def send_login_email(dados: UsuarioLogin, email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Mandar acesso via e-mail. \n \n \
     nome = "str"    \n \n \
@@ -39,7 +39,7 @@ async def send_login_email(dados: UsuarioLogin, email: EmailSchema, token: Usuar
     return await enviar_email_login(email.email, token.user_id, dados, session)
 
 # Endpoint para solicitar que a plataforma envie um alerta/confirmação antes de excluir a conta definitivamente
-@email_router.post("/send_delete_email", summary='enviar e-mail Deletar')
+@email_router.post("/send_delete_email", summary='Enviar e-mail deletar')
 async def send_delete_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar uma conta pelo e-mail. \n \n \
     email = "Emailstr" \n \n \
@@ -47,11 +47,10 @@ async def send_delete_email(email: EmailSchema, token: Usuario = Depends(verific
     return await enviar_email_exclusao(email.email, token.user_id, session)
 
 # Endpoint para solicitar aprovação por e-mail quando o usuário decide alterar dados sensíveis
-@email_router.post("/send_update_email", summary='Atualizar e-mail')
+@email_router.post("/send_update_email", summary='Enviar e-mail de atualizar')
 async def send_update_email(dados: UsuarioUpdate, email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualiza uma conta pelo e-mail. \n \n \
     user_name = "str" \n \n \
-    user_email = "Emailstr" \n \n \
     user_senha = "str" \n \n \
     \n \n \
     email = "Emailstr" \n \n \

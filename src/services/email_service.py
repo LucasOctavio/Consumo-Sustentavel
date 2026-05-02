@@ -24,14 +24,6 @@ async def atualizar_via_email(dados, user_id, session):
             # Retorna um erro 409 (Conflict) informando que o nome não está disponível
             raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
-    # Valida a tentativa de alteração do e-mail (user_email)
-    if dados.get("user_email"):
-        # Consulta o banco para checar se o e-mail novo já pertence a outra conta
-        existe = session.query(Usuario).filter(Usuario.user_email == dados.get("user_email"), Usuario.user_id != user_id).first()
-        if existe:
-            # Retorna erro 409 caso o e-mail já esteja registrado
-            raise HTTPException(status_code=409, detail="E-mail já cadastrado")
-
     # Verifica se o usuário solicitou alteração de senha
     if dados.get("user_senha"):
         # Criptografa a nova senha antes de armazená-la no banco de dados, utilizando o bcrypt
@@ -107,6 +99,55 @@ async def verificar_via_email(session, token):
     
     return {"message": "E-mail verificado com sucesso"}
 
+def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str, link_botao: str, texto_rodape: str) -> str:
+    """Gera um template HTML completo e estilizado para os e-mails."""
+    return f"""
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{titulo}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f7f6; padding: 40px 0;">
+            <tr>
+                <td align="center">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; max-width: 600px;">
+                        <tr>
+                            <td style="background-color: #28a745; padding: 30px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Consumo Sustentável</h1>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 40px 30px; text-align: center;">
+                                <h2 style="color: #333333; margin-top: 0; margin-bottom: 20px; font-size: 22px;">{titulo}</h2>
+                                <p style="color: #555555; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                                    {subtitulo}
+                                </p>
+                                <a href="{link_botao}" style="display: inline-block; padding: 15px 30px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                                    {texto_botao}
+                                </a>
+                                <p style="margin-top: 40px; color: #999999; font-size: 13px; line-height: 1.4;">
+                                    {texto_rodape}
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eeeeee;">
+                                <p style="color: #aaaaaa; font-size: 12px; margin: 0;">
+                                    &copy; Consumo Sustentável. Todos os direitos reservados.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
 async def enviar_email_verificacao(emails, user_id, session):
     """Envia o e-mail de verificação de conta."""
     
@@ -122,16 +163,13 @@ async def enviar_email_verificacao(emails, user_id, session):
     
     # Constrói o corpo do e-mail em formato HTML
     # Note que injetamos o 'verification_token' diretamente na tag <a> do link
-    html = f"""
-    <tr> 
-        <td style="padding:30px; text-align:center;"> 
-            <h2 style="color:#333;">Confirme seu e-mail</h2> 
-            <p style="color:#555; font-size:16px;"> Obrigado por criar sua conta! Clique no botão abaixo para verificar seu e-mail. </p> 
-            <a href="https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}" 
-            style="display:inline-block; margin-top:20px; padding:15px 25px; background-color:#28a745; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;"> Confirmar Conta </a> 
-            <p style="margin-top:30px; color:#999; font-size:12px;"> Se você não criou essa conta, pode ignorar este e-mail. </p> 
-        </td> 
-    </tr> """
+    html = _gerar_html_email(
+        titulo="Confirme seu e-mail",
+        subtitulo="Obrigado por criar sua conta! Clique no botão abaixo para verificar seu e-mail.",
+        texto_botao="Confirmar Conta",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}",
+        texto_rodape="Se você não criou essa conta, pode ignorar este e-mail."
+    )
 
     # Cria a estrutura (Schema) da mensagem para a biblioteca FastMail
     message = MessageSchema(
@@ -162,16 +200,13 @@ async def enviar_email_login(emails, user_id, dados, session):
     verification_dados = create_token(dados)
 
     # Formata o HTML contendo os DOIS tokens (token e dados) no parâmetro do link
-    html = f"""
-    <tr> 
-        <td style="padding:30px; text-align:center;"> 
-            <h2 style="color:#333;">Permitir Entrada</h2> 
-            <p style="color:#555; font-size:16px;"> Clique no botão abaixo para permitir a entrada na conta. </p> 
-            <a href="https://consumo-sustentavel.onrender.com/usuario/login_via_email?token={verification_token}&dados={verification_dados}" 
-            style="display:inline-block; margin-top:20px; padding:15px 25px; background-color:#28a745; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;"> Entrar na Conta </a> 
-            <p style="margin-top:30px; color:#999; font-size:12px;"> Se você não pediu para entrar nessa conta, pode ignorar este e-mail. </p> 
-        </td> 
-    </tr> """
+    html = _gerar_html_email(
+        titulo="Permitir Entrada",
+        subtitulo="Clique no botão abaixo para permitir a entrada na conta.",
+        texto_botao="Entrar na Conta",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/login_via_email?token={verification_token}&dados={verification_dados}",
+        texto_rodape="Se você não pediu para entrar nessa conta, pode ignorar este e-mail."
+    )
 
     # Configura e envia a mensagem
     message = MessageSchema(
@@ -197,16 +232,13 @@ async def enviar_email_exclusao(emails, user_id, session):
     verification_token = create_token(user_id)
     
     # Cria a interface do e-mail alertando sobre o processo destrutivo
-    html = f"""
-    <tr> 
-        <td style="padding:30px; text-align:center;"> 
-            <h2 style="color:#333;">Confirmar Exclusão</h2> 
-            <p style="color:#555; font-size:16px;"> Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta. </p> 
-            <a href="https://consumo-sustentavel.onrender.com/usuario/delete_via_email?token={verification_token}" 
-            style="display:inline-block; margin-top:20px; padding:15px 25px; background-color:#28a745; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;"> Excluir Conta </a> 
-            <p style="margin-top:30px; color:#999; font-size:12px;"> Se você não solicitou a exclusão, pode ignorar este e-mail. </p> 
-        </td> 
-    </tr> """
+    html = _gerar_html_email(
+        titulo="Confirmar Exclusão",
+        subtitulo="Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta.",
+        texto_botao="Excluir Conta",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/delete_via_email?token={verification_token}",
+        texto_rodape="Se você não solicitou a exclusão, pode ignorar este e-mail."
+    )
 
     # Configura e envia a mensagem
     message = MessageSchema(
@@ -233,16 +265,13 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
     verification_dados = create_token(dados)
 
     # Insere os dois tokens no link que realizará o patch na API no momento do clique
-    html = f"""
-    <tr> 
-        <td style="padding:30px; text-align:center;"> 
-            <h2 style="color:#333;">Confirmar Atualização</h2> 
-            <p style="color:#555; font-size:16px;"> Clique no botão abaixo para confirmar a atualização da sua conta. </p> 
-            <a href="https://consumo-sustentavel.onrender.com/usuario/update_via_email?token={verification_token}&dados={verification_dados}" 
-            style="display:inline-block; margin-top:20px; padding:15px 25px; background-color:#28a745; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;"> Atualizar Conta </a> 
-            <p style="margin-top:30px; color:#999; font-size:12px;"> Se você não solicitou a atualização das informações, pode ignorar este e-mail. </p> 
-        </td> 
-    </tr> """
+    html = _gerar_html_email(
+        titulo="Confirmar Atualização",
+        subtitulo="Clique no botão abaixo para confirmar a atualização da sua conta.",
+        texto_botao="Atualizar Conta",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/update_via_email?token={verification_token}&dados={verification_dados}",
+        texto_rodape="Se você não solicitou a atualização das informações, pode ignorar este e-mail."
+    )
 
     # Criação do corpo de disparo do FastMail e execução da chamada
     message = MessageSchema(

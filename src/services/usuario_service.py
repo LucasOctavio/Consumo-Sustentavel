@@ -116,12 +116,9 @@ def atualizar_usuario(dados, user_id, session):
         if existe:
             raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
-    # Se o usuário quiser mudar o e-mail
-    if dados.user_email:
-        # Verifica se o novo e-mail já pertence a outra conta
-        existe = session.query(Usuario).filter(Usuario.user_email == dados.user_email, Usuario.user_id != user_id).first()
-        if existe:
-            raise HTTPException(status_code=409, detail="E-mail já cadastrado")
+    # Bloqueia a alteração do e-mail (user_email)
+    if getattr(dados, "user_email", None):
+        raise HTTPException(status_code=400, detail="Não é permitido alterar o e-mail")
 
     # Se o usuário forneceu uma nova senha, ela é criptografada antes de salvar
     if dados.user_senha:

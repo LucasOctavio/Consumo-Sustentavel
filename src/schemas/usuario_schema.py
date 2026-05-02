@@ -20,7 +20,6 @@ class UsuarioSchema(BaseModel):
 class UsuarioUpdate(BaseModel):
     # A utilização do 'Optional' torna as propriedades não-obrigatórias
     user_name: Optional[str] = None
-    user_email: Optional[EmailStr] = None
     user_senha: Optional[str] = None
 
     class Config:
