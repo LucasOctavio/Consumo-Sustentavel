@@ -42,7 +42,7 @@ app = FastAPI(title="API de Consumo de Sustentável", description="API para gere
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Deve ser False quando allow_origins=["*"] — exigência do padrão CORS
     allow_methods=["*"], # Permite todos os métodos HTTP (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"]  # Permite envio de todos os tipos de cabeçalho
 )

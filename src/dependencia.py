@@ -32,9 +32,10 @@ def verificar_token(token: str = Depends(oauth2_schema), session: Session = Depe
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
         # Extrai o ID do usuário de dentro da carga útil (payload) do token
+        # O ValueError é capturado caso o token válido não contenha 'user_id' (ex: token de verificação de cadastro)
         user_id = int(payload.get("user_id"))
         
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         # Se ocorrer uma falha ao decodificar (ex: token expirado ou forjado), aciona o Erro HTTP 401
         raise HTTPException(status_code=401, detail="Acesso Negado, verifique a validade do token")
 
@@ -55,9 +56,10 @@ def verificar_token_query(token: str = Query(...), session: Session = Depends(pe
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
         # Recupera a identificação do dono da conta
+        # O ValueError é capturado caso o token válido não contenha 'user_id'
         user_id = int(payload.get("user_id"))
         
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         # Rejeita requisições onde o token no link foi adulterado ou o prazo de validade esgotou
         raise HTTPException(status_code=401, detail="Acesso Negado, verifique a validade do token")
 

@@ -1,3 +1,4 @@
+# coding: utf-8
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
 import asyncio
@@ -13,21 +14,21 @@ from src.services.usuario_service import create_token, authenticate
 
 async def atualizar_via_email(dados, user_id, session):
     """Atualiza as informações do usuário após validação via e-mail."""
-    
     # Busca o usuário no banco de dados utilizando o ID extraído do token
     usuario = session.get(Usuario, user_id)
 
     # Verifica se o usuário realmente foi encontrado no banco
     if not usuario:
-        # Se não for encontrado, interrompe a execução e retorna um erro 404 (Not Found)
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
+
     # Valida a tentativa de alteração do nome de usuário (user_name)
     if dados.get("user_name"):
         # Consulta o banco para ver se o nome desejado já está em uso por outro usuário (com ID diferente)
-        existe = session.query(Usuario).filter(Usuario.user_name == dados.get("user_name"), Usuario.user_id != user_id).first()
+        existe = session.query(Usuario).filter(
+            Usuario.user_name == dados.get("user_name"),
+            Usuario.user_id != user_id
+        ).first()
         if existe:
-            # Retorna um erro 409 (Conflict) informando que o nome não está disponível
             raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
     # Verifica se o usuário solicitou alteração de senha
@@ -39,20 +40,20 @@ async def atualizar_via_email(dados, user_id, session):
     for key, value in dados.items():
         # Verifica se a classe Usuario possui esse atributo e se o valor fornecido não é nulo ou vazio
         if hasattr(usuario, key) and value is not None and value != "":
-            # Atualiza o atributo do objeto usuário na memória
             setattr(usuario, key, value)
-    
+
     # Confirma (commita) as alterações no banco de dados
     session.commit()
-    
+
     # Atualiza a instância do usuário em memória com os dados mais recentes do banco
     session.refresh(usuario)
 
-    # Retorna uma mensagem de sucesso
     return {"mensagem": "Dados da conta atualizados"}
+
 
 async def verificar_2fa(codigo_digitado: str, token_2fa_str: str, session):
     """Verifica se o código digitado bate com o token 2FA gerado e autentica."""
+    # Decodifica o token 2FA para extrair o user_id e o código correto
     try:
         payload = jwt.decode(token_2fa_str, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("user_id"))
@@ -60,9 +61,11 @@ async def verificar_2fa(codigo_digitado: str, token_2fa_str: str, session):
     except Exception:
         raise HTTPException(status_code=401, detail="Token 2FA inválido ou expirado")
 
+    # Compara o código informado pelo usuário com o código armazenado no token
     if codigo_digitado != codigo_correto:
         raise HTTPException(status_code=401, detail="Código de verificação incorreto")
-    
+
+    # Confirma que o usuário ainda existe no banco
     usuario = session.get(Usuario, user_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
@@ -70,17 +73,18 @@ async def verificar_2fa(codigo_digitado: str, token_2fa_str: str, session):
     # Gera os tokens de segurança para a sessão do usuário
     access_token = create_token(usuario.user_id)
     refresh_token = create_token(usuario.user_id, duracao_token=timedelta(days=7))
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "Bearer"
     }
 
+
 async def verificar_via_email(session, token_str):
-    """Efetiva o cadastro após o usuário clicar no link."""
+    """Efetiva o cadastro após o usuário clicar no link de verificação."""
     from sqlalchemy import or_
-    
+
     try:
         payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:
@@ -93,32 +97,40 @@ async def verificar_via_email(session, token_str):
     email = payload.get("email")
     senha_criptografada = payload.get("senha")
 
+    # Valida se todos os dados necessários estão presentes no token
     if not nome or not email or not senha_criptografada:
         raise HTTPException(status_code=400, detail="Dados de cadastro incompletos no token.")
 
-    # Verificação extra de segurança: garante que o nome ou email não foram registrados 
-    # por outra pessoa enquanto o token estava pendente.
-    existe = session.query(Usuario).filter(or_(Usuario.user_name == nome, Usuario.user_email == email)).first()
+    # Verificação de segurança: garante que o nome ou e-mail não foram registrados
+    # por outra pessoa enquanto o token estava pendente
+    existe = session.query(Usuario).filter(
+        or_(Usuario.user_name == nome, Usuario.user_email == email)
+    ).first()
     if existe:
-        raise HTTPException(status_code=409, detail="Este nome de usuário ou e-mail já foi validado por outra conta.")
+        raise HTTPException(
+            status_code=409,
+            detail="Este nome de usuário ou e-mail já foi validado por outra conta."
+        )
 
-    # Se estiver tudo certo, cria o registro definitivo no banco de dados
-    novo_usuario = Usuario(nome, email, senha_criptografada, verified=True)
-    
-    # Salva a mudança no banco de dados
+    # Cria o registro definitivo no banco de dados com a conta já verificada
+    novo_usuario = Usuario(
+        name=nome,
+        email=email,
+        senha=senha_criptografada,
+        verified=True
+    )
     session.add(novo_usuario)
     session.commit()
-    
+
     return {"message": "Sua conta foi verificada e criada com sucesso! Você já pode fazer login."}
 
 def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link_botao: str = None, texto_rodape: str = "") -> str:
     """Gera um template HTML completo e estilizado para os e-mails."""
-    
     botao_html = ""
     if texto_botao and link_botao:
         botao_html = f"""<a href="{link_botao}" style="display: inline-block; padding: 15px 30px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                                    {texto_botao}
-                                </a>"""
+                            {texto_botao}
+                        </a>"""
 
     return f"""
     <!DOCTYPE html>
@@ -165,86 +177,25 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link
     </html>
     """
 
-async def enviar_email_verificacao(emails, verification_token):
-    """Envia o e-mail de verificação de conta contendo os dados assinados."""
-    
-    # Constrói o corpo do e-mail em formato HTML
-    html = _gerar_html_email(
-        titulo="Confirme seu cadastro",
-        subtitulo="Obrigado por iniciar seu cadastro! Clique no botão abaixo para verificar seu e-mail e concluir a criação da conta.",
-        texto_botao="Confirmar Conta",
-        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}",
-        texto_rodape="Se você não solicitou a criação desta conta, pode ignorar este e-mail."
-    )
 
-    # Cria a estrutura (Schema) da mensagem para a biblioteca FastMail
-    message = MessageSchema(
-        subject="Consumo Sustentável - Concluir Cadastro",  # Assunto do e-mail
-        recipients=emails,  # Lista de destinatários
-        body=html,  # Conteúdo
-        subtype=MessageType.html)  # O tipo do conteúdo, neste caso HTML
-
-    # Tenta via Resend primeiro (Ideal para Produção/Render)
-    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Concluir Cadastro", html)
-    
-    if not sucesso:
-        # Fallback para o método antigo se o Resend falhar
-        fm = FastMail(conf)
-        try:
-            await fm.send_message(message)
-        except Exception:
-            await asyncio.to_thread(_enviar_email_sincrono, emails, "Consumo Sustentável - Concluir Cadastro", html)
-    
-    return {"message": "E-mail de verificação enviado"}
-
-def _enviar_email_sincrono(destinatarios, assunto, corpo_html):
-    """Função auxiliar para envio síncrono via smtplib (fallback de segurança)."""
-    msg = EmailMessage()
-    msg.set_content("Por favor, use um leitor de e-mail compatível com HTML.")
-    msg.add_alternative(corpo_html, subtype='html')
-    msg["Subject"] = assunto
-    msg["From"] = conf.MAIL_FROM
-    msg["To"] = ", ".join(destinatarios)
-
-    try:
-        # Usa a configuração baseada no que definimos no config.py
-        server_addr = conf.MAIL_SERVER
-        port = conf.MAIL_PORT
-        
-        if port == 465:
-            server = smtplib.SMTP_SSL(server_addr, port, timeout=30)
-        else:
-            server = smtplib.SMTP(server_addr, port, timeout=30)
-            if conf.MAIL_STARTTLS:
-                server.starttls()
-        
-        server.login(conf.MAIL_USERNAME, conf.MAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-    except Exception as e:
-        print(f"Erro no envio síncrono: {e}")
-
-async def _enviar_email_resend(destinatarios, assunto, corpo_html):
-    """Envia e-mail usando a API do Resend (Porta 443/HTTP), imune a bloqueios de rede."""
+async def _enviar_email_resend(destinatarios: list, assunto: str, corpo_html: str) -> bool:
+    """Envia e-mail usando a API HTTP do Resend (porta 443), imune a bloqueios de rede em servidores cloud."""
     if not RESEND_API_KEY:
-        print("RESEND_API_KEY não configurada. Pulando para fallback.")
+        print("RESEND_API_KEY não configurada. Pulando para fallback SMTP.")
         return False
-        
+
     url = "https://api.resend.com/emails"
     headers = {
         "Authorization": f"Bearer {RESEND_API_KEY}",
         "Content-Type": "application/json"
     }
+    # Enquanto o domínio não for verificado no painel do Resend, utiliza o remetente padrão deles
     payload = {
-        "from": f"{conf.MAIL_FROM_NAME} <onboarding@resend.dev>" if "gmail" in conf.MAIL_FROM else conf.MAIL_FROM,
+        "from": "Consumo Sustentavel <onboarding@resend.dev>",
         "to": destinatarios,
         "subject": assunto,
         "html": corpo_html
     }
-    
-    # Se o domínio não for verificado no Resend, o 'from' deve ser onboarding@resend.dev
-    # Para simplificar e garantir que funcione de imediato:
-    payload["from"] = "Consumo Sustentavel <onboarding@resend.dev>"
 
     try:
         async with httpx.AsyncClient() as client:
@@ -253,71 +204,117 @@ async def _enviar_email_resend(destinatarios, assunto, corpo_html):
                 print("E-mail enviado com sucesso via Resend!")
                 return True
             else:
-                print(f"Erro no Resend: {response.text}")
+                print(f"Erro no Resend (status {response.status_code}): {response.text}")
                 return False
     except Exception as e:
         print(f"Erro ao conectar no Resend: {e}")
         return False
 
+
+def _enviar_email_sincrono(destinatarios: list, assunto: str, corpo_html: str):
+    """Fallback de segurança: envia e-mail de forma síncrona via smtplib."""
+    msg = EmailMessage()
+    msg.set_content("Por favor, use um leitor de e-mail compatível com HTML.")
+    msg.add_alternative(corpo_html, subtype="html")
+    msg["Subject"] = assunto
+    msg["From"] = conf.MAIL_FROM
+    msg["To"] = ", ".join(destinatarios)
+
+    try:
+        if conf.MAIL_PORT == 465:
+            server = smtplib.SMTP_SSL(conf.MAIL_SERVER, conf.MAIL_PORT, timeout=30)
+        else:
+            server = smtplib.SMTP(conf.MAIL_SERVER, conf.MAIL_PORT, timeout=30)
+            if conf.MAIL_STARTTLS:
+                server.starttls()
+
+        server.login(conf.MAIL_USERNAME, conf.MAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+    except Exception as e:
+        print(f"Erro no envio síncrono (fallback SMTP): {e}")
+
+
+async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, message: MessageSchema):
+    """Orquestra as tentativas de envio: Resend -> FastMail assíncrono -> smtplib síncrono."""
+    # Tentativa 1: Resend via HTTP (ideal para ambientes cloud como Render)
+    if await _enviar_email_resend(destinatarios, assunto, html):
+        return
+
+    # Tentativa 2: FastMail (SMTP assíncrono)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        return
+    except Exception:
+        pass
+
+    # Tentativa 3: smtplib em thread separada (SMTP síncrono)
+    await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
+
+
+# ==============================================================================
+# FUNÇÕES PÚBLICAS DE ENVIO DE E-MAIL
+# ==============================================================================
+
+async def enviar_email_verificacao(emails: list, verification_token: str):
+    """Envia o e-mail de verificação de conta contendo os dados assinados."""
+    assunto = "Consumo Sustentável - Concluir Cadastro"
+
+    html = _gerar_html_email(
+        titulo="Confirme seu cadastro",
+        subtitulo="Obrigado por iniciar seu cadastro! Clique no botão abaixo para verificar seu e-mail e concluir a criação da conta.",
+        texto_botao="Confirmar Conta",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}",
+        texto_rodape="Se você não solicitou a criação desta conta, pode ignorar este e-mail."
+    )
+
+    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
+    await _enviar_com_fallback(emails, assunto, html, message)
+
+    return {"message": "E-mail de verificação enviado"}
+
+
 async def enviar_email_2fa(dados, session):
-    """Verifica as credenciais e envia o e-mail contendo o código de verificação 2FA para o login."""
-    
-    # Verifica as credenciais antes de enviar o e-mail
+    """Verifica as credenciais e envia o e-mail contendo o código de verificação 2FA."""
+    # Autentica o usuário antes de enviar o código
     busca = authenticate(dados.nome, dados.senha, session)
-    
     if not busca:
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    user_id = busca.user_id
     emails = [busca.user_email]
+    assunto = "Consumo Sustentável - Código de Autenticação"
 
     # Gera um código numérico de 6 dígitos
     codigo_2fa = str(random.randint(100000, 999999))
 
     # Cria um token que guarda o user_id e o código gerado, válido por 10 minutos
-    token_dados = {"user_id": user_id, "codigo": codigo_2fa}
+    token_dados = {"user_id": busca.user_id, "codigo": codigo_2fa}
     token_2fa = create_token(token_dados, duracao_token=timedelta(minutes=10))
 
-    # Formata o HTML do e-mail
     html = _gerar_html_email(
         titulo="Código de Verificação",
         subtitulo=f"Seu código de acesso é:<br><br><span style='font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 4px;'>{codigo_2fa}</span>",
         texto_rodape="Se você não solicitou este código, por favor ignore este e-mail. Ele expira em 10 minutos."
     )
 
-    # Configura e envia a mensagem
-    message = MessageSchema(
-        subject="Consumo Sustentável - Código de Autenticação",
-        recipients=emails,
-        body=html,
-        subtype=MessageType.html)
+    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
+    await _enviar_com_fallback(emails, assunto, html, message)
 
-    # Tenta via Resend primeiro
-    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Código de Autenticação", html)
-    
-    if not sucesso:
-        fm = FastMail(conf)
-        try:
-            await fm.send_message(message)
-        except Exception:
-            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Código de Autenticação", html)
-    
     # Retorna o token 2FA para o frontend armazenar temporariamente
     return {"message": "Código de verificação enviado", "token_2fa": token_2fa}
 
-async def enviar_email_exclusao(emails, user_id, session):
-    """Envia o e-mail de confirmação para exclusão de conta."""
-    
-    # Confirma que o e-mail alvo existe no banco
-    busca = session.get(Usuario, user_id)
-    
-    if not busca:
-        raise HTTPException(status_code=404, detail="E-mail não cadastrado")
 
-    # Gera o JWT que validará a solicitação de exclusão
+async def enviar_email_exclusao(emails: list, user_id: int, session):
+    """Envia o e-mail de confirmação para exclusão de conta."""
+    # Confirma que o usuário alvo existe no banco
+    busca = session.get(Usuario, user_id)
+    if not busca:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    assunto = "Consumo Sustentável - Deletar Conta"
     verification_token = create_token(user_id)
-    
-    # Cria a interface do e-mail alertando sobre o processo destrutivo
+
     html = _gerar_html_email(
         titulo="Confirmar Exclusão",
         subtitulo="Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta.",
@@ -326,38 +323,25 @@ async def enviar_email_exclusao(emails, user_id, session):
         texto_rodape="Se você não solicitou a exclusão, pode ignorar este e-mail."
     )
 
-    # Configura e envia a mensagem
-    message = MessageSchema(
-        subject="Consumo Sustentável - Deletar Conta",
-        recipients=emails,
-        body=html,
-        subtype=MessageType.html)
+    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
+    await _enviar_com_fallback(emails, assunto, html, message)
 
-    # Tenta via Resend primeiro
-    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Deletar Conta", html)
-    
-    if not sucesso:
-        fm = FastMail(conf)
-        try:
-            await fm.send_message(message)
-        except Exception:
-            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Deletar Conta", html)
     return {"message": "E-mail de exclusão enviado"}
 
-async def enviar_email_atualizacao(dados, emails, user_id, session):
-    """Envia o e-mail de confirmação para atualização de informações cadastrais."""
-    
-    # Confirma que o e-mail do requerente existe no banco
-    busca = session.get(Usuario, user_id)
-    
-    if not busca:
-        raise HTTPException(status_code=404, detail="E-mail não cadastrado")
 
-    # Gera tokens que guardam não só quem está modificando (user_id) mas O QUE está sendo modificado (dados)
+async def enviar_email_atualizacao(dados, emails: list, user_id: int, session):
+    """Envia o e-mail de confirmação para atualização de informações cadastrais."""
+    # Confirma que o requerente existe no banco
+    busca = session.get(Usuario, user_id)
+    if not busca:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    assunto = "Consumo Sustentável - Atualizar Conta"
+
+    # Gera tokens que guardam quem está modificando (user_id) e O QUE está sendo modificado (dados)
     verification_token = create_token(user_id)
     verification_dados = create_token(dados)
 
-    # Insere os dois tokens no link que realizará o patch na API no momento do clique
     html = _gerar_html_email(
         titulo="Confirmar Atualização",
         subtitulo="Clique no botão abaixo para confirmar a atualização da sua conta.",
@@ -366,21 +350,7 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
         texto_rodape="Se você não solicitou a atualização das informações, pode ignorar este e-mail."
     )
 
-    # Criação do corpo de disparo do FastMail e execução da chamada
-    message = MessageSchema(
-        subject="Consumo Sustentável - Atualizar Conta",
-        recipients=emails,
-        body=html,
-        subtype=MessageType.html)
+    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
+    await _enviar_com_fallback(emails, assunto, html, message)
 
-    # Tenta via Resend primeiro
-    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Atualizar Conta", html)
-    
-    if not sucesso:
-        fm = FastMail(conf)
-        try:
-            await fm.send_message(message)
-        except Exception:
-            # Fallback síncrono
-            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Atualizar Conta", html)
     return {"message": "E-mail de atualização enviado"}
