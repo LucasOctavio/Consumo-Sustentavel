@@ -14,6 +14,7 @@ class MetaUpdate(BaseModel):
     meta_medida: Optional[str] = None
     meta_dt_inicio: Optional[datetime] = None
     meta_dt_fim: Optional[datetime] = None
+    meta_descricao: Optional[str] = None
 
     class Config:
         # Atributo que converte modelos do banco de dados relacional em JSON legível pela API
@@ -27,6 +28,7 @@ class MetaSchema(BaseModel):
     medida: Optional[str] = None
     dt_inicio: Optional[datetime] = None
     dt_fim: Optional[datetime] = None
+    descricao: Optional[str] = None
 
     class Config:
         from_attributes = True

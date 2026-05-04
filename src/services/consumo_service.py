@@ -4,7 +4,7 @@ from src.models.consumo_model import Consumo
 def criar_consumo(dados, session, busca):
     """Cria um novo registro de consumo."""
     # Instancia um objeto Consumo utilizando as informações enviadas na requisição (tipo, valor, medida, etc.)
-    novo_consumo = Consumo(dados.tipo, dados.valor, dados.medida, dados.dt, dados.simulado)
+    novo_consumo = Consumo(dados.tipo, dados.valor, dados.medida, dados.dt, dados.simulado, dados.descricao)
     
     # Vincula o ID do usuário (extraído do token de autenticação) ao novo registro de consumo
     novo_consumo.user_id = busca.user_id

@@ -72,7 +72,6 @@ async def delete(token: Usuario = Depends(verificar_token), session: Session = D
 async def update(dados: UsuarioUpdate, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar uma conta. \n \n \
     name = "str" \n \n \
-    email = "Emailstr" \n \n \
     senha = "str" \n \n \
     '''
     # Envia o corpo validado e a identidade do solicitante para o controlador de usuários

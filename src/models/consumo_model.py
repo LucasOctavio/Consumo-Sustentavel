@@ -23,14 +23,18 @@ class Consumo(Base):
     # Campo lógico que indica se a medição é uma projeção (simulação) ou um dado real
     con_simulado = Column("con_simulado", Boolean, default=False)
 
+    # Campo que armazena a descrição do consumo (notas, comentários)
+    con_descricao = Column("con_descricao", String, nullable=True)
+
     # Chave estrangeira que vincula o consumo a um usuário específico.
     # O 'ondelete="cascade"' fará com que todos os consumos sejam destruídos automaticamente se o usuário dono for deletado
     user_id = Column(Integer, ForeignKey('usuario.user_id', ondelete="cascade"), nullable=False)
 
     # Construtor da classe, facilitando a criação programática nos métodos de CRUD da API
-    def __init__(self, tipo, valor, medida, dt, simulado=False):
+    def __init__(self, tipo, valor, medida, dt, simulado=False, descricao=""):
         self.con_tipo = tipo
         self.con_valor = valor
         self.con_medida = medida
         self.con_dt = dt
         self.con_simulado = simulado
+        self.con_descricao = descricao

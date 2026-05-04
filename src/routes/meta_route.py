@@ -25,6 +25,7 @@ async def create(dados: MetaSchema, session: Session = Depends(pegar_sessao), bu
     medida = "str" \n \n \
     dt_inicio = "date" \n \n \
     dt_fim = "date" \n \n \
+    descricao = "str" \n \n \
     '''
     # Direciona os dados do corpo da requisição e o usuário autenticado para o construtor da meta
     return criar_meta(dados, session, busca)
@@ -48,6 +49,7 @@ async def update(dados: MetaUpdate, busca: Usuario = Depends(verificar_token), s
     medida = "str" \n \n \
     dt_inicio = "date" \n \n \
     dt_fim = "date" \n \n \
+    descricao = "str" \n \n \
     '''
     # Encaminha a solicitação de edição para o serviço correspondente
     return atualizar_meta(dados, busca.user_id, session)

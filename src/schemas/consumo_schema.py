@@ -7,11 +7,11 @@ from typing import Optional
 class ConsumoSchema(BaseModel):
     # Tipagem estrita: a API recusará requisições se "tipo" não for uma string
     tipo: str
-    
+
     # Campo configurado especificamente para finanças ou medidas precisas.
     # Field(max_digits=10, decimal_places=2) limita a casa decimal para evitar erros de precisão e padronizar o envio
     valor: Decimal = Field(max_digits=10, decimal_places=2)
-    
+
     # Unidade de medida do consumo
     medida: str
     
@@ -20,6 +20,9 @@ class ConsumoSchema(BaseModel):
     
     # Booleano exigido para confirmar se o registro é real ou uma simulação projetada
     simulado: bool
+
+    # Campo que armazena a descrição do consumo (notas, comentários)
+    descricao: Optional[str] = None
 
     # Configuração interna que avisa ao Pydantic que ele pode ler dados diretamente de objetos SQLAlchemy
     class Config:
@@ -37,6 +40,7 @@ class ConsumoUpdate(BaseModel):
     con_medida: Optional[str] = None
     con_dt: Optional[datetime] = None
     con_simulado: Optional[bool] = None
+    con_descricao: Optional[str] = None
 
     class Config:
         from_attributes = True

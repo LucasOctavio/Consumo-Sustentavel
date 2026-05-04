@@ -25,7 +25,8 @@ async def create(dados: ConsumoSchema, session: Session = Depends(pegar_sessao),
     valor = int \n \n \
     medida = "str" \n \n \
     dt = "date" \n \n \
-    simulado = bool \n \n \
+    simulado = "bool" \n \n \
+    descricao = "str" \n \n \
     '''
     # Passa o payload validado (dados) para a função de serviço efetivar o cadastro no banco
     return criar_consumo(dados, session, busca)
@@ -48,7 +49,8 @@ async def update(dados: ConsumoUpdate, busca: Usuario = Depends(verificar_token)
     valor = int \n \n \
     medida = "str" \n \n \
     dt = "date" \n \n \
-    simulado = bool \n \n \
+    simulado = "bool" \n \n \
+    descricao = "str" \n \n \
     '''
     # Envia os dados opcionais recebidos para a função de atualização
     return atualizar_consumo(dados, busca.user_id, session)

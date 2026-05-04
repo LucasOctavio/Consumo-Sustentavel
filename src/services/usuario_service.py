@@ -116,10 +116,6 @@ def atualizar_usuario(dados, user_id, session):
         if existe:
             raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
-    # Bloqueia a alteração do e-mail (user_email)
-    if getattr(dados, "user_email", None):
-        raise HTTPException(status_code=400, detail="Não é permitido alterar o e-mail")
-
     # Se o usuário forneceu uma nova senha, ela é criptografada antes de salvar
     if dados.user_senha:
         dados.user_senha = bcrypt_context.hash(dados.user_senha)

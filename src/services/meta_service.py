@@ -4,7 +4,7 @@ from src.models.meta_model import Meta
 def criar_meta(dados, session, busca):
     """Cria uma nova meta de consumo."""
     # Inicializa um objeto da classe Meta com as informações provenientes do payload da requisição
-    nova_meta = Meta(dados.tipo, dados.valor, dados.medida, dados.dt_inicio, dados.dt_fim)
+    nova_meta = Meta(dados.tipo, dados.valor, dados.medida, dados.dt_inicio, dados.dt_fim, dados.descricao)
     
     # Associa a nova meta ao usuário que a solicitou, usando o ID contido no token
     nova_meta.user_id = busca.user_id

@@ -23,14 +23,18 @@ class Meta(Base):
     # Data limite ou de vencimento para o atingimento da meta estipulada
     meta_dt_fim = Column("meta_dt_fim", Date, nullable=False)
 
+    # Campo que armazena a descrição da meta (notas, comentários)
+    meta_descricao = Column("meta_descricao", String, nullable=True)
+
     # Chave estrangeira que conecta este registro à tabela de usuários.
     # O cascade ondelete força a limpeza automática de metas se o usuário pai for removido do sistema
     user_id = Column(Integer, ForeignKey('usuario.user_id', ondelete="cascade"), nullable=False)
     
     # O método construtor injeta rapidamente os valores na criação do objeto
-    def __init__(self, tipo, valor, medida, dt_inicio, dt_fim):
+    def __init__(self, tipo, valor, medida, dt_inicio, dt_fim, descricao=""):
         self.meta_tipo = tipo
         self.meta_valor = valor
         self.meta_medida = medida
         self.meta_dt_inicio = dt_inicio
         self.meta_dt_fim = dt_fim
+        self.meta_descricao = descricao
