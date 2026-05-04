@@ -33,3 +33,11 @@ class UsuarioLogin(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Valida o envio do código de 6 dígitos e do token temporário no 2FA
+class Usuario2FA(BaseModel):
+    codigo: str
+    token_2fa: str
+
+    class Config:
+        from_attributes = True

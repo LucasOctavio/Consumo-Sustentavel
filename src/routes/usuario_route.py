@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, Request
-from src.services.usuario_service import obter_usuario, renovar_token, criar_usuario, autenticar_usuario, deletar_usuario, atualizar_usuario
-from src.schemas.usuario_schema import UsuarioSchema, UsuarioUpdate
+from fastapi import APIRouter, Depends, Request, Body, Form
+from src.services.usuario_service import obter_usuario, renovar_token, criar_usuario, deletar_usuario, atualizar_usuario
+from src.services.email_service import enviar_email_2fa
+from src.schemas.usuario_schema import UsuarioSchema, UsuarioUpdate, UsuarioLogin
 from src.dependencia import pegar_sessao, verificar_token
 from src.models.usuario_model import Usuario
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from src.services.usuario_service import authenticate, create_token
+from datetime import timedelta
 
 # Inicializa o roteador exclusivo para os fluxos da conta do usuário
 usuario_router = APIRouter(prefix="/usuario", tags=["usuario"])
@@ -33,31 +37,51 @@ async def sign_up(dados: UsuarioSchema, session: Session = Depends(pegar_sessao)
     senha = "str" \n \n \
     '''
     # Encaminha o nome, email e senha recebidos no corpo da requisição para a regra de negócios
-    return criar_usuario(dados.nome, dados.email, dados.senha, session)
+    return await criar_usuario(dados.nome, dados.email, dados.senha, session)
 
-# Endpoint (POST) de autenticação que aceita tanto JSON tradicional quanto Formulários (usados pelo OAuth2 do Swagger)
-@usuario_router.post("/login", summary='Acessar conta')
+# Endpoint (POST) de autenticação com suporte dual (JSON/Form) e documentação via OpenAPI Extra
+@usuario_router.post("/login", summary='Acessar conta', openapi_extra={"requestBody": {"content": {"application/json": {"schema": UsuarioLogin.model_json_schema()}}}})
 async def login(request: Request, session: Session = Depends(pegar_sessao)):
-    '''\n \n \n Acessar uma conta. Suporta JSON e Formulário. \n \n \
+    '''\n \n \n Acessar uma conta. Suporta JSON (nome/senha) para login real e Formulário para o Swagger (Authorize). \n \n \
     nome = "str" \n \n \
     senha = "str" \n \n \
     '''
-    # Inspeciona o cabeçalho "content-type" para descobrir como o cliente enviou os dados
     content_type = request.headers.get("content-type", "")
     
-    # Se os dados vieram empacotados como um formulário da web (padrão de login HTML)
-    if "application/x-www-form-urlencoded" in content_type:
-        form_data = await request.form()
-        nome = form_data.get("username")
-        senha = form_data.get("password")
-    # Caso contrário, assume que os dados vieram no formato JSON moderno
+    # 1. Fluxo via JSON (Normal): Exige 2FA
+    if "application/json" in content_type:
+        try:
+            # Lê o corpo bruto e valida manualmente com o Schema Pydantic
+            corpo = await request.json()
+            dados = UsuarioLogin(**corpo)
+            # Encapsula os dados e chama o serviço que valida e envia o e-mail de 2FA
+            return await enviar_email_2fa(dados, session)
+        except Exception:
+            raise HTTPException(status_code=422, detail="JSON de login inválido. Use os campos 'nome' e 'senha'.")
+    
+    # 2. Fluxo via Formulário (Bypass para o Swagger/Authorize): Retorna Tokens direto
     else:
-        json_data = await request.json()
-        nome = json_data.get("nome")
-        senha = json_data.get("senha")
+        # Capturamos os dados do formulário manualmente
+        form_data = await request.form()
+        nome = form_data.get("username") or form_data.get("nome")
+        senha = form_data.get("password") or form_data.get("senha")
 
-    # Chama o serviço passando as credenciais limpas, independentemente de como chegaram
-    return autenticar_usuario(nome, senha, session)
+        if not nome or not senha:
+             raise HTTPException(status_code=422, detail="Credenciais não fornecidas. Use username/password no formulário.")
+        
+        busca = authenticate(nome, senha, session)
+        if not busca:
+            raise HTTPException(status_code=401, detail="Credenciais inválidas")
+        
+        # Gera os tokens finais diretamente para satisfazer o Swagger
+        access_token = create_token(busca.user_id)
+        refresh_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "Bearer"
+        }
 
 # Endpoint (DELETE) que permite ao usuário excluir a própria conta
 @usuario_router.delete("/delete", summary='Deletar conta')

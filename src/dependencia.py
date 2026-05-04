@@ -8,8 +8,6 @@ from src.conexao import engine
 
 def pegar_sessao():
     """Gera uma sessão do banco de dados."""
-    # Carrega as variáveis de ambiente a partir do arquivo .env
-    load_dotenv()
     
     # O bloco try garante que a sessão será adequadamente gerenciada
     try:

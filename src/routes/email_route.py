@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends
-from src.schemas.usuario_schema import UsuarioLogin, UsuarioUpdate
+from src.schemas.usuario_schema import UsuarioLogin, UsuarioUpdate, Usuario2FA
 from src.schemas.mail_schema import EmailSchema
 from src.dependencia import pegar_sessao, verificar_token, verificar_token_query, verificar_dados_query
 from src.models.usuario_model import Usuario
 from sqlalchemy.orm import Session
 from src.services.email_service import (
     enviar_email_verificacao, 
-    enviar_email_login, 
+    enviar_email_2fa, 
     enviar_email_exclusao, 
     enviar_email_atualizacao, 
     verificar_via_email, 
-    autenticar_via_email, 
+    verificar_2fa, 
     atualizar_via_email
 )
 from src.services.usuario_service import deletar_usuario
@@ -18,25 +18,16 @@ from src.services.usuario_service import deletar_usuario
 # Instancia do roteador que lida especificamente com operações mediadas por confirmações via E-mail
 email_router = APIRouter(prefix="/usuario", tags=["email"])
 
-# Endpoint para requisitar o envio de um e-mail com link de confirmação de cadastro
-@email_router.post("/send_verify_email", summary='Enviar e-mail verificação')
-async def send_verify_email(email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
-    '''\n \n \n Mandar verificador via e-mail da conta. \n \n \
-    email = "Emailstr"   \n \n \
-    '''
-    # Chama a função de serviço aguardando o disparo real (assíncrono) da mensagem SMTP
-    return await enviar_email_verificacao(email.email, token.user_id, session)
 
-# Endpoint para requisitar envio de um e-mail contendo um link para login rápido/seguro ("Magic Link")
-@email_router.post("/send_login_email", summary='Enviar e-mail login')
-async def send_login_email(dados: UsuarioLogin, email: EmailSchema, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
-    '''\n \n \n Mandar acesso via e-mail. \n \n \
+
+# Endpoint para requisitar envio de um e-mail contendo um código 2FA para login
+@email_router.post("/send_2fa_email", summary='Enviar e-mail de 2 Fatores')
+async def send_2fa_email(dados: UsuarioLogin, session: Session = Depends(pegar_sessao)):
+    '''\n \n \n Mandar código 2FA via e-mail para acesso. \n \n \
     nome = "str"    \n \n \
     senha = "str"   \n \n \
-    email = "Emailstr"   \n \n \
     '''
-    # Transmite além do remetente, as credenciais inseridas na tentativa de login
-    return await enviar_email_login(email.email, token.user_id, dados, session)
+    return await enviar_email_2fa(dados, session)
 
 # Endpoint para solicitar que a plataforma envie um alerta/confirmação antes de excluir a conta definitivamente
 @email_router.post("/send_delete_email", summary='Enviar e-mail deletar')
@@ -57,21 +48,22 @@ async def send_update_email(dados: UsuarioUpdate, email: EmailSchema, token: Usu
     '''
     return await enviar_email_atualizacao(dados, email.email, token.user_id, session)
 
+# Endpoint que efetiva o login validando o código 2FA
+@email_router.post("/verify_2fa", summary='Verificar 2FA e Logar')
+async def verify_2fa(dados: Usuario2FA, session: Session = Depends(pegar_sessao)):
+    '''\n \n \n Validar o código de 6 dígitos recebido no e-mail para acessar a conta. \n \n \
+    codigo = "str" \n \n \
+    token_2fa = "str" \n \n \
+    '''
+    return await verificar_2fa(dados.codigo, dados.token_2fa, session)
+
 # Endpoint que efetiva a verificação da conta quando o usuário clica no link do seu e-mail
 @email_router.get("/verify_via_email", summary='Verificar via e-mail')
-async def verify_via_email(token: Usuario = Depends(verificar_token_query), session: Session = Depends(pegar_sessao)):
+async def verify_via_email(token: str, session: Session = Depends(pegar_sessao)):
     '''\n \n \n Verificar uma conta pelo e-mail. \n \n \
     '''
-    # Perceba que usamos "verificar_token_query", ou seja, o token vem escrito na URL e não no cabeçalho
-    return await verificar_via_email(session, token.user_id)
-
-# Endpoint que efetiva o login do usuário no momento em que ele clica no e-mail recebido
-@email_router.get("/login_via_email", summary='Logar via e-mail')
-async def login_via_email(dados: dict = Depends(verificar_dados_query), token: Usuario = Depends(verificar_token_query), session: Session = Depends(pegar_sessao)):
-    '''\n \n \n Acessar uma conta pelo e-mail. \n \n \
-    '''
-    # Recupera tanto o token de segurança principal quanto os dados secundários contidos na própria URL
-    return await autenticar_via_email(dados, token.user_id, session)
+    # Passa a string do token diretamente para ser validada e criar o usuário no banco
+    return await verificar_via_email(session, token)
 
 # Endpoint que efetiva a exclusão completa do usuário após ele clicar no botão recebido no e-mail
 @email_router.get("/delete_via_email", summary='Deletar via e-mail')

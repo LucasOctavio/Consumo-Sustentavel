@@ -5,7 +5,7 @@ from fastapi.responses import Response
 def obter_foto(token, session):
     """Retorna a foto de perfil do usuário logado."""
     # Procura no banco de dados o registro do usuário usando o ID validado fornecido no token
-    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+    usuario = session.get(Usuario, token.user_id)
 
     # Confirma se o usuário existe e se ele de fato possui uma foto cadastrada (não nula)
     if usuario and usuario.user_foto:
@@ -19,7 +19,7 @@ def obter_foto(token, session):
 def salvar_foto(token, foto, session):
     """Salva uma nova foto de perfil para o usuário."""
     # Busca a instância do usuário para associá-la à foto recebida
-    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+    usuario = session.get(Usuario, token.user_id)
 
     # Valida se a conta solicitante foi encontrada no banco
     if usuario:
@@ -41,7 +41,7 @@ def salvar_foto(token, foto, session):
 def atualizar_foto(token, foto, session):
     """Atualiza a foto de perfil do usuário."""
     # Localiza o usuário específico no sistema
-    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+    usuario = session.get(Usuario, token.user_id)
 
     # Confirmação de existência do registro
     if usuario:
@@ -63,7 +63,7 @@ def atualizar_foto(token, foto, session):
 def deletar_foto(token, session):
     """Remove a foto de perfil do usuário."""
     # Procura a conta ligada à solicitação usando a chave estrangeira garantida pelo JWT (token)
-    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+    usuario = session.get(Usuario, token.user_id)
 
     # Valida se realmente existe esse usuário
     if usuario:

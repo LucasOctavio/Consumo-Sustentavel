@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 from sqlalchemy import or_
 
-def criar_usuario(nome, email, senha, session):
+async def criar_usuario(nome, email, senha, session):
     """Cria uma nova conta de usuário."""
     # Verifica se já existe um usuário cadastrado com o mesmo e-mail ou nome
     # O comando 'or_' permite buscar por uma condição OU outra simultaneamente
@@ -18,22 +18,26 @@ def criar_usuario(nome, email, senha, session):
     # Criptografa a senha em texto plano usando o algoritmo definido no bcrypt_context
     senha_criptografada = bcrypt_context.hash(senha)
     
-    # Instancia um novo objeto Usuario com os dados fornecidos e a senha protegida
-    novo_usuario = Usuario(nome, email, senha_criptografada)
+    # Prepara os dados em um dicionário para colocar dentro do token
+    dados_cadastro = {"nome": nome, "email": email, "senha": senha_criptografada}
+    
+    # Gera um token contendo os dados do usuário, válido por 24 horas
+    from datetime import timedelta
+    verification_token = create_token(dados_cadastro, duracao_token=timedelta(hours=24))
+    
+    # Importação local para evitar import circular com email_service
+    from src.services.email_service import enviar_email_verificacao
+    
+    # Aciona o envio do link de verificação contendo os dados empacotados
+    await enviar_email_verificacao([email], verification_token)
 
-    # Adiciona a nova instância à sessão atual do banco de dados
-    session.add(novo_usuario)
-    
-    # Efetiva (commita) a transação no banco de dados, salvando o registro
-    session.commit()
-    
-    # Retorna uma mensagem de sucesso
-    return {"mensagem": "Conta cadastrada com sucesso"}
+    # Retorna a mensagem de sucesso
+    return {"mensagem": "Quase lá! Um e-mail de verificação foi enviado. Clique no link para concluir seu cadastro."}
 
 def obter_usuario(token, session):
     """Retorna as informações do perfil do usuário logado."""
     # Busca o usuário no banco usando o user_id que foi extraído do token de autenticação
-    usuario = session.query(Usuario).filter(Usuario.user_id == token.user_id).first()
+    usuario = session.get(Usuario, token.user_id)
 
     # Se o usuário existir, retorna um dicionário com os seus dados principais
     if usuario:
@@ -48,32 +52,11 @@ def obter_usuario(token, session):
     else:
         raise HTTPException(status_code=404, detail="Conta não encontrada")
 
-def autenticar_usuario(nome, senha, session):
-    """Autentica o usuário e retorna os tokens de acesso e renovação."""
-    # Utiliza a função auxiliar 'authenticate' para validar as credenciais
-    busca = authenticate(nome, senha, session)
-
-    # Se as credenciais não baterem (nome de usuário ou senha errados), levanta erro 401
-    if not busca:
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
-    
-    # Gera um Token de Acesso (JWT) que o cliente usará nas próximas requisições
-    access_token = create_token(busca.user_id)
-    
-    # Gera um Token de Renovação (Refresh Token) com uma validade mais extensa (ex: 7 dias)
-    refresh_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
-    
-    # Retorna os tokens e informa o tipo 'Bearer' (portador)
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "Bearer"
-    }
 
 def deletar_usuario(user_id, session):
     """Exclui a conta do usuário do sistema."""
     # Busca o usuário pelo ID
-    usuario = session.query(Usuario).filter(Usuario.user_id == user_id).first()
+    usuario = session.get(Usuario, user_id)
 
     # Se o usuário for encontrado, remove o registro da sessão e commita no banco
     if usuario:
@@ -97,7 +80,11 @@ def authenticate(nome, senha, session):
     if not bcrypt_context.verify(senha, busca.user_senha):
         return False
 
-    # Se o usuário existir e a senha for correta, retorna a instância do usuário
+    # Se a conta ainda não foi verificada, bloqueia o acesso e pede para verificar
+    if not busca.user_verified:
+        raise HTTPException(status_code=403, detail="Conta não verificada. Por favor, acesse seu e-mail para validar a conta.")
+
+    # Se o usuário existir, for verificado e a senha for correta, retorna a instância do usuário
     return busca
 
 def atualizar_usuario(dados, user_id, session):

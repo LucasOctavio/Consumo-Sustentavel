@@ -33,7 +33,7 @@ async def create(dados: ConsumoSchema, session: Session = Depends(pegar_sessao),
 
 # Endpoint para deleção (DELETE) de um consumo específico
 @consumo_router.delete("/delete", summary='Deletar consumo')
-async def delete(con_id, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+async def delete(con_id: int, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar um consumo. \n \n \
     id = int \n \n \
     '''

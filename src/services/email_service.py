@@ -4,6 +4,9 @@ from src.config import conf, bcrypt_context
 from src.services.usuario_service import create_token, authenticate
 from fastapi_mail import FastMail, MessageSchema, MessageType
 from datetime import timedelta
+from src.config import SECRET_KEY, ALGORITHM
+from jose import jwt
+import random
 
 async def atualizar_via_email(dados, user_id, session):
     """Atualiza as informações do usuário após validação via e-mail."""
@@ -45,62 +48,75 @@ async def atualizar_via_email(dados, user_id, session):
     # Retorna uma mensagem de sucesso
     return {"mensagem": "Dados da conta atualizados"}
 
-async def autenticar_via_email(dados, token, session):
-    """Realiza o login do usuário após confirmação via e-mail."""
-    
-    # Obtém o usuário no banco usando o ID do token de e-mail
-    usuario = session.get(Usuario, token)
+async def verificar_2fa(codigo_digitado: str, token_2fa_str: str, session):
+    """Verifica se o código digitado bate com o token 2FA gerado e autentica."""
+    try:
+        payload = jwt.decode(token_2fa_str, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("user_id"))
+        codigo_correto = payload.get("codigo")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token 2FA inválido ou expirado")
 
-    # Se o usuário não existir, levanta um erro 404
+    if codigo_digitado != codigo_correto:
+        raise HTTPException(status_code=401, detail="Código de verificação incorreto")
+    
+    usuario = session.get(Usuario, user_id)
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
 
-    # Utiliza a função authenticate para verificar se o nome e a senha (decodificados do token) estão corretos
-    busca = authenticate(dados.get("nome"), dados.get("senha"), session)
-
-    # Se as credenciais estiverem incorretas, bloqueia o acesso com erro 401 (Unauthorized)
-    if not busca:
-        raise HTTPException(status_code=401, detail="Credenciais inválidas")
-    
     # Gera os tokens de segurança para a sessão do usuário
-    # Cria o token de acesso principal (Access Token)
-    access_token = create_token(busca.user_id)
-    # Cria um token de renovação (Refresh Token) com validade maior (ex: 7 dias)
-    refresh_token = create_token(busca.user_id, duracao_token=timedelta(days=7))
+    access_token = create_token(usuario.user_id)
+    refresh_token = create_token(usuario.user_id, duracao_token=timedelta(days=7))
     
-    # Retorna as chaves geradas para o cliente frontend utilizar nas próximas requisições
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "Bearer"
     }
 
-async def verificar_via_email(session, token):
-    """Marca o e-mail do usuário como verificado."""
+async def verificar_via_email(session, token_str):
+    """Efetiva o cadastro após o usuário clicar no link."""
+    from sqlalchemy import or_
     
-    # Busca o usuário a partir do token contido no link clicado no e-mail
-    busca = session.query(Usuario).filter(Usuario.user_id == token).first()
+    try:
+        payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="O link de verificação expirou.")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Link de verificação inválido.")
 
-    # Verifica se o usuário foi encontrado
-    if not busca:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-        
-    # Verifica se o e-mail deste usuário já consta como verificado (user_verified == True)
-    if busca.user_verified:
-        # Retorna um erro 400 (Bad Request) informando que não é necessário verificar novamente
-        raise HTTPException(status_code=400, detail="E-mail já verificado")
+    # Extrai os dados do payload
+    nome = payload.get("nome")
+    email = payload.get("email")
+    senha_criptografada = payload.get("senha")
+
+    if not nome or not email or not senha_criptografada:
+        raise HTTPException(status_code=400, detail="Dados de cadastro incompletos no token.")
+
+    # Verificação extra de segurança: garante que o nome ou email não foram registrados 
+    # por outra pessoa enquanto o token estava pendente.
+    existe = session.query(Usuario).filter(or_(Usuario.user_name == nome, Usuario.user_email == email)).first()
+    if existe:
+        raise HTTPException(status_code=409, detail="Este nome de usuário ou e-mail já foi validado por outra conta.")
+
+    # Se estiver tudo certo, cria o registro definitivo no banco de dados
+    novo_usuario = Usuario(nome, email, senha_criptografada, verified=True)
     
-    # Altera o status da conta para 'verificada'
-    busca.user_verified = True
-    
-    # Salva a mudança no banco de dados e recarrega a instância
+    # Salva a mudança no banco de dados
+    session.add(novo_usuario)
     session.commit()
-    session.refresh(busca)
     
-    return {"message": "E-mail verificado com sucesso"}
+    return {"message": "Sua conta foi verificada e criada com sucesso! Você já pode fazer login."}
 
-def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str, link_botao: str, texto_rodape: str) -> str:
+def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link_botao: str = None, texto_rodape: str = "") -> str:
     """Gera um template HTML completo e estilizado para os e-mails."""
+    
+    botao_html = ""
+    if texto_botao and link_botao:
+        botao_html = f"""<a href="{link_botao}" style="display: inline-block; padding: 15px 30px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                                    {texto_botao}
+                                </a>"""
+
     return f"""
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -125,9 +141,7 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str, link_botao:
                                 <p style="color: #555555; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
                                     {subtitulo}
                                 </p>
-                                <a href="{link_botao}" style="display: inline-block; padding: 15px 30px; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                                    {texto_botao}
-                                </a>
+                                {botao_html}
                                 <p style="margin-top: 40px; color: #999999; font-size: 13px; line-height: 1.4;">
                                     {texto_rodape}
                                 </p>
@@ -148,32 +162,21 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str, link_botao:
     </html>
     """
 
-async def enviar_email_verificacao(emails, user_id, session):
-    """Envia o e-mail de verificação de conta."""
-    
-    # Checa no banco se o e-mail digitado pertence a algum usuário cadastrado
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
-    
-    # Se não encontrar, retorna erro 404
-    if not busca:
-        raise HTTPException(status_code=404, detail="E-mail não cadastrado")
-
-    # Gera um Token JWT exclusivo contendo o ID do usuário, para colocar no link
-    verification_token = create_token(user_id)
+async def enviar_email_verificacao(emails, verification_token):
+    """Envia o e-mail de verificação de conta contendo os dados assinados."""
     
     # Constrói o corpo do e-mail em formato HTML
-    # Note que injetamos o 'verification_token' diretamente na tag <a> do link
     html = _gerar_html_email(
-        titulo="Confirme seu e-mail",
-        subtitulo="Obrigado por criar sua conta! Clique no botão abaixo para verificar seu e-mail.",
+        titulo="Confirme seu cadastro",
+        subtitulo="Obrigado por iniciar seu cadastro! Clique no botão abaixo para verificar seu e-mail e concluir a criação da conta.",
         texto_botao="Confirmar Conta",
         link_botao=f"https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}",
-        texto_rodape="Se você não criou essa conta, pode ignorar este e-mail."
+        texto_rodape="Se você não solicitou a criação desta conta, pode ignorar este e-mail."
     )
 
     # Cria a estrutura (Schema) da mensagem para a biblioteca FastMail
     message = MessageSchema(
-        subject="Consumo Sustentável - Verificação de E-mail",  # Assunto do e-mail
+        subject="Consumo Sustentável - Concluir Cadastro",  # Assunto do e-mail
         recipients=emails,  # Lista de destinatários
         body=html,  # Conteúdo
         subtype=MessageType.html)  # O tipo do conteúdo, neste caso HTML
@@ -186,44 +189,50 @@ async def enviar_email_verificacao(emails, user_id, session):
     
     return {"message": "E-mail de verificação enviado"}
 
-async def enviar_email_login(emails, user_id, dados, session):
-    """Envia o e-mail para permitir o login na conta."""
+async def enviar_email_2fa(dados, session):
+    """Verifica as credenciais e envia o e-mail contendo o código de verificação 2FA para o login."""
     
-    # Busca o usuário pelo e-mail
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
+    # Verifica as credenciais antes de enviar o e-mail
+    busca = authenticate(dados.nome, dados.senha, session)
     
     if not busca:
-        raise HTTPException(status_code=404, detail="E-mail não cadastrado")
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
-    # Cria um token para o usuário (identidade) e um token específico para as credenciais (dados de login)
-    verification_token = create_token(user_id)
-    verification_dados = create_token(dados)
+    user_id = busca.user_id
+    emails = [busca.user_email]
 
-    # Formata o HTML contendo os DOIS tokens (token e dados) no parâmetro do link
+    # Gera um código numérico de 6 dígitos
+    codigo_2fa = str(random.randint(100000, 999999))
+
+    # Cria um token que guarda o user_id e o código gerado, válido por 10 minutos
+    token_dados = {"user_id": user_id, "codigo": codigo_2fa}
+    token_2fa = create_token(token_dados, duracao_token=timedelta(minutes=10))
+
+    # Formata o HTML do e-mail
     html = _gerar_html_email(
-        titulo="Permitir Entrada",
-        subtitulo="Clique no botão abaixo para permitir a entrada na conta.",
-        texto_botao="Entrar na Conta",
-        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/login_via_email?token={verification_token}&dados={verification_dados}",
-        texto_rodape="Se você não pediu para entrar nessa conta, pode ignorar este e-mail."
+        titulo="Código de Verificação",
+        subtitulo=f"Seu código de acesso é:<br><br><span style='font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 4px;'>{codigo_2fa}</span>",
+        texto_rodape="Se você não solicitou este código, por favor ignore este e-mail. Ele expira em 10 minutos."
     )
 
     # Configura e envia a mensagem
     message = MessageSchema(
-        subject="Consumo Sustentável - Permitir Entrada",
+        subject="Consumo Sustentável - Código de Autenticação",
         recipients=emails,
         body=html,
         subtype=MessageType.html)
 
     fm = FastMail(conf)
     await fm.send_message(message)
-    return {"message": "E-mail de login enviado"}
+    
+    # Retorna o token 2FA para o frontend armazenar temporariamente
+    return {"message": "Código de verificação enviado", "token_2fa": token_2fa}
 
 async def enviar_email_exclusao(emails, user_id, session):
     """Envia o e-mail de confirmação para exclusão de conta."""
     
     # Confirma que o e-mail alvo existe no banco
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
+    busca = session.get(Usuario, user_id)
     
     if not busca:
         raise HTTPException(status_code=404, detail="E-mail não cadastrado")
@@ -255,7 +264,7 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
     """Envia o e-mail de confirmação para atualização de informações cadastrais."""
     
     # Confirma que o e-mail do requerente existe no banco
-    busca = session.query(Usuario).filter(Usuario.user_email.in_(emails)).first()
+    busca = session.get(Usuario, user_id)
     
     if not busca:
         raise HTTPException(status_code=404, detail="E-mail não cadastrado")

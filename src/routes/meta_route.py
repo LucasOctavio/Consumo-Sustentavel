@@ -11,7 +11,7 @@ meta_router = APIRouter(prefix="/meta", tags=["meta"], dependencies=[Depends(ver
 # Endpoint para listar as metas associadas à conta
 @meta_router.get("/read", summary='Ler meta')
 async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
-    '''\n \n \n Atualizar uma meta. \n \n \
+    '''\n \n \n Ler as metas da conta. \n \n \
     '''
     # Devolve a lista de metas chamando o serviço correspondente
     return listar_metas(usuario, session)
@@ -32,7 +32,7 @@ async def create(dados: MetaSchema, session: Session = Depends(pegar_sessao), bu
 
 # Endpoint para remover uma meta
 @meta_router.delete("/delete", summary='Deletar meta')
-async def delete(meta_id, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+async def delete(meta_id: int, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar uma meta. \n \n \
     id = int \n \n \
     '''
