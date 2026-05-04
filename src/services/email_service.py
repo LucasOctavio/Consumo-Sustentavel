@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
 import asyncio
+import httpx
 import random
 import smtplib
 from datetime import timedelta
