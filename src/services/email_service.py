@@ -170,7 +170,7 @@ async def enviar_email_verificacao(emails, verification_token):
         titulo="Confirme seu cadastro",
         subtitulo="Obrigado por iniciar seu cadastro! Clique no botão abaixo para verificar seu e-mail e concluir a criação da conta.",
         texto_botao="Confirmar Conta",
-        link_botao=f"http://127.0.0.1:8000/usuario/verify_via_email?token={verification_token}",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/verify_via_email?token={verification_token}",
         texto_rodape="Se você não solicitou a criação desta conta, pode ignorar este e-mail."
     )
 
@@ -245,7 +245,7 @@ async def enviar_email_exclusao(emails, user_id, session):
         titulo="Confirmar Exclusão",
         subtitulo="Sentiremos sua falta! Clique no botão abaixo para confirmar a exclusão de sua conta.",
         texto_botao="Excluir Conta",
-        link_botao=f"http://127.0.0.1:8000/usuario/delete_via_email?token={verification_token}",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/delete_via_email?token={verification_token}",
         texto_rodape="Se você não solicitou a exclusão, pode ignorar este e-mail."
     )
 
@@ -278,7 +278,7 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
         titulo="Confirmar Atualização",
         subtitulo="Clique no botão abaixo para confirmar a atualização da sua conta.",
         texto_botao="Atualizar Conta",
-        link_botao=f"http://127.0.0.1:8000/usuario/update_via_email?token={verification_token}&dados={verification_dados}",
+        link_botao=f"https://consumo-sustentavel.onrender.com/usuario/update_via_email?token={verification_token}&dados={verification_dados}",
         texto_rodape="Se você não solicitou a atualização das informações, pode ignorar este e-mail."
     )
 
