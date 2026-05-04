@@ -338,4 +338,3 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
         # Fallback síncrono
         await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Atualizar Conta", html)
     return {"message": "E-mail de atualização enviado"}
-    return {"message": "E-mail de atualização enviado"}
