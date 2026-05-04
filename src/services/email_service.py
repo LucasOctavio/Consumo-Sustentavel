@@ -1,15 +1,15 @@
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
-from src.config import conf, bcrypt_context
-from src.services.usuario_service import create_token, authenticate
-from fastapi_mail import FastMail, MessageSchema, MessageType
-from datetime import timedelta
-from src.config import SECRET_KEY, ALGORITHM
-from jose import jwt
+import asyncio
+import httpx
 import random
 import smtplib
+from datetime import timedelta
 from email.message import EmailMessage
-import asyncio
+from jose import jwt
+from fastapi_mail import FastMail, MessageSchema, MessageType
+from src.config import RESEND_API_KEY, conf, bcrypt_context, SECRET_KEY, ALGORITHM
+from src.services.usuario_service import create_token, authenticate
 
 async def atualizar_via_email(dados, user_id, session):
     """Atualiza as informações do usuário após validação via e-mail."""
@@ -184,15 +184,16 @@ async def enviar_email_verificacao(emails, verification_token):
         body=html,  # Conteúdo
         subtype=MessageType.html)  # O tipo do conteúdo, neste caso HTML
 
-    # Inicializa o gerenciador de envio instanciando o FastMail com a nossa configuração
-    fm = FastMail(conf)
+    # Tenta via Resend primeiro (Ideal para Produção/Render)
+    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Concluir Cadastro", html)
     
-    # Tenta enviar de forma assíncrona, mas com um fallback síncrono em thread caso falhe ou demore
-    try:
-        await fm.send_message(message)
-    except Exception:
-        # Fallback síncrono para contornar bloqueios de bibliotecas assíncronas em alguns servidores
-        await asyncio.to_thread(_enviar_email_sincrono, emails, "Consumo Sustentável - Concluir Cadastro", html)
+    if not sucesso:
+        # Fallback para o método antigo se o Resend falhar
+        fm = FastMail(conf)
+        try:
+            await fm.send_message(message)
+        except Exception:
+            await asyncio.to_thread(_enviar_email_sincrono, emails, "Consumo Sustentável - Concluir Cadastro", html)
     
     return {"message": "E-mail de verificação enviado"}
 
@@ -222,6 +223,41 @@ def _enviar_email_sincrono(destinatarios, assunto, corpo_html):
         server.quit()
     except Exception as e:
         print(f"Erro no envio síncrono: {e}")
+
+async def _enviar_email_resend(destinatarios, assunto, corpo_html):
+    """Envia e-mail usando a API do Resend (Porta 443/HTTP), imune a bloqueios de rede."""
+    if not RESEND_API_KEY:
+        print("RESEND_API_KEY não configurada. Pulando para fallback.")
+        return False
+        
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "from": f"{conf.MAIL_FROM_NAME} <onboarding@resend.dev>" if "gmail" in conf.MAIL_FROM else conf.MAIL_FROM,
+        "to": destinatarios,
+        "subject": assunto,
+        "html": corpo_html
+    }
+    
+    # Se o domínio não for verificado no Resend, o 'from' deve ser onboarding@resend.dev
+    # Para simplificar e garantir que funcione de imediato:
+    payload["from"] = "Consumo Sustentavel <onboarding@resend.dev>"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code in [200, 201]:
+                print("E-mail enviado com sucesso via Resend!")
+                return True
+            else:
+                print(f"Erro no Resend: {response.text}")
+                return False
+    except Exception as e:
+        print(f"Erro ao conectar no Resend: {e}")
+        return False
 
 async def enviar_email_2fa(dados, session):
     """Verifica as credenciais e envia o e-mail contendo o código de verificação 2FA para o login."""
@@ -256,12 +292,15 @@ async def enviar_email_2fa(dados, session):
         body=html,
         subtype=MessageType.html)
 
-    fm = FastMail(conf)
-    try:
-        await fm.send_message(message)
-    except Exception:
-        # Fallback síncrono
-        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Código de Autenticação", html)
+    # Tenta via Resend primeiro
+    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Código de Autenticação", html)
+    
+    if not sucesso:
+        fm = FastMail(conf)
+        try:
+            await fm.send_message(message)
+        except Exception:
+            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Código de Autenticação", html)
     
     # Retorna o token 2FA para o frontend armazenar temporariamente
     return {"message": "Código de verificação enviado", "token_2fa": token_2fa}
@@ -294,12 +333,15 @@ async def enviar_email_exclusao(emails, user_id, session):
         body=html,
         subtype=MessageType.html)
 
-    fm = FastMail(conf)
-    try:
-        await fm.send_message(message)
-    except Exception:
-        # Fallback síncrono
-        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Deletar Conta", html)
+    # Tenta via Resend primeiro
+    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Deletar Conta", html)
+    
+    if not sucesso:
+        fm = FastMail(conf)
+        try:
+            await fm.send_message(message)
+        except Exception:
+            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Deletar Conta", html)
     return {"message": "E-mail de exclusão enviado"}
 
 async def enviar_email_atualizacao(dados, emails, user_id, session):
@@ -331,10 +373,14 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
         body=html,
         subtype=MessageType.html)
 
-    fm = FastMail(conf)
-    try:
-        await fm.send_message(message)
-    except Exception:
-        # Fallback síncrono
-        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Atualizar Conta", html)
+    # Tenta via Resend primeiro
+    sucesso = await _enviar_email_resend(emails, "Consumo Sustentável - Atualizar Conta", html)
+    
+    if not sucesso:
+        fm = FastMail(conf)
+        try:
+            await fm.send_message(message)
+        except Exception:
+            # Fallback síncrono
+            await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Atualizar Conta", html)
     return {"message": "E-mail de atualização enviado"}

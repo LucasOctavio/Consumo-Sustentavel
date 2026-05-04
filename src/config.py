@@ -39,3 +39,5 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=False,
 )
+ 
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
