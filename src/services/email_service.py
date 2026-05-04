@@ -7,6 +7,9 @@ from datetime import timedelta
 from src.config import SECRET_KEY, ALGORITHM
 from jose import jwt
 import random
+import smtplib
+from email.message import EmailMessage
+import asyncio
 
 async def atualizar_via_email(dados, user_id, session):
     """Atualiza as informações do usuário após validação via e-mail."""
@@ -184,10 +187,41 @@ async def enviar_email_verificacao(emails, verification_token):
     # Inicializa o gerenciador de envio instanciando o FastMail com a nossa configuração
     fm = FastMail(conf)
     
-    # Envia o e-mail de forma assíncrona
-    await fm.send_message(message)
+    # Tenta enviar de forma assíncrona, mas com um fallback síncrono em thread caso falhe ou demore
+    try:
+        await fm.send_message(message)
+    except Exception:
+        # Fallback síncrono para contornar bloqueios de bibliotecas assíncronas em alguns servidores
+        await asyncio.to_thread(_enviar_email_sincrono, emails, "Consumo Sustentável - Concluir Cadastro", html)
     
     return {"message": "E-mail de verificação enviado"}
+
+def _enviar_email_sincrono(destinatarios, assunto, corpo_html):
+    """Função auxiliar para envio síncrono via smtplib (fallback de segurança)."""
+    msg = EmailMessage()
+    msg.set_content("Por favor, use um leitor de e-mail compatível com HTML.")
+    msg.add_alternative(corpo_html, subtype='html')
+    msg["Subject"] = assunto
+    msg["From"] = conf.MAIL_FROM
+    msg["To"] = ", ".join(destinatarios)
+
+    try:
+        # Usa a configuração baseada no que definimos no config.py
+        server_addr = conf.MAIL_SERVER
+        port = conf.MAIL_PORT
+        
+        if port == 465:
+            server = smtplib.SMTP_SSL(server_addr, port, timeout=30)
+        else:
+            server = smtplib.SMTP(server_addr, port, timeout=30)
+            if conf.MAIL_STARTTLS:
+                server.starttls()
+        
+        server.login(conf.MAIL_USERNAME, conf.MAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+    except Exception as e:
+        print(f"Erro no envio síncrono: {e}")
 
 async def enviar_email_2fa(dados, session):
     """Verifica as credenciais e envia o e-mail contendo o código de verificação 2FA para o login."""
@@ -223,7 +257,11 @@ async def enviar_email_2fa(dados, session):
         subtype=MessageType.html)
 
     fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        await fm.send_message(message)
+    except Exception:
+        # Fallback síncrono
+        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Código de Autenticação", html)
     
     # Retorna o token 2FA para o frontend armazenar temporariamente
     return {"message": "Código de verificação enviado", "token_2fa": token_2fa}
@@ -257,7 +295,11 @@ async def enviar_email_exclusao(emails, user_id, session):
         subtype=MessageType.html)
 
     fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        await fm.send_message(message)
+    except Exception:
+        # Fallback síncrono
+        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Deletar Conta", html)
     return {"message": "E-mail de exclusão enviado"}
 
 async def enviar_email_atualizacao(dados, emails, user_id, session):
@@ -290,5 +332,10 @@ async def enviar_email_atualizacao(dados, emails, user_id, session):
         subtype=MessageType.html)
 
     fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        await fm.send_message(message)
+    except Exception:
+        # Fallback síncrono
+        await asyncio.to_thread(_enviar_email_sincrono, [emails] if isinstance(emails, str) else emails, "Consumo Sustentável - Atualizar Conta", html)
+    return {"message": "E-mail de atualização enviado"}
     return {"message": "E-mail de atualização enviado"}
