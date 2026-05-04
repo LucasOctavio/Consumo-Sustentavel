@@ -37,5 +37,5 @@ conf = ConnectionConfig(
     MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "False") in ["True", "true", "1"],
     MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "True") in ["True", "true", "1"],
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
+    VALIDATE_CERTS=False,
 )
