@@ -38,23 +38,16 @@ async def criar_usuario(nome, email, senha, session):
     return {"mensagem": "Quase lá! Um e-mail de verificação foi enviado. Clique no link para concluir seu cadastro."}
 
 
-def obter_usuario(token, session):
+def obter_usuario(usuario, session):
     """Retorna as informações do perfil do usuário logado."""
-    # Busca o usuário no banco usando o user_id que foi extraído do token de autenticação
-    usuario = session.get(Usuario, token.user_id)
-
-    # Se o usuário existir, retorna um dicionário com os seus dados principais
-    if usuario:
-        return {
-            "user_id": usuario.user_id,
-            "user_name": usuario.user_name,
-            "user_email": usuario.user_email,
-            "user_senha": usuario.user_senha,
-            "user_verified": usuario.user_verified
-        }
-
-    # Caso contrário, levanta um erro informando que a conta não foi encontrada (404)
-    raise HTTPException(status_code=404, detail="Conta não encontrada")
+    # O objeto 'usuario' já vem validado pela dependência de token
+    return {
+        "user_id": usuario.user_id,
+        "user_name": usuario.user_name,
+        "user_email": usuario.user_email,
+        "user_senha": usuario.user_senha,
+        "user_verified": usuario.user_verified
+    }
 
 
 def deletar_usuario(user_id, session):
@@ -124,9 +117,13 @@ def atualizar_usuario(dados, user_id, session):
         if hasattr(usuario, key) and value is not None and value != "":
             setattr(usuario, key, value)
 
-    # Efetiva as alterações no banco de dados e recarrega os dados do usuário em memória
-    session.commit()
-    session.refresh(usuario)
+    try:
+        # Efetiva as alterações no banco de dados e recarrega os dados do usuário em memória
+        session.commit()
+        session.refresh(usuario)
+    except Exception:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Nome de usuário já cadastrado")
 
     return {"mensagem": "Dados da conta atualizados"}
 
@@ -160,13 +157,9 @@ def create_token(data, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUT
     # Adicionamos a propriedade 'exp' ao payload (o JWT exige isso para controlar expiração)
     dic_info["exp"] = data_expiracao
 
-    # Garante que chave e algoritmo nunca sejam None para evitar JWKError quando
-    # as variáveis de ambiente não estiverem configuradas no servidor (ex: Render)
-    chave = SECRET_KEY or "consumo-sustentavel-default-key-2025"
-    algoritmo = ALGORITHM or "HS256"
-
     # Assina e codifica o payload utilizando nossa chave secreta e o algoritmo (ex: HS256)
-    token = jwt.encode(dic_info, chave, algoritmo)
+    # As chaves agora possuem fallbacks seguros centralizados no src/config.py
+    token = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
 
     # Retorna a string do token gerado
     return token

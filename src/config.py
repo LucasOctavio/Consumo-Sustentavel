@@ -8,11 +8,11 @@ import os
 # Carrega as variáveis do arquivo .env de forma global para todas as configurações
 load_dotenv()
 
-# Recupera a chave secreta utilizada para assinar os tokens JWT, garantindo que eles não sejam forjados
-SECRET_KEY = os.getenv("SECRET_KEY")
+# Recupera a chave secreta utilizada para assinar os tokens JWT, com fallback de segurança
+SECRET_KEY = os.getenv("SECRET_KEY", "consumo-sustentavel-default-key-2025")
 
 # Define o algoritmo de criptografia padrão usado na geração dos tokens JWT
-ALGORITHM = os.getenv("ALGORITHM")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 # Define a vida útil do Token de Acesso em minutos, pegando a variável do .env ou assumindo 15 minutos como padrão
 ACCESS_TOKEN_EXPIRE_MINUTE = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTE", "15"))

@@ -119,8 +119,17 @@ async def verificar_via_email(session, token_str):
         senha=senha_criptografada,
         verified=True
     )
-    session.add(novo_usuario)
-    session.commit()
+    
+    try:
+        session.add(novo_usuario)
+        session.commit()
+    except Exception:
+        # Caso ocorra um erro de integridade (ex: nome/email duplicado no exato momento da inserção)
+        session.rollback()
+        raise HTTPException(
+            status_code=409, 
+            detail="Este nome de usuário ou e-mail já foi validado por outra conta."
+        )
 
     return {"message": "Sua conta foi verificada e criada com sucesso! Você já pode fazer login."}
 

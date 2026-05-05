@@ -14,11 +14,11 @@ usuario_router = APIRouter(prefix="/usuario", tags=["usuario"])
 
 # Endpoint (GET) para obter os dados do próprio usuário (perfil)
 @usuario_router.get("/read", summary='Ler conta')
-async def read(token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+async def read(usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Ler as informações da conta. \n \n \
     '''
     # Repassa a identificação garantida pelo JWT para buscar os dados completos no banco
-    return obter_usuario(token, session)
+    return obter_usuario(usuario, session)
 
 # Endpoint (POST) dedicado a trocar um token que está prestes a vencer por um novo
 @usuario_router.post("/refresh_token", summary='refresh token')
@@ -85,18 +85,18 @@ async def login(request: Request, session: Session = Depends(pegar_sessao)):
 
 # Endpoint (DELETE) que permite ao usuário excluir a própria conta
 @usuario_router.delete("/delete", summary='Deletar conta')
-async def delete(token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+async def delete(usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar uma conta. \n \n \
     '''
     # O user_id é pego de dentro do token, evitando que alguém delete a conta de outro usuário
-    return deletar_usuario(token.user_id, session)
+    return deletar_usuario(usuario.user_id, session)
 
 # Endpoint (PATCH) para o usuário modificar seu próprio perfil (nome, senha, etc.)
 @usuario_router.patch("/update", summary='Atualizar conta')
-async def update(dados: UsuarioUpdate, token: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
+async def update(dados: UsuarioUpdate, usuario: Usuario = Depends(verificar_token), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar uma conta. \n \n \
     name = "str" \n \n \
     senha = "str" \n \n \
     '''
     # Envia o corpo validado e a identidade do solicitante para o controlador de usuários
-    return atualizar_usuario(dados, token.user_id, session)
+    return atualizar_usuario(dados, usuario.user_id, session)
