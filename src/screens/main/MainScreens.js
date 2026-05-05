@@ -82,7 +82,6 @@ export const HomeScreen = ({ navigation }) => {
 
   return (
     <AppLayout>
-      <Text style={[styles.screenTitleText, { color: colors.text }]}>Tela Inicial</Text>
       
       <TouchableOpacity onPress={() => navigation.navigate('Consumption')}>
         <Card>

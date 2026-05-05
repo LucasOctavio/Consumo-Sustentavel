@@ -25,16 +25,16 @@ const normalizeDate = (dateStr) => {
 
 // Normaliza dados vindos do backend para o formato esperado pela UI
 const normalizeConsumption = (item) => ({
-  id: item.id || item.cons_id || Date.now(),
+  id: item.con_id || item.id || Date.now(),  // backend retorna con_id
   type: item.tipo || item.type || '?',
   value: item.valor !== undefined ? item.valor : item.value,
   date: normalizeDate(item.dt || item.date || ''),
   unit: item.medida || item.unit || '',
-  simulado: item.simulado || false, // Adicionado flag para diferenciar simulações de consumos reais
+  simulado: item.simulado || false,
 });
 
 const normalizeGoal = (item) => ({
-  id: item.id || item.meta_id || Date.now(),
+  id: item.meta_id || item.id || Date.now(),  // backend retorna meta_id
   type: item.tipo || item.type || '?',
   value: item.valor !== undefined ? item.valor : item.value,
   unit: item.medida || item.unit || '',
@@ -66,8 +66,8 @@ export const AppNavigator = () => {
           const userInfo = await authService.getUserInfo();
           setUserData({
             ...userInfo,
-            name: userInfo.user_name,
-            email: userInfo.user_email
+            name: userInfo.user_name || userInfo.nome || '',
+            email: userInfo.user_email || userInfo.email || '',
           });
           setIsAuthenticated(true);
         }
@@ -108,40 +108,39 @@ export const AppNavigator = () => {
 
   const colors = isDarkMode ? darkColors : lightColors;
 
+  // Login simples: POST /usuario/login com { nome, senha }
+  // O backend retorna { access_token, refresh_token, token_type } diretamente
   const login = async (identifier, password) => {
     try {
       const data = await authService.login(identifier, password);
-      // O backend retorna access_token, refresh_token, token_type
-      if (data.access_token) {
+      if (data && data.access_token) {
         await AsyncStorage.setItem('@CCN:token', data.access_token);
-        
-        // Buscar informações do usuário logado
+        // Busca dados do usuário após login bem-sucedido
         const userInfo = await authService.getUserInfo();
         setUserData({
           ...userInfo,
-          name: userInfo.user_name,
-          email: userInfo.user_email
+          name: userInfo.user_name || userInfo.nome || '',
+          email: userInfo.user_email || userInfo.email || '',
         });
-        
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, message: "Erro ao realizar login." };
+      return { success: false, message: 'Erro ao realizar login.' };
     } catch (error) {
       console.error('Login error:', error);
-      const message = error.response?.data?.detail || "E-mail ou senha incorretos.";
-      return { success: false, message };
+      const msg = error.response?.data?.detail || 'Nome ou senha incorretos.';
+      return { success: false, message: msg };
     }
   };
 
   const register = async (name, email, password) => {
     try {
       await authService.register(name, email, password);
-      // Após registrar, faz login automaticamente
-      return await login(name, password);
+      // Cadastro ok: usuário deve verificar e-mail, depois fazer login manualmente
+      return { success: true, requiresEmailVerification: true };
     } catch (error) {
       console.error('Register error:', error);
-      const message = error.response?.data?.detail || "Erro ao realizar cadastro.";
+      const message = error.response?.data?.detail || 'Erro ao realizar cadastro.';
       return { success: false, message };
     }
   };
@@ -247,6 +246,38 @@ export const AppNavigator = () => {
     }
   };
 
+  const deleteConsumption = async (id) => {
+    // Remove localmente de imediato para UI responsiva
+    setConsumptions(prev => prev.filter(c => c.id !== id));
+    try {
+      await consumptionService.delete(id);
+    } catch (error) {
+      console.error('Error deleting consumption:', error);
+      // Recarrega do backend em caso de erro para restaurar estado correto
+      await loadBackendData();
+    }
+  };
+
+  const deleteSimulation = async (id) => {
+    setSimulations(prev => prev.filter(s => s.id !== id));
+    try {
+      await consumptionService.delete(id);
+    } catch (error) {
+      console.error('Error deleting simulation:', error);
+      await loadBackendData();
+    }
+  };
+
+  const deleteGoal = async (id) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+    try {
+      await goalService.delete(id);
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      await loadBackendData();
+    }
+  };
+
   const deleteAccount = async () => {
     try {
       // Tenta deletar no backend primeiro
@@ -308,10 +339,13 @@ export const AppNavigator = () => {
         resetPassword,
         consumptions,
         simulations,
-        goals: goalsWithProgress, // Substitui as metas estáticas pelas metas com progresso calculado dinamicamente
+        goals: goalsWithProgress,
         addConsumption,
         addSimulation,
         addGoal,
+        deleteConsumption,
+        deleteSimulation,
+        deleteGoal,
         deleteAccount
       }}>
         <NavigationContainer>

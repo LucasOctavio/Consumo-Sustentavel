@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { AuthLayout } from '../../components/AuthLayout';
 import { Card } from '../../components/Card';
 import { Input } from '../../components/Input';
@@ -9,24 +9,84 @@ import { AuthContext, useTheme } from '../../navigation/AppNavigator';
 
 
 export const LoginScreen = ({ navigation }) => {
-  const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const { login, confirmLogin } = useContext(AuthContext);
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Campos para o passo 2 do 2FA
+  const [step, setStep] = useState(1); // 1 = nome/senha, 2 = código 2FA
+  const [token2fa, setToken2fa] = useState('');
+  const [code, setCode] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError("Por favor, preencha todos os campos.");
+    if (!name || !password) {
+      setError('Por favor, preencha todos os campos.');
       return;
     }
-
     setError('');
-    const result = await login(email, password);
+    setLoading(true);
+    // Passo 1: envia nome+senha
+    const result = await login(name, password);
+    setLoading(false);
+
+    if (result.success) {
+      // Credenciais ok → vai para o passo do código 2FA
+      setToken2fa(result.token_2fa);
+      setStep(2);
+    } else {
+      setError(result.message);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (!code || code.length < 6) {
+      setError('Digite o código de 6 dígitos enviado por e-mail.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const result = await confirmLogin(code, token2fa);
+    setLoading(false);
+
     if (!result.success) {
       setError(result.message);
     }
   };
 
+  // Tela do código 2FA
+  if (step === 2) {
+    return (
+      <AuthLayout>
+        <Card style={styles.card}>
+          <Text style={styles.title}>Verificação 2FA</Text>
+          <Text style={styles.subtitle}>
+            Enviamos um código de 6 dígitos para o seu e-mail. Digite-o abaixo para entrar.
+          </Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <Input
+            placeholder="000000"
+            keyboardType="numeric"
+            maxLength={6}
+            value={code}
+            onChangeText={(t) => { setCode(t); setError(''); }}
+            style={{ textAlign: 'center', fontSize: 24, letterSpacing: 10 }}
+          />
+          <Button
+            title={loading ? 'Verificando...' : 'Confirmar'}
+            onPress={handleVerify2FA}
+            style={styles.btn}
+          />
+          <TouchableOpacity onPress={() => { setStep(1); setCode(''); setError(''); }} style={{ marginTop: 15, alignItems: 'center' }}>
+            <Text style={{ color: '#009DFF', fontWeight: 'bold' }}>Voltar e tentar novamente</Text>
+          </TouchableOpacity>
+        </Card>
+      </AuthLayout>
+    );
+  }
+
+  // Tela de login (passo 1)
   return (
     <AuthLayout>
       <Card style={styles.card}>
@@ -34,9 +94,8 @@ export const LoginScreen = ({ navigation }) => {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Input
           placeholder="Nome"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={(t) => { setEmail(t); setError(''); }}
+          value={name}
+          onChangeText={(t) => { setName(t); setError(''); }}
         />
         <Input
           placeholder="Senha"
@@ -46,7 +105,7 @@ export const LoginScreen = ({ navigation }) => {
         />
 
         <Button
-          title="Entrar"
+          title={loading ? 'Entrando...' : 'Entrar'}
           onPress={handleLogin}
           style={styles.btn}
         />
@@ -57,13 +116,6 @@ export const LoginScreen = ({ navigation }) => {
           <Text style={styles.footerLinkText}>
             Não tem uma conta ainda? <Text style={styles.linkBlue}>cadastrar</Text>
           </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Recovery')}
-          style={{ marginTop: 15 }}
-        >
-          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </View>
     </AuthLayout>
@@ -76,29 +128,57 @@ export const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !email || !password) {
-      setError("Por favor, preencha todos os campos.");
+      setError('Por favor, preencha todos os campos.');
       return;
     }
 
     if (!email.includes('@')) {
-      setError("Formato de email inválido.");
+      setError('Formato de email inválido.');
       return;
     }
 
     if (password.length < 6) {
-      setError(" a senha deve conter no minimo 6 caracteres ");
+      setError('A senha deve conter no mínimo 6 caracteres.');
       return;
     }
 
     setError('');
+    setLoading(true);
     const result = await register(name, email, password);
-    if (!result.success) {
+    setLoading(false);
+
+    if (result.success) {
+      // Cadastro realizado → precisa verificar o e-mail antes de logar
+      setDone(true);
+    } else {
       setError(result.message);
     }
   };
+
+  // Tela de confirmação após cadastro
+  if (done) {
+    return (
+      <AuthLayout>
+        <Card style={styles.card}>
+          <Text style={styles.title}>Verifique seu e-mail</Text>
+          <Text style={styles.subtitle}>
+            Cadastro realizado com sucesso! Enviamos um link de verificação para {email}.{'\n\n'}
+            Após verificar seu e-mail, volte aqui e faça login.
+          </Text>
+          <Button
+            title="Ir para o Login"
+            onPress={() => navigation.navigate('Login')}
+            style={styles.btn}
+          />
+        </Card>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>
@@ -123,7 +203,7 @@ export const RegisterScreen = ({ navigation }) => {
           onChangeText={(t) => { setPassword(t); setError(''); }}
         />
         <Button
-          title="Entrar"
+          title={loading ? 'Cadastrando...' : 'Cadastrar'}
           onPress={handleRegister}
           style={styles.btn}
         />
@@ -131,7 +211,7 @@ export const RegisterScreen = ({ navigation }) => {
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
-          Já tem cadastro faça seu <Text style={styles.linkBlue}>login</Text>
+          Já tem cadastro? Faça seu <Text style={styles.linkBlue}>login</Text>
         </Text>
       </TouchableOpacity>
     </AuthLayout>
@@ -139,24 +219,16 @@ export const RegisterScreen = ({ navigation }) => {
 };
 
 export const RecoveryScreen = ({ navigation }) => {
-  const { checkEmail } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
 
   const handleSendCode = () => {
     if (!email || !email.includes('@')) {
-      setError("Por favor, insira um e-mail válido.");
+      setError('Por favor, insira um e-mail válido.');
       return;
     }
-
-    const userExists = checkEmail(email);
-    if (!userExists) {
-      setError("Este e-mail não está cadastrado.");
-      return;
-    }
-
     setError('');
-    Alert.alert("Código Enviado", `Enviamos um código de 6 dígitos para ${email}`);
+    Alert.alert('Código Enviado', `Enviamos um código de 6 dígitos para ${email}`);
     navigation.navigate('ResetCode', { email });
   };
 
@@ -194,7 +266,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
 
   const handleVerify = () => {
     if (code.length < 6) {
-      setError("O código deve ter 6 dígitos.");
+      setError('O código deve ter 6 dígitos.');
       return;
     }
     setError('');
@@ -231,24 +303,22 @@ export const ResetCodeScreen = ({ navigation, route }) => {
 
 export const NewPasswordScreen = ({ navigation, route }) => {
   const { email } = route.params || {};
-  const { resetPassword } = useContext(AuthContext);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleReset = () => {
     if (!password || password.length < 6) {
-      setError(" a senha deve conter no minimo 6 caracteres ");
+      setError('A senha deve conter no mínimo 6 caracteres.');
       return;
     }
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
+      setError('As senhas não coincidem.');
       return;
     }
 
-    resetPassword(email, password);
     setError('');
-    Alert.alert("Sucesso", "Sua senha foi redefinida com sucesso!");
+    Alert.alert('Sucesso', 'Sua senha foi redefinida com sucesso!');
     navigation.navigate('Login');
   };
 

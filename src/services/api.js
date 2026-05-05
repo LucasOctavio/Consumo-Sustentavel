@@ -2,13 +2,11 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  // URL base para produção (hospedado no Render)
   baseURL: 'https://consumo-sustentavel.onrender.com',
-  // URL para desenvolvimento local (descomente para usar o backend local)
-  // baseURL: 'http://localhost:8000', 
+  // baseURL: 'http://localhost:8000', // desenvolvimento local
 });
 
-// Interceptor: adiciona automaticamente o token de autenticação em todas as requisições
+// Interceptor: adiciona o token Bearer em todas as requisições autenticadas
 api.interceptors.request.use(async (config) => {
   try {
     const token = await AsyncStorage.getItem('@CCN:token');
@@ -16,43 +14,60 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch (error) {
-    console.error('Error fetching token from storage', error);
+    console.error('Erro ao ler token:', error);
   }
   return config;
 });
 
-// Serviço responsável pela autenticação e gestão do usuário
+// ─── Usuário ────────────────────────────────────────────────────────────────
+
 export const authService = {
-  // Realiza o login do usuário
+  /**
+   * POST /usuario/login
+   * Body: { nome: string, senha: string }
+   * Retorna: { access_token, refresh_token, token_type }
+   */
   login: async (name, password) => {
     const response = await api.post('/usuario/login', {
       nome: name,
-      senha: password
+      senha: password,
     });
     return response.data;
   },
-  
+
+  /**
+   * POST /usuario/sign_up
+   * Body: { nome: string, email: EmailStr, senha: string }
+   * Retorna confirmação de cadastro
+   */
   register: async (name, email, password) => {
-    const response = await api.post('/usuario/sign_in', {
+    const response = await api.post('/usuario/sign_up', {
       nome: name,
       email: email,
-      senha: password
+      senha: password,
     });
     return response.data;
   },
- 
+
+  /**
+   * GET /usuario/read  (requer Bearer token)
+   * Retorna dados do usuário autenticado
+   */
   getUserInfo: async () => {
     const response = await api.get('/usuario/read');
     return response.data;
   },
- 
+
+  /**
+   * PATCH /usuario/update  (requer Bearer token)
+   * Body (UsuarioUpdate): { user_name?: string, user_senha?: string }
+   * Nota: e-mail NÃO pode ser alterado diretamente — apenas nome e senha
+   */
   update: async (userData) => {
-    // Monta apenas os campos preenchidos para não sobrescrever senha com string vazia
-    const payload = {
-      user_name: userData.name,
-      user_email: userData.email,
-    };
-    // Só envia a senha se o usuário realmente digitou uma nova
+    const payload = {};
+    if (userData.name && userData.name.trim().length > 0) {
+      payload.user_name = userData.name.trim();
+    }
     if (userData.password && userData.password.trim().length > 0) {
       payload.user_senha = userData.password.trim();
     }
@@ -60,83 +75,120 @@ export const authService = {
     return response.data;
   },
 
+  /**
+   * DELETE /usuario/delete  (requer Bearer token)
+   */
   deleteAccount: async () => {
-    // Remove a conta do usuário autenticado no backend
     const response = await api.delete('/usuario/delete');
     return response.data;
-  }
+  },
 };
 
-// Converte de DD/MM/YYYY para YYYY-MM-DD (para enviar ao backend)
-const toIsoDate = (dateStr) => {
-  if (!dateStr || !dateStr.includes('/')) return dateStr;
-  const parts = dateStr.split('/');
-  if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+// ─── Utilitário de data ──────────────────────────────────────────────────────
+
+/**
+ * Converte DD/MM/YYYY → "YYYY-MM-DDTHH:mm:ss"
+ * O backend espera datetime (não apenas date)
+ */
+const toIsoDateTime = (dateStr) => {
+  if (!dateStr) return null;
+  const s = String(dateStr);
+  // Já é datetime ISO
+  if (s.includes('T')) return s;
+  // DD/MM/YYYY → YYYY-MM-DDTHH:mm:ss
+  if (s.includes('/')) {
+    const [day, month, year] = s.split('/');
+    return `${year}-${month}-${day}T00:00:00`;
   }
-  return dateStr;
+  // YYYY-MM-DD → adiciona horário
+  if (s.includes('-') && s.length === 10) {
+    return `${s}T00:00:00`;
+  }
+  return s;
 };
 
-// Serviço responsável por gerenciar consumos e simulações
+// ─── Consumo ─────────────────────────────────────────────────────────────────
+
 export const consumptionService = {
-  // Busca todos os registros de consumo (reais e simulados)
+  /**
+   * GET /consumo/read  (requer Bearer token)
+   * Retorna lista de consumos do usuário
+   */
   getAll: async () => {
     const response = await api.get('/consumo/read');
     return response.data;
   },
-  // Cria um novo registro de consumo real
+
+  /**
+   * POST /consumo/create  (requer Bearer token)
+   * Body (ConsumoSchema): { tipo, valor, medida, dt: datetime, simulado: bool }
+   */
   create: async (data) => {
     const response = await api.post('/consumo/create', {
-      valor: parseFloat(data.value),
-      dt: toIsoDate(data.date), // Converte para o formato YYYY-MM-DD aceito pelo backend
       tipo: data.type,
+      valor: parseFloat(data.value),
       medida: data.unit,
-      simulado: false // Define explicitamente que é um consumo real, não simulação
+      dt: toIsoDateTime(data.date),
+      simulado: false,
     });
     return response.data;
   },
-  // Cria um novo registro de simulação no banco de dados
+
   createSimulation: async (data) => {
     const response = await api.post('/consumo/create', {
-      valor: parseFloat(data.value),
-      dt: toIsoDate(data.date), // Converte a data para ISO
       tipo: data.type,
+      valor: parseFloat(data.value),
       medida: data.unit,
-      simulado: true // Define como simulação para diferenciar dos consumos reais
+      dt: toIsoDateTime(data.date),
+      simulado: true,
     });
     return response.data;
   },
-  // Exclui um registro de consumo ou simulação pelo ID
+
+  /**
+   * DELETE /consumo/delete?con_id=<id>  (requer Bearer token)
+   * Parâmetro query: con_id (não "id")
+   */
   delete: async (id) => {
-    const response = await api.delete(`/consumo/delete?id=${id}`);
+    const response = await api.delete(`/consumo/delete?con_id=${id}`);
     return response.data;
-  }
+  },
 };
 
-// Serviço responsável por gerenciar as metas do usuário
+// ─── Meta ─────────────────────────────────────────────────────────────────────
+
 export const goalService = {
-  // Busca todas as metas criadas
+  /**
+   * GET /meta/read  (requer Bearer token)
+   */
   getAll: async () => {
     const response = await api.get('/meta/read');
     return response.data;
   },
-  // Cria uma nova meta no banco de dados
+
+  /**
+   * POST /meta/create  (requer Bearer token)
+   * Body (MetaSchema): { tipo, valor, medida, dt_inicio: datetime, dt_fim: datetime }
+   */
   create: async (data) => {
-    // O backend espera dt_inicio e dt_fim, então usamos toIsoDate para garantir o formato correto
     const response = await api.post('/meta/create', {
-      valor: parseFloat(data.value),
       tipo: data.type,
+      valor: parseFloat(data.value),
       medida: data.unit,
-      dt_inicio: toIsoDate(data.startDate || data.start),
-      dt_fim: toIsoDate(data.endDate || data.end)
+      dt_inicio: toIsoDateTime(data.startDate || data.start),
+      dt_fim: toIsoDateTime(data.endDate || data.end),
     });
     return response.data;
   },
-  // Exclui uma meta pelo ID
+
+  /**
+   * DELETE /meta/delete?meta_id=<id>  (requer Bearer token)
+   * Parâmetro query: meta_id (não "id")
+   */
   delete: async (id) => {
-    const response = await api.delete(`/meta/delete?id=${id}`);
+    const response = await api.delete(`/meta/delete?meta_id=${id}`);
     return response.data;
-  }
+  },
 };
 
 export default api;
