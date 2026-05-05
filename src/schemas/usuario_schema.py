@@ -41,3 +41,29 @@ class Usuario2FA(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Valida o pedido de redefinição de senha com o e-mail
+class UsuarioResetRequest(BaseModel):
+    email: EmailStr
+
+    class Config:
+        from_attributes = True
+
+# Valida o envio do código, token temporário e nova senha
+class UsuarioResetPassword(BaseModel):
+    codigo: str
+    token_reset: str
+    nova_senha: str
+
+    class Config:
+        from_attributes = True
+
+# Valida os dados para reenvio do e-mail de verificação de cadastro
+class UsuarioResendVerification(BaseModel):
+    # Os três campos originais do cadastro são necessários para gerar um novo token JWT
+    nome: str
+    email: EmailStr
+    senha: str
+
+    class Config:
+        from_attributes = True

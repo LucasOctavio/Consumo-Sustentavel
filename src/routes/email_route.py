@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from src.schemas.usuario_schema import UsuarioLogin, UsuarioUpdate, Usuario2FA
+from src.schemas.usuario_schema import UsuarioLogin, UsuarioUpdate, Usuario2FA, UsuarioResetRequest, UsuarioResetPassword, UsuarioResendVerification
 from src.schemas.mail_schema import EmailSchema
 from src.dependencia import pegar_sessao, verificar_token, verificar_token_query, verificar_dados_query
 from src.models.usuario_model import Usuario
@@ -11,7 +11,10 @@ from src.services.email_service import (
     enviar_email_atualizacao, 
     verificar_via_email, 
     verificar_2fa, 
-    atualizar_via_email
+    atualizar_via_email,
+    enviar_email_recuperacao_senha,
+    verificar_recuperacao_senha,
+    reenviar_email_verificacao
 )
 from src.services.usuario_service import deletar_usuario
 
@@ -80,3 +83,32 @@ async def update_via_email(dados: dict = Depends(verificar_dados_query), token: 
     '''
     # Conclui as modificações com segurança baseada em token validado pelo cliente de e-mail do usuário
     return await atualizar_via_email(dados, token.user_id, session)
+
+# Endpoint para requisitar redefinição de senha
+@email_router.post("/forgot_password", summary='Solicitar recuperação de senha')
+async def forgot_password(dados: UsuarioResetRequest, session: Session = Depends(pegar_sessao)):
+    '''\n \n \n Enviar um código para redefinição de senha via e-mail. \n \n \
+    email = "EmailStr" \n \n \
+    '''
+    return await enviar_email_recuperacao_senha(dados.email, session)
+
+# Endpoint para confirmar a redefinição de senha
+@email_router.post("/reset_password", summary='Redefinir senha com código')
+async def reset_password(dados: UsuarioResetPassword, session: Session = Depends(pegar_sessao)):
+    '''\n \n \n Validar o código recebido no e-mail e atualizar a senha. \n \n \
+    codigo = "str" \n \n \
+    token_reset = "str" \n \n \
+    nova_senha = "str" \n \n \
+    '''
+    return await verificar_recuperacao_senha(dados.codigo, dados.token_reset, dados.nova_senha, session)
+
+# Endpoint para reenviar o link de verificação de cadastro quando o e-mail não chegou
+@email_router.post("/resend_verification", summary='Reenviar e-mail de verificação')
+async def resend_verification(dados: UsuarioResendVerification, session: Session = Depends(pegar_sessao)):
+    '''
+ \n \n Reenviar e-mail de verificação de conta. \n \n \
+    nome = "str" \n \n \
+    email = "EmailStr" \n \n \
+    senha = "str" \n \n \
+    '''
+    return await reenviar_email_verificacao(dados.nome, dados.email, dados.senha, session)

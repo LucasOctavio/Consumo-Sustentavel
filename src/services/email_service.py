@@ -252,11 +252,6 @@ async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, mes
     # Tentativa 3: smtplib em thread separada (SMTP síncrono)
     await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
 
-
-# ==============================================================================
-# FUNÇÕES PÚBLICAS DE ENVIO DE E-MAIL
-# ==============================================================================
-
 async def enviar_email_verificacao(emails: list, verification_token: str):
     """Envia o e-mail de verificação de conta contendo os dados assinados."""
     assunto = "Consumo Sustentável - Concluir Cadastro"
@@ -273,6 +268,40 @@ async def enviar_email_verificacao(emails: list, verification_token: str):
     await _enviar_com_fallback(emails, assunto, html, message)
 
     return {"message": "E-mail de verificação enviado"}
+
+
+async def reenviar_email_verificacao(nome: str, email: str, senha: str, session):
+    """Reenvia o link de verificação para uma conta ainda em processo de cadastro.
+
+    Como o usuário só entra no banco APÓS verificar o e-mail, esta função recebe
+    os dados originais, gera um novo token JWT e reenvia o link. Bloqueia o reenvio
+    se o nome ou e-mail já foram verificados por uma conta existente.
+    """
+    from sqlalchemy import or_
+    from datetime import timedelta
+
+    # Verifica se o nome ou e-mail já foram confirmados no banco por alguém
+    ja_verificado = session.query(Usuario).filter(
+        or_(Usuario.user_email == email, Usuario.user_name == nome)
+    ).first()
+
+    if ja_verificado:
+        raise HTTPException(
+            status_code=409,
+            detail="Esta conta já foi verificada. Faça login normalmente."
+        )
+
+    # Criptografa a senha novamente para gerar um token fresco com hash atualizado
+    senha_criptografada = bcrypt_context.hash(senha)
+
+    # Empacota os dados em um novo token JWT com validade de 24 horas
+    dados_cadastro = {"nome": nome, "email": email, "senha": senha_criptografada}
+    novo_token = create_token(dados_cadastro, duracao_token=timedelta(hours=24))
+
+    # Reenvia o e-mail com o novo link de verificação
+    await enviar_email_verificacao([email], novo_token)
+
+    return {"message": "E-mail de verificação reenviado com sucesso. Verifique sua caixa de entrada."}
 
 
 async def enviar_email_2fa(dados, session):
@@ -354,3 +383,58 @@ async def enviar_email_atualizacao(dados, emails: list, user_id: int, session):
     await _enviar_com_fallback(emails, assunto, html, message)
 
     return {"message": "E-mail de atualização enviado"}
+
+
+async def enviar_email_recuperacao_senha(email: str, session):
+    """Verifica se o usuário existe e envia o e-mail contendo o código de recuperação."""
+    busca = session.query(Usuario).filter(Usuario.user_email == email).first()
+    
+    if not busca:
+        # Retornamos a mesma mensagem de sucesso mesmo se não existir por segurança (evitar enumerar contas)
+        return {"message": "Se o e-mail estiver cadastrado, você receberá um código de recuperação."}
+
+    emails = [busca.user_email]
+    assunto = "Consumo Sustentável - Recuperação de Senha"
+
+    # Gera um código numérico de 6 dígitos
+    codigo_reset = str(random.randint(100000, 999999))
+
+    # Cria um token que guarda o user_id e o código gerado, válido por 10 minutos
+    token_dados = {"user_id": busca.user_id, "codigo": codigo_reset}
+    token_reset = create_token(token_dados, duracao_token=timedelta(minutes=10))
+
+    html = _gerar_html_email(
+        titulo="Recuperação de Senha",
+        subtitulo=f"Seu código para redefinir a senha é:<br><br><span style='font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 4px;'>{codigo_reset}</span>",
+        texto_rodape="Se você não solicitou este código, por favor ignore este e-mail. Ele expira em 10 minutos."
+    )
+
+    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
+    await _enviar_com_fallback(emails, assunto, html, message)
+
+    # Retorna o token para o frontend armazenar temporariamente e mandar junto com a nova senha
+    return {"message": "Se o e-mail estiver cadastrado, você receberá um código de recuperação.", "token_reset": token_reset}
+
+
+async def verificar_recuperacao_senha(codigo_digitado: str, token_reset_str: str, nova_senha: str, session):
+    """Verifica o código de redefinição e atualiza a senha."""
+    try:
+        payload = jwt.decode(token_reset_str, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("user_id"))
+        codigo_correto = payload.get("codigo")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token de recuperação inválido ou expirado")
+
+    if codigo_digitado != codigo_correto:
+        raise HTTPException(status_code=401, detail="Código de verificação incorreto")
+
+    usuario = session.get(Usuario, user_id)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    # Criptografa e atualiza a senha
+    usuario.user_senha = bcrypt_context.hash(nova_senha)
+    session.commit()
+    session.refresh(usuario)
+
+    return {"message": "Senha redefinida com sucesso."}
