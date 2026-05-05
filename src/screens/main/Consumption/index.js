@@ -1,0 +1,1 @@
+export { ConsumptionScreen } from './ConsumptionScreen';

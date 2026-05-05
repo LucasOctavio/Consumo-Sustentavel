@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useTheme } from '../navigation/AppNavigator';
-import { Card } from './Card';
-import { Input } from './Input';
-import { Button } from './Button';
-import { Dropdown } from './Dropdown';
+import { useTheme } from '../../../navigation/AppNavigator';
+import { Card } from '../../../components/Card';
+import { Input } from '../../../components/Input';
+import { Button } from '../../../components/Button';
+import { Dropdown } from '../../../components/Dropdown';
 
 // Garante formato DD/MM/YYYY independente do ambiente/locale do dispositivo
 const formatDatePTBR = (d) => {
@@ -14,7 +14,7 @@ const formatDatePTBR = (d) => {
   return `${day}/${month}/${year}`;
 };
 
-export const AddModal = ({ visible, onClose, title, onAdd }) => {
+export const ADD = ({ visible, onClose, title, onAdd }) => {
   const { colors } = useTheme();
   const [value, setValue] = useState('');
   const [type, setType] = useState('Água');
@@ -23,6 +23,7 @@ export const AddModal = ({ visible, onClose, title, onAdd }) => {
   const [startDate, setStartDate] = useState(formatDatePTBR(new Date()));
   const [endDate, setEndDate] = useState(formatDatePTBR(new Date()));
   const [error, setError] = useState('');
+  const [description, setDescription] = useState('');
 
   const typeOptions = ['Água', 'Energia', 'Gás', 'Combustível'];
   const unitOptions = ['L', 'kWh', 'm³', 'kg'];
@@ -143,6 +144,7 @@ export const AddModal = ({ visible, onClose, title, onAdd }) => {
                     value={date} 
                     onChangeText={setDate} 
                   />
+                  
                 )}
 
                 <View style={styles.buttonRow}>
