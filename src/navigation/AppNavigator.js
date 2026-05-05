@@ -108,14 +108,33 @@ export const AppNavigator = () => {
 
   const colors = isDarkMode ? darkColors : lightColors;
 
-  // Login simples: POST /usuario/login com { nome, senha }
-  // O backend retorna { access_token, refresh_token, token_type } diretamente
+  // Passo 1 do 2FA: valida credenciais e envia o código por e-mail
+  // Retorna { success, token_2fa } em caso de sucesso ou { success: false, message } em caso de erro
   const login = async (identifier, password) => {
     try {
-      const data = await authService.login(identifier, password);
+      const data = await authService.send2fa(identifier, password);
+      if (data && data.token_2fa) {
+        // Credenciais corretas → retorna o token temporário para o passo 2
+        return { success: true, token_2fa: data.token_2fa };
+      }
+      return { success: false, message: 'Erro ao iniciar verificação 2FA.' };
+    } catch (error) {
+      console.error('Login error:', error);
+      const msg = error.response?.data?.detail || 'Nome ou senha incorretos.';
+      return { success: false, message: msg };
+    }
+  };
+
+  // Passo 2 do 2FA: valida o código e finaliza o login, salvando o token de sessão
+  const confirmLogin = async (codigo, token2fa) => {
+    try {
+      const data = await authService.verify2fa(codigo, token2fa);
       if (data && data.access_token) {
         await AsyncStorage.setItem('@CCN:token', data.access_token);
-        // Busca dados do usuário após login bem-sucedido
+        if (data.refresh_token) {
+          await AsyncStorage.setItem('@CCN:refresh_token', data.refresh_token);
+        }
+        // Busca dados do usuário após confirmação do 2FA
         const userInfo = await authService.getUserInfo();
         setUserData({
           ...userInfo,
@@ -125,10 +144,10 @@ export const AppNavigator = () => {
         setIsAuthenticated(true);
         return { success: true };
       }
-      return { success: false, message: 'Erro ao realizar login.' };
+      return { success: false, message: 'Código inválido. Tente novamente.' };
     } catch (error) {
-      console.error('Login error:', error);
-      const msg = error.response?.data?.detail || 'Nome ou senha incorretos.';
+      console.error('2FA verify error:', error);
+      const msg = error.response?.data?.detail || 'Código incorreto ou expirado.';
       return { success: false, message: msg };
     }
   };
@@ -141,6 +160,18 @@ export const AppNavigator = () => {
     } catch (error) {
       console.error('Register error:', error);
       const message = error.response?.data?.detail || 'Erro ao realizar cadastro.';
+      return { success: false, message };
+    }
+  };
+
+  // Reenvia o link de verificação usando os dados originais do cadastro
+  const resendVerification = async (name, email, password) => {
+    try {
+      await authService.resendVerification(name, email, password);
+      return { success: true };
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      const message = error.response?.data?.detail || 'Erro ao reenviar e-mail de verificação.';
       return { success: false, message };
     }
   };
@@ -170,15 +201,28 @@ export const AppNavigator = () => {
     }
   };
 
-  const checkEmail = (email) => {
-    return users.find(u => u.email === email);
+  const forgotPassword = async (email) => {
+    try {
+      const data = await authService.forgotPassword(email);
+      // token_reset pode ser undefined se o e-mail não existir (segurança)
+      return { success: true, tokenReset: data.token_reset || null, message: data.message };
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      const message = error.response?.data?.detail || 'Erro ao solicitar recuperação de senha.';
+      return { success: false, message };
+    }
   };
 
-  const resetPassword = (email, newPassword) => {
-    setUsers(users.map(u => u.email === email ? { ...u, password: newPassword } : u));
-    return { success: true };
+  const resetPasswordByCode = async (codigo, tokenReset, novaSenha) => {
+    try {
+      await authService.resetPassword(codigo, tokenReset, novaSenha);
+      return { success: true };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      const message = error.response?.data?.detail || 'Código incorreto ou expirado.';
+      return { success: false, message };
+    }
   };
-
 
 
   const addConsumption = async (data) => {
@@ -334,9 +378,11 @@ export const AppNavigator = () => {
         login,
         register,
         logout,
+        confirmLogin,
+        resendVerification,
         updateProfile,
-        checkEmail,
-        resetPassword,
+        forgotPassword,
+        resetPasswordByCode,
         consumptions,
         simulations,
         goals: goalsWithProgress,

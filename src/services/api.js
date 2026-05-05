@@ -23,14 +23,29 @@ api.interceptors.request.use(async (config) => {
 
 export const authService = {
   /**
-   * POST /usuario/login
+   * POST /usuario/send_2fa_email
    * Body: { nome: string, senha: string }
-   * Retorna: { access_token, refresh_token, token_type }
+   * Valida credenciais e envia o código 2FA por e-mail.
+   * Retorna: { message, token_2fa }
    */
-  login: async (name, password) => {
-    const response = await api.post('/usuario/login', {
+  send2fa: async (name, password) => {
+    const response = await api.post('/usuario/send_2fa_email', {
       nome: name,
       senha: password,
+    });
+    return response.data;
+  },
+
+  /**
+   * POST /usuario/verify_2fa
+   * Body: { codigo: string, token_2fa: string }
+   * Verifica o código 2FA e retorna os tokens de sessão.
+   * Retorna: { access_token, refresh_token, token_type }
+   */
+  verify2fa: async (codigo, token2fa) => {
+    const response = await api.post('/usuario/verify_2fa', {
+      codigo,
+      token_2fa: token2fa,
     });
     return response.data;
   },
@@ -80,6 +95,45 @@ export const authService = {
    */
   deleteAccount: async () => {
     const response = await api.delete('/usuario/delete');
+    return response.data;
+  },
+
+  /**
+   * POST /usuario/forgot_password
+   * Body: { email: EmailStr }
+   * Envia código de recuperação de senha por e-mail.
+   * Retorna: { message, token_reset }
+   */
+  forgotPassword: async (email) => {
+    const response = await api.post('/usuario/forgot_password', { email });
+    return response.data;
+  },
+
+  /**
+   * POST /usuario/reset_password
+   * Body: { codigo: string, token_reset: string, nova_senha: string }
+   * Valida o código e atualiza a senha do usuário.
+   */
+  resetPassword: async (codigo, tokenReset, novaSenha) => {
+    const response = await api.post('/usuario/reset_password', {
+      codigo,
+      token_reset: tokenReset,
+      nova_senha: novaSenha,
+    });
+    return response.data;
+  },
+
+  /**
+   * POST /usuario/resend_verification
+   * Body: { nome: string, email: EmailStr, senha: string }
+   * Reenvia o link de verificação de cadastro para o e-mail informado.
+   */
+  resendVerification: async (nome, email, senha) => {
+    const response = await api.post('/usuario/resend_verification', {
+      nome,
+      email,
+      senha,
+    });
     return response.data;
   },
 };

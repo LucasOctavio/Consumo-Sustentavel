@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { AuthLayout } from '../../components/AuthLayout';
 import { Card } from '../../components/Card';
@@ -7,20 +6,59 @@ import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
 import { AuthContext, useTheme } from '../../navigation/AppNavigator';
 
+// ─── Utilitário: formata segundos em MM:SS ────────────────────────────────────
+const formatTime = (seconds) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+};
 
+// ─── Constantes de segurança ──────────────────────────────────────────────────
+const EXPIRY_SECONDS = 10 * 60; // 10 minutos (alinhado ao backend)
+const MAX_ATTEMPTS = 5;         // Máximo de tentativas antes de bloquear
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LoginScreen — dois passos: credenciais → código 2FA
+// ─────────────────────────────────────────────────────────────────────────────
 export const LoginScreen = ({ navigation }) => {
   const { login, confirmLogin } = useContext(AuthContext);
+
+  // ── Passo 1: credenciais ──
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Campos para o passo 2 do 2FA
-  const [step, setStep] = useState(1); // 1 = nome/senha, 2 = código 2FA
+  // ── Passo 2: verificação 2FA ──
+  const [step, setStep] = useState(1);
   const [token2fa, setToken2fa] = useState('');
   const [code, setCode] = useState('');
+  const [attempts, setAttempts] = useState(0);     // tentativas usadas
+  const [timeLeft, setTimeLeft] = useState(EXPIRY_SECONDS);
+  const [expired, setExpired] = useState(false);
+  const timerRef = useRef(null);
 
+  // Inicia/reinicia o contador regressivo quando entra no passo 2
+  useEffect(() => {
+    if (step === 2) {
+      setTimeLeft(EXPIRY_SECONDS);
+      setExpired(false);
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            setExpired(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [step, token2fa]); // re-executa ao reenviar (token2fa muda)
+
+  // ── Passo 1: valida credenciais e solicita envio do código ──
   const handleLogin = async () => {
     if (!name || !password) {
       setError('Por favor, preencha todos os campos.');
@@ -28,66 +66,147 @@ export const LoginScreen = ({ navigation }) => {
     }
     setError('');
     setLoading(true);
-    // Passo 1: envia nome+senha
     const result = await login(name, password);
     setLoading(false);
 
     if (result.success) {
-      // Credenciais ok → vai para o passo do código 2FA
       setToken2fa(result.token_2fa);
+      setAttempts(0);
+      setCode('');
       setStep(2);
     } else {
       setError(result.message);
     }
   };
 
+  // ── Passo 2: valida o código 2FA ──
   const handleVerify2FA = async () => {
+    if (expired) {
+      setError('O código expirou. Reenvie um novo código.');
+      return;
+    }
+    if (attempts >= MAX_ATTEMPTS) {
+      setError('Número máximo de tentativas atingido. Volte e tente novamente.');
+      return;
+    }
     if (!code || code.length < 6) {
       setError('Digite o código de 6 dígitos enviado por e-mail.');
       return;
     }
+
     setError('');
     setLoading(true);
     const result = await confirmLogin(code, token2fa);
     setLoading(false);
 
     if (!result.success) {
-      setError(result.message);
+      const novasT = attempts + 1;
+      setAttempts(novasT);
+      if (novasT >= MAX_ATTEMPTS) {
+        setError(`Limite de ${MAX_ATTEMPTS} tentativas atingido. Por favor, volte e tente novamente.`);
+      } else {
+        setError(`${result.message} (${MAX_ATTEMPTS - novasT} tentativa(s) restante(s))`);
+      }
+    }
+    // Se success, o AppNavigator detecta isAuthenticated e redireciona automaticamente
+  };
+
+  // ── Reenviar código: chama o passo 1 novamente usando as mesmas credenciais ──
+  const handleResend = async () => {
+    setError('');
+    setCode('');
+    setLoading(true);
+    const result = await login(name, password);
+    setLoading(false);
+    if (result.success) {
+      setToken2fa(result.token_2fa);
+      setAttempts(0);
+      // O useEffect detecta a mudança de token2fa e reinicia o timer
+    } else {
+      setError(result.message || 'Erro ao reenviar o código.');
     }
   };
 
-  // Tela do código 2FA
+  // ── Tela do passo 2: verificação 2FA ──
   if (step === 2) {
+    const bloqueado = attempts >= MAX_ATTEMPTS;
     return (
       <AuthLayout>
         <Card style={styles.card}>
           <Text style={styles.title}>Verificação 2FA</Text>
+
+          {/* Contador regressivo */}
+          <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
+            <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
+              {expired ? 'Código expirado' : `Código válido por: ${formatTime(timeLeft)}`}
+            </Text>
+          </View>
+
           <Text style={styles.subtitle}>
-            Enviamos um código de 6 dígitos para o seu e-mail. Digite-o abaixo para entrar.
+            Enviamos um código de 6 dígitos para o e-mail vinculado à conta.{'\n'}
+            Digite-o abaixo para concluir o login.
           </Text>
+
+          {/* Indicador de tentativas */}
+          <View style={styles.attemptsRow}>
+            {[...Array(MAX_ATTEMPTS)].map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.attemptDot,
+                  i < attempts ? styles.attemptDotUsed : styles.attemptDotFree,
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.attemptsLabel}>
+            {bloqueado
+              ? 'Limite atingido'
+              : `${MAX_ATTEMPTS - attempts} tentativa(s) restante(s)`}
+          </Text>
+
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
           <Input
             placeholder="000000"
             keyboardType="numeric"
             maxLength={6}
             value={code}
+            editable={!bloqueado && !expired}
             onChangeText={(t) => { setCode(t); setError(''); }}
-            style={{ textAlign: 'center', fontSize: 24, letterSpacing: 10 }}
+            style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
           />
+
           <Button
             title={loading ? 'Verificando...' : 'Confirmar'}
             onPress={handleVerify2FA}
-            style={styles.btn}
+            style={[styles.btn, (bloqueado || expired) && styles.btnDisabled]}
+            disabled={bloqueado || expired || loading}
           />
-          <TouchableOpacity onPress={() => { setStep(1); setCode(''); setError(''); }} style={{ marginTop: 15, alignItems: 'center' }}>
-            <Text style={{ color: '#009DFF', fontWeight: 'bold' }}>Voltar e tentar novamente</Text>
+
+          {/* Botão de reenvio — disponível após expiração ou por precaução */}
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={loading}
+            style={{ marginTop: 14, alignItems: 'center' }}
+          >
+            <Text style={styles.linkBlue}>
+              {loading ? 'Reenviando...' : '🔄 Reenviar código'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => { setStep(1); setCode(''); setError(''); setAttempts(0); clearInterval(timerRef.current); }}
+            style={{ marginTop: 10, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#888', fontSize: 13 }}>← Voltar para o login</Text>
           </TouchableOpacity>
         </Card>
       </AuthLayout>
     );
   }
 
-  // Tela de login (passo 1)
+  // ── Tela do passo 1: nome + senha ──
   return (
     <AuthLayout>
       <Card style={styles.card}>
@@ -106,10 +225,18 @@ export const LoginScreen = ({ navigation }) => {
         />
 
         <Button
-          title={loading ? 'Entrando...' : 'Entrar'}
+          title={loading ? 'Enviando código...' : 'Entrar'}
           onPress={handleLogin}
           style={styles.btn}
+          disabled={loading}
         />
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Recovery')}
+          style={{ marginTop: 12, alignItems: 'center' }}
+        >
+          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+        </TouchableOpacity>
       </Card>
 
       <View style={styles.footerLinks}>
@@ -123,6 +250,9 @@ export const LoginScreen = ({ navigation }) => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RegisterScreen — cadastro com e-mail de verificação
+// ─────────────────────────────────────────────────────────────────────────────
 export const RegisterScreen = ({ navigation }) => {
   const { register } = useContext(AuthContext);
   const [name, setName] = useState('');
@@ -137,12 +267,10 @@ export const RegisterScreen = ({ navigation }) => {
       setError('Por favor, preencha todos os campos.');
       return;
     }
-
     if (!email.includes('@')) {
       setError('Formato de email inválido.');
       return;
     }
-
     if (password.length < 6) {
       setError('A senha deve conter no mínimo 6 caracteres.');
       return;
@@ -154,14 +282,12 @@ export const RegisterScreen = ({ navigation }) => {
     setLoading(false);
 
     if (result.success) {
-      // Cadastro realizado → precisa verificar o e-mail antes de logar
       setDone(true);
     } else {
       setError(result.message);
     }
   };
 
-  // Tela de confirmação após cadastro
   if (done) {
     return (
       <AuthLayout>
@@ -207,6 +333,7 @@ export const RegisterScreen = ({ navigation }) => {
           title={loading ? 'Cadastrando...' : 'Cadastrar'}
           onPress={handleRegister}
           style={styles.btn}
+          disabled={loading}
         />
       </Card>
 
@@ -219,34 +346,47 @@ export const RegisterScreen = ({ navigation }) => {
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RecoveryScreen — solicita e-mail para enviar o código de recuperação
+// ─────────────────────────────────────────────────────────────────────────────
 export const RecoveryScreen = ({ navigation }) => {
+  const { forgotPassword } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (!email || !email.includes('@')) {
       setError('Por favor, insira um e-mail válido.');
       return;
     }
     setError('');
-    Alert.alert('Código Enviado', `Enviamos um código de 6 dígitos para ${email}`);
-    navigation.navigate('ResetCode', { email });
+    setLoading(true);
+    const result = await forgotPassword(email);
+    setLoading(false);
+
+    if (result.success) {
+      // Navega para a tela de código passando o token recebido (ou null se e-mail não existir)
+      navigation.navigate('ResetCode', { email, tokenReset: result.tokenReset });
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
     <AuthLayout>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>{'> Voltar'}</Text>
+        <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
-          Insira o endereço de email da sua conta e enviaremos um código de segurança para alterar a senha da conta.
+          Insira o endereço de e-mail da sua conta e enviaremos um código de segurança para redefinir a senha.
         </Text>
 
-        <Text style={styles.label}>Endereço de email</Text>
+        <Text style={styles.label}>Endereço de e-mail</Text>
         <Input
           placeholder="Email"
           keyboardType="email-address"
@@ -254,34 +394,94 @@ export const RecoveryScreen = ({ navigation }) => {
           onChangeText={(t) => { setEmail(t); setError(''); }}
         />
 
-        <Button title="Enviar Código" onPress={handleSendCode} style={styles.btn} />
+        <Button
+          title={loading ? 'Enviando...' : 'Enviar Código'}
+          onPress={handleSendCode}
+          style={styles.btn}
+          disabled={loading}
+        />
       </Card>
     </AuthLayout>
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ResetCodeScreen — digita o código de 6 dígitos recebido por e-mail
+// ─────────────────────────────────────────────────────────────────────────────
 export const ResetCodeScreen = ({ navigation, route }) => {
-  const { email } = route.params || {};
+  const { email, tokenReset } = route.params || {};
+  const { forgotPassword } = useContext(AuthContext);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [currentToken, setCurrentToken] = useState(tokenReset);
+
+  // Contador regressivo para o código de recuperação (10 min)
+  const [timeLeft, setTimeLeft] = useState(EXPIRY_SECONDS);
+  const [expired, setExpired] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    setTimeLeft(EXPIRY_SECONDS);
+    setExpired(false);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [currentToken]);
 
   const handleVerify = () => {
+    if (expired) {
+      setError('O código expirou. Reenvie um novo código.');
+      return;
+    }
     if (code.length < 6) {
       setError('O código deve ter 6 dígitos.');
       return;
     }
     setError('');
-    navigation.navigate('NewPassword', { email });
+    // Passa o código e o token para a tela de nova senha
+    navigation.navigate('NewPassword', { email, codigo: code, tokenReset: currentToken });
+  };
+
+  const handleResend = async () => {
+    setError('');
+    setCode('');
+    setLoading(true);
+    const result = await forgotPassword(email);
+    setLoading(false);
+    if (result.success) {
+      setCurrentToken(result.tokenReset);
+      // O useEffect vai reiniciar o timer ao detectar currentToken diferente
+    } else {
+      setError(result.message || 'Erro ao reenviar o código.');
+    }
   };
 
   return (
     <AuthLayout>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>{'> Voltar'}</Text>
+        <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Verificar Código</Text>
+
+        {/* Contador */}
+        <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
+          <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
+            {expired ? 'Código expirado' : `Válido por: ${formatTime(timeLeft)}`}
+          </Text>
+        </View>
+
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
           Digite o código de 6 dígitos enviado para {email}.
@@ -292,23 +492,44 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           keyboardType="numeric"
           maxLength={6}
           value={code}
+          editable={!expired}
           onChangeText={(t) => { setCode(t); setError(''); }}
-          style={{ textAlign: 'center', fontSize: 24, letterSpacing: 10 }}
+          style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
         />
 
-        <Button title="Verificar" onPress={handleVerify} style={styles.btn} />
+        <Button
+          title="Verificar"
+          onPress={handleVerify}
+          style={[styles.btn, expired && styles.btnDisabled]}
+          disabled={expired}
+        />
+
+        <TouchableOpacity
+          onPress={handleResend}
+          disabled={loading}
+          style={{ marginTop: 14, alignItems: 'center' }}
+        >
+          <Text style={styles.linkBlue}>
+            {loading ? 'Reenviando...' : '🔄 Reenviar código'}
+          </Text>
+        </TouchableOpacity>
       </Card>
     </AuthLayout>
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NewPasswordScreen — define a nova senha após validar o código
+// ─────────────────────────────────────────────────────────────────────────────
 export const NewPasswordScreen = ({ navigation, route }) => {
-  const { email } = route.params || {};
+  const { resetPasswordByCode } = useContext(AuthContext);
+  const { email, codigo, tokenReset } = route.params || {};
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!password || password.length < 6) {
       setError('A senha deve conter no mínimo 6 caracteres.');
       return;
@@ -318,9 +539,25 @@ export const NewPasswordScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Sem token (e-mail não cadastrado): backend retorna mensagem genérica por segurança
+    if (!tokenReset) {
+      Alert.alert('Atenção', 'Código inválido ou e-mail não cadastrado. Tente novamente.');
+      navigation.navigate('Recovery');
+      return;
+    }
+
     setError('');
-    Alert.alert('Sucesso', 'Sua senha foi redefinida com sucesso!');
-    navigation.navigate('Login');
+    setLoading(true);
+    const result = await resetPasswordByCode(codigo, tokenReset, password);
+    setLoading(false);
+
+    if (result.success) {
+      Alert.alert('Sucesso! 🎉', 'Sua senha foi redefinida com sucesso!', [
+        { text: 'Fazer Login', onPress: () => navigation.navigate('Login') },
+      ]);
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
@@ -345,19 +582,27 @@ export const NewPasswordScreen = ({ navigation, route }) => {
           onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
         />
 
-        <Button title="Redefinir Senha" onPress={handleReset} style={styles.btn} />
+        <Button
+          title={loading ? 'Redefinindo...' : 'Redefinir Senha'}
+          onPress={handleReset}
+          style={styles.btn}
+          disabled={loading}
+        />
       </Card>
     </AuthLayout>
   );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Estilos
+// ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   card: {
     borderRadius: 35,
     padding: 30,
     marginTop: 20,
     width: '100%',
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -367,34 +612,37 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 14,
     color: '#000',
   },
   errorText: {
     color: '#FF4C4C',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
     color: '#666',
     lineHeight: 18,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: -5,
+    marginBottom: -3,
   },
   btn: {
     backgroundColor: '#009DFF',
     borderRadius: 20,
     height: 55,
     marginTop: 15,
+  },
+  btnDisabled: {
+    backgroundColor: '#A0C4E8',
   },
   footerLinks: {
     alignItems: 'center',
@@ -406,13 +654,16 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   linkBlue: {
-    color: '#00D1FF',
+    color: '#009DFF',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   forgotPasswordText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: '#009DFF',
+    fontSize: 14,
     fontWeight: 'bold',
-    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginTop: 4,
   },
   backBtn: {
     alignSelf: 'flex-start',
@@ -422,13 +673,49 @@ const styles = StyleSheet.create({
     color: '#1E2C5A',
     fontSize: 14,
     fontWeight: 'bold',
-  }
+  },
+  // ── Timer badge ──
+  timerBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  timerBadgeExpired: {
+    backgroundColor: '#FFEBEE',
+  },
+  timerText: {
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  timerTextExpired: {
+    color: '#C62828',
+  },
+  // ── Dots de tentativas ──
+  attemptsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  attemptsLabel: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  attemptDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  attemptDotFree: {
+    backgroundColor: '#A5D6A7',
+  },
+  attemptDotUsed: {
+    backgroundColor: '#EF9A9A',
+  },
 });
-=======
-// Compatibilidade - reexportando de novas localiza��es
-export { LoginScreen } from './Login/LoginScreen';
-export { RegisterScreen } from './Register/RegisterScreen';
-export { RecoveryScreen } from './Recovery/RecoveryScreen';
-export { ResetCodeScreen } from './ResetCode/ResetCodeScreen';
-export { NewPasswordScreen } from './NewPassword/NewPasswordScreen';
->>>>>>> b2089096e4c7ce13ccd6ea192bde477ffc863b37

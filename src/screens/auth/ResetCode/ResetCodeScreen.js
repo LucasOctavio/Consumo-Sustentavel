@@ -1,33 +1,94 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AuthLayout } from '../../../components/AuthLayout';
 import { Card } from '../../../components/Card';
 import { Input } from '../../../components/Input';
 import { Button } from '../../../components/Button';
-import { AuthContext, useTheme } from '../../../navigation/AppNavigator';
+import { AuthContext } from '../../../navigation/AppNavigator';
+
+const formatTime = (seconds) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+};
+
+const EXPIRY_SECONDS = 10 * 60;
 
 export const ResetCodeScreen = ({ navigation, route }) => {
-  const { email } = route.params || {};
+  const { email, tokenReset } = route.params || {};
+  const { forgotPassword } = useContext(AuthContext);
+
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [currentToken, setCurrentToken] = useState(tokenReset);
+
+  // Contador regressivo
+  const [timeLeft, setTimeLeft] = useState(EXPIRY_SECONDS);
+  const [expired, setExpired] = useState(false);
+  const timerRef = useRef(null);
+
+  // Reinicia o timer sempre que um novo token chega (reenvio)
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    setTimeLeft(EXPIRY_SECONDS);
+    setExpired(false);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [currentToken]);
 
   const handleVerify = () => {
+    if (expired) {
+      setError('O código expirou. Por favor, reenvie um novo código.');
+      return;
+    }
     if (code.length < 6) {
-      setError("O código deve ter 6 dígitos.");
+      setError('O código deve ter 6 dígitos.');
       return;
     }
     setError('');
-    navigation.navigate('NewPassword', { email });
+    // Passa o código e o token para a tela de nova senha
+    navigation.navigate('NewPassword', { email, codigo: code, tokenReset: currentToken });
+  };
+
+  const handleResend = async () => {
+    setError('');
+    setCode('');
+    setLoading(true);
+    const result = await forgotPassword(email);
+    setLoading(false);
+    if (result.success) {
+      setCurrentToken(result.tokenReset);
+    } else {
+      setError(result.message || 'Erro ao reenviar o código.');
+    }
   };
 
   return (
     <AuthLayout>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>{'> Voltar'}</Text>
+        <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Verificar Código</Text>
+
+        {/* Contador */}
+        <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
+          <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
+            {expired ? 'Código expirado' : `Válido por: ${formatTime(timeLeft)}`}
+          </Text>
+        </View>
+
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
           Digite o código de 6 dígitos enviado para {email}.
@@ -38,11 +99,27 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           keyboardType="numeric"
           maxLength={6}
           value={code}
+          editable={!expired}
           onChangeText={(t) => { setCode(t); setError(''); }}
-          style={{ textAlign: 'center', fontSize: 24, letterSpacing: 10 }}
+          style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
         />
 
-        <Button title="Verificar" onPress={handleVerify} style={styles.btn} />
+        <Button
+          title="Verificar"
+          onPress={handleVerify}
+          style={[styles.btn, expired && styles.btnDisabled]}
+          disabled={expired}
+        />
+
+        <TouchableOpacity
+          onPress={handleResend}
+          disabled={loading}
+          style={{ marginTop: 14, alignItems: 'center' }}
+        >
+          <Text style={styles.linkBlue}>
+            {loading ? 'Reenviando...' : '🔄 Reenviar código'}
+          </Text>
+        </TouchableOpacity>
       </Card>
     </AuthLayout>
   );
@@ -54,7 +131,7 @@ const styles = StyleSheet.create({
     padding: 30,
     marginTop: 20,
     width: '100%',
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -64,20 +141,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 14,
     color: '#000',
   },
   errorText: {
     color: '#FF4C4C',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 14,
     color: '#666',
     lineHeight: 18,
   },
@@ -87,6 +164,9 @@ const styles = StyleSheet.create({
     height: 55,
     marginTop: 15,
   },
+  btnDisabled: {
+    backgroundColor: '#A0C4E8',
+  },
   backBtn: {
     alignSelf: 'flex-start',
     marginBottom: 10,
@@ -95,5 +175,29 @@ const styles = StyleSheet.create({
     color: '#1E2C5A',
     fontSize: 14,
     fontWeight: 'bold',
-  }
+  },
+  timerBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  timerBadgeExpired: {
+    backgroundColor: '#FFEBEE',
+  },
+  timerText: {
+    color: '#2E7D32',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  timerTextExpired: {
+    color: '#C62828',
+  },
+  linkBlue: {
+    color: '#009DFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
 });

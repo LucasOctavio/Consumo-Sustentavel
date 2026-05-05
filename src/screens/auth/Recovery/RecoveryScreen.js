@@ -1,47 +1,50 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AuthLayout } from '../../../components/AuthLayout';
 import { Card } from '../../../components/Card';
 import { Input } from '../../../components/Input';
 import { Button } from '../../../components/Button';
-import { AuthContext, useTheme } from '../../../navigation/AppNavigator';
+import { AuthContext } from '../../../navigation/AppNavigator';
 
 export const RecoveryScreen = ({ navigation }) => {
-  const { checkEmail } = useContext(AuthContext);
+  const { forgotPassword } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (!email || !email.includes('@')) {
-      setError("Por favor, insira um e-mail válido.");
+      setError('Por favor, insira um e-mail válido.');
       return;
     }
-
-    const userExists = checkEmail(email);
-    if (!userExists) {
-      setError("Este e-mail não está cadastrado.");
-      return;
-    }
-
     setError('');
-    Alert.alert("Código Enviado", `Enviamos um código de 6 dígitos para ${email}`);
-    navigation.navigate('ResetCode', { email });
+    setLoading(true);
+    // Chama o endpoint real do backend: POST /usuario/forgot_password
+    const result = await forgotPassword(email);
+    setLoading(false);
+
+    if (result.success) {
+      // Navega passando o token temporário (ou null se o e-mail não existir — segurança)
+      navigation.navigate('ResetCode', { email, tokenReset: result.tokenReset });
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
     <AuthLayout>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Text style={styles.backBtnText}>{'> Voltar'}</Text>
+        <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
       <Card style={styles.card}>
         <Text style={styles.title}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
-          Insira o endereço de email da sua conta e enviaremos um código de segurança para alterar a senha da conta.
+          Insira o endereço de e-mail da sua conta e enviaremos um código de segurança para redefinir a senha.
         </Text>
 
-        <Text style={styles.label}>Endereço de email</Text>
+        <Text style={styles.label}>Endereço de e-mail</Text>
         <Input
           placeholder="Email"
           keyboardType="email-address"
@@ -49,7 +52,12 @@ export const RecoveryScreen = ({ navigation }) => {
           onChangeText={(t) => { setEmail(t); setError(''); }}
         />
 
-        <Button title="Enviar Código" onPress={handleSendCode} style={styles.btn} />
+        <Button
+          title={loading ? 'Enviando...' : 'Enviar Código'}
+          onPress={handleSendCode}
+          style={styles.btn}
+          disabled={loading}
+        />
       </Card>
     </AuthLayout>
   );
@@ -61,7 +69,7 @@ const styles = StyleSheet.create({
     padding: 30,
     marginTop: 20,
     width: '100%',
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -71,28 +79,28 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 14,
     color: '#000',
   },
   errorText: {
     color: '#FF4C4C',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 12,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     color: '#666',
     lineHeight: 18,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: -5,
+    marginBottom: -3,
   },
   btn: {
     backgroundColor: '#009DFF',
@@ -108,5 +116,5 @@ const styles = StyleSheet.create({
     color: '#1E2C5A',
     fontSize: 14,
     fontWeight: 'bold',
-  }
+  },
 });
