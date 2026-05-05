@@ -26,7 +26,7 @@ export const AuthLayout = ({ children }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#5EB3FF', // Consistent blue from prototype
+    backgroundColor: '#72a8b0', // Consistent blue from prototype
   },
   scrollContent: {
     flexGrow: 1,

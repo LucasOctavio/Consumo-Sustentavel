@@ -1,7 +1,7 @@
 export const lightColors = {
   primary: '#5DA9E9', // Light blue
   secondary: '#1E2C5A', // Dark blue
-  background: '#5DA9E9',
+  background: '#72a8b0', // Light background
   card: '#FFFFFF',
   text: '#333333',
   textLight: '#888888',

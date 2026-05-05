@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { AuthLayout } from '../../components/AuthLayout';
@@ -423,3 +424,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   }
 });
+=======
+// Compatibilidade - reexportando de novas localiza��es
+export { LoginScreen } from './Login/LoginScreen';
+export { RegisterScreen } from './Register/RegisterScreen';
+export { RecoveryScreen } from './Recovery/RecoveryScreen';
+export { ResetCodeScreen } from './ResetCode/ResetCodeScreen';
+export { NewPasswordScreen } from './NewPassword/NewPasswordScreen';
+>>>>>>> b2089096e4c7ce13ccd6ea192bde477ffc863b37

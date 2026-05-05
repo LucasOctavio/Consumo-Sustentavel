@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Switch, ScrollView, Alert, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { FontAwesome5, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -753,3 +754,11 @@ const styles = StyleSheet.create({
   deleteAccountText: { fontSize: 14, fontWeight: 'bold' },
   btnTextWhite: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
+=======
+// Compatibilidade - reexportando de novas localizações
+export { HomeScreen } from './Home/HomeScreen';
+export { ConsumptionScreen } from './Consumption/ConsumptionScreen';
+export { SimulatedScreen } from './Simulated/SimulatedScreen';
+export { GoalsScreen } from './Goals/GoalsScreen';
+export { SettingsScreen } from './Settings/SettingsScreen';
+>>>>>>> b2089096e4c7ce13ccd6ea192bde477ffc863b37

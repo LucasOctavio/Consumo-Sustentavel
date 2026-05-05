@@ -1,0 +1,1 @@
+export { NewPasswordScreen } from './NewPasswordScreen';
