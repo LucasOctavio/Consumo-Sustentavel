@@ -5,12 +5,16 @@ import { useTheme } from '../navigation/AppNavigator';
 
 export const Header = () => {
   const { colors } = useTheme();
+  const logoSize = 60;
+
   return (
-    <View style={styles.header}>
-      <Logo isSmall={true} />
-      <View style={styles.centerContainer}>
-        <Text style={[styles.headerText, { color: colors.secondary }]}>Consciência do Consumo Natural</Text>
+    <View style={[styles.header, { backgroundColor: colors.background }]}>
+      <Logo size={logoSize} />
+      <View style={styles.titleContainer}>
+        <Text style={styles.headerText}>Consumo Econômico Natural Azul</Text>
       </View>
+      {/* Spacer para equilibrar o layout e centralizar o texto no meio da tela */}
+      <View style={{ width: logoSize }} />
     </View>
   );
 };
@@ -20,26 +24,26 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingTop: 20,
     paddingBottom: 15,
-    position: 'relative',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 10,
   },
-  centerContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 50, // Matches header paddingTop
-    bottom: 15, // Matches header paddingBottom
-    justifyContent: 'center',
+  titleContainer: {
+    flex: 1,
     alignItems: 'center',
-    zIndex: -1,
+    justifyContent: 'center',
   },
   headerText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
-    opacity: 0.9,
+    color: '#1E90FF',
     textAlign: 'center',
-    maxWidth: '70%', // Prevent overlapping with logo on very small screens
   }
 });

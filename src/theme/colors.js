@@ -1,7 +1,7 @@
 export const lightColors = {
   primary: '#5DA9E9', // Light blue
   secondary: '#1E2C5A', // Dark blue
-  background: '#72a8b0', // Light background
+  background: '#D6EAF8', // Slightly darker soft blue background
   card: '#FFFFFF',
   text: '#333333',
   textLight: '#888888',
@@ -22,7 +22,7 @@ export const lightColors = {
 export const darkColors = {
   primary: '#1E2C5A', // Darker theme base
   secondary: '#5DA9E9', // Inverted highlights
-  background: '#121212', // Dark background
+  background: '#050B18', // Deep dark blue for dark mode
   card: '#1E1E1E', // Dark card
   text: '#FFFFFF',
   textLight: '#AAAAAA',
