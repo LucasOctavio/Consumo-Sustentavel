@@ -19,17 +19,14 @@ def criar_consumo(dados, session, busca):
     return {"mensagem": f"Consumo criado com sucesso. ID: {novo_consumo.con_id}"}
 
 def listar_consumos(usuario, session):
-    """Lista todos os consumos cadastrados para o usuário."""
-    # Realiza uma consulta na tabela Consumo filtrando exclusivamente pelos registros vinculados ao ID do usuário atual
-    consumos = session.query(Consumo).filter(Consumo.user_id == usuario.user_id).all()
-    
-    # Verifica se algum registro foi encontrado na consulta
-    if consumos:
-        # Se encontrou, retorna a lista completa de consumos
-        return {"consumos": consumos}
-    else:
-        # Caso a lista esteja vazia, retorna uma mensagem informando que não há dados
-        return {"mensagem": "Sem consumos cadastrados"}
+    """Lista todos os consumos reais cadastrados para o usuário."""
+    # Realiza uma consulta na tabela Consumo filtrando pelos registros reais vinculados ao ID do usuário atual
+    return session.query(Consumo).filter(Consumo.user_id == usuario.user_id, Consumo.con_simulado == False).all()
+
+def listar_simulados(usuario, session):
+    """Lista todos os consumos simulados cadastrados para o usuário."""
+    # Realiza uma consulta na tabela Consumo filtrando pelos registros simulados vinculados ao ID do usuário atual
+    return session.query(Consumo).filter(Consumo.user_id == usuario.user_id, Consumo.con_simulado == True).all()
 
 def deletar_consumo(con_id, session, usuario):
     """Deleta um registro de consumo específico do usuário."""

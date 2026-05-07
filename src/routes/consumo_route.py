@@ -1,9 +1,11 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from src.dependencia import pegar_sessao, verificar_token
 from src.schemas.consumo_schema import ConsumoSchema, ConsumoUpdate
 from src.models.usuario_model import Usuario
-from src.services.consumo_service import listar_consumos, criar_consumo, deletar_consumo, atualizar_consumo
+from src.services.consumo_service import listar_consumos, listar_simulados, criar_consumo, deletar_consumo, atualizar_consumo
 
 # Instancia um roteador específico para agrupar as operações de 'consumo'
 # O uso de 'dependencies=[Depends(verificar_token)]' obriga que todas as rotas exijam um token válido
@@ -16,6 +18,14 @@ async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depe
     '''
     # Chama o serviço responsável por listar os consumos, repassando o usuário atual
     return listar_consumos(usuario, session)
+
+# Endpoint para leitura (GET) dos simulados cadastrados
+@consumo_router.get("/read_simulados", summary='Ler simulados')
+async def read_simulados(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
+    '''\n \n \n Ler os simulados de consumo. \n \n \
+    '''
+    # Chama o serviço responsável por listar os simulados, repassando o usuário atual
+    return listar_simulados(usuario, session)
 
 # Endpoint para criação (POST) de um novo consumo
 @consumo_router.post("/create", summary='Criar consumo')

@@ -62,7 +62,7 @@ app.include_router(consumo_router)
 app.include_router(meta_router)
 app.include_router(foto_router)
 
-# uvicorn src.main:app --reload / roda o fastAPI
+# python -m uvicorn src.main:app --reload / roda o fastAPI
 
 # REQUISICOES:
 # CRUD

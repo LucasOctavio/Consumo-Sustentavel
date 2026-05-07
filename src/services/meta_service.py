@@ -21,15 +21,7 @@ def criar_meta(dados, session, busca):
 def listar_metas(usuario, session):
     """Lista as metas cadastradas para o usuário."""
     # Faz uma consulta no banco recuperando todas as metas que pertencem ao usuário logado
-    metas = session.query(Meta).filter(Meta.user_id == usuario.user_id).all()
-    
-    # Avalia se a consulta retornou pelo menos um resultado
-    if metas:
-        # Se existem metas cadastradas, retorna a estrutura convertida para o cliente
-        return {"metas": metas}
-    else:
-        # Se não há metas, retorna uma mensagem de aviso para que o cliente saiba o estado atual
-        return {"mensagem": "Sem metas cadastradas"}
+    return session.query(Meta).filter(Meta.user_id == usuario.user_id).all()
 
 def deletar_meta(meta_id, session, usuario):
     """Deleta uma meta específica do usuário."""
