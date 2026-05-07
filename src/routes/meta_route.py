@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from src.dependencia import pegar_sessao, verificar_token
-from src.schemas.meta_schema import MetaSchema, MetaUpdate
+from src.schemas.meta_schema import MetaSchema, MetaUpdate, MetaRead
 from src.models.usuario_model import Usuario
 from src.services.meta_service import listar_metas, criar_meta, deletar_meta, atualizar_meta
 
@@ -9,7 +9,7 @@ from src.services.meta_service import listar_metas, criar_meta, deletar_meta, at
 meta_router = APIRouter(prefix="/meta", tags=["meta"], dependencies=[Depends(verificar_token)])
 
 # Endpoint para listar as metas associadas à conta
-@meta_router.get("/read", summary='Ler meta')
+@meta_router.get("/read", summary='Ler meta', response_model=list[MetaRead])
 async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
     '''\n \n \n Ler as metas da conta. \n \n \
     '''

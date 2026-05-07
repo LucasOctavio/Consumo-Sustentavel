@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from src.dependencia import pegar_sessao, verificar_token
-from src.schemas.consumo_schema import ConsumoSchema, ConsumoUpdate
+from src.schemas.consumo_schema import ConsumoSchema, ConsumoUpdate, ConsumoRead
 from src.models.usuario_model import Usuario
 from src.services.consumo_service import listar_consumos, listar_simulados, criar_consumo, deletar_consumo, atualizar_consumo
 
@@ -12,7 +12,7 @@ from src.services.consumo_service import listar_consumos, listar_simulados, cria
 consumo_router = APIRouter(prefix="/consumo", tags=["consumo"], dependencies=[Depends(verificar_token)])
 
 # Endpoint para leitura (GET) dos consumos cadastrados
-@consumo_router.get("/read", summary='Ler consumo')
+@consumo_router.get("/read", summary='Ler consumo', response_model=list[ConsumoRead])
 async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
     '''\n \n \n Ler um consumo. \n \n \
     '''
@@ -20,7 +20,7 @@ async def read(session: Session = Depends(pegar_sessao), usuario: Usuario = Depe
     return listar_consumos(usuario, session)
 
 # Endpoint para leitura (GET) dos simulados cadastrados
-@consumo_router.get("/read_simulados", summary='Ler simulados')
+@consumo_router.get("/read_simulados", summary='Ler simulados', response_model=list[ConsumoRead])
 async def read_simulados(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
     '''\n \n \n Ler os simulados de consumo. \n \n \
     '''

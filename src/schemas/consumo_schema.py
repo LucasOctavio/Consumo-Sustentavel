@@ -28,6 +28,19 @@ class ConsumoSchema(BaseModel):
     class Config:
         from_attributes = True
 
+# Esquema para leitura (GET), garantindo que todos os campos do banco sejam retornados
+class ConsumoRead(BaseModel):
+    con_id: int
+    con_tipo: str
+    con_valor: Decimal
+    con_medida: str
+    con_dt: datetime
+    con_simulado: bool
+    con_descricao: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 # Esquema utilizado exclusivamente para validar requisições de alteração (PATCH/PUT)
 class ConsumoUpdate(BaseModel):
     # O ID é obrigatório para sabermos qual registro atualizar

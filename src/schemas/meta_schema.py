@@ -32,3 +32,16 @@ class MetaSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Esquema para leitura (GET) das metas
+class MetaRead(BaseModel):
+    meta_id: int
+    meta_tipo: str
+    meta_valor: Decimal
+    meta_medida: str
+    meta_dt_inicio: datetime
+    meta_dt_fim: datetime
+    meta_descricao: Optional[str] = None
+
+    class Config:
+        from_attributes = True
