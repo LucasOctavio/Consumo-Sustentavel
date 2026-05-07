@@ -47,19 +47,28 @@ export const SimulatedScreen = () => {
   const filterDataByPeriod = (data, periodStr) => {
     const now = new Date();
     let days = 7;
-    if (periodStr.includes('2 sem')) days = 14;
-    else if (periodStr.includes('3 sem')) days = 21;
-    else if (periodStr.includes('1 mês')) days = 30;
-    else if (periodStr.includes('2 mê')) days = 60;
-    else if (periodStr.includes('3 mê')) days = 90;
+    if (periodStr === '2 sem') days = 14;
+    else if (periodStr === '3 sem') days = 21;
+    else if (periodStr === '1 mês') days = 30;
+    else if (periodStr === '6 meses') days = 180;
+    else if (periodStr === '1 ano') days = 365;
 
     const cutoff = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
     
-    return data.filter(item => {
-      const [day, month, year] = item.date.split('/').map(Number);
-      const itemDate = new Date(year, month - 1, day);
-      return itemDate >= cutoff;
-    }).reverse();
+    return data
+      .filter(item => {
+        const datePart = item.date.includes(' ') ? item.date.split(' ')[0] : item.date;
+        const [day, month, year] = datePart.split('/').map(Number);
+        const itemDate = new Date(year, month - 1, day);
+        return itemDate >= cutoff;
+      })
+      .sort((a, b) => {
+        const dateA = a.date.includes(' ') ? a.date.split(' ')[0] : a.date;
+        const dateB = b.date.includes(' ') ? b.date.split(' ')[0] : b.date;
+        const [da, ma, ya] = dateA.split('/').map(Number);
+        const [db, mb, yb] = dateB.split('/').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+      });
   };
 
   const filteredSimulations = filterDataByPeriod(simulations, period);
@@ -111,6 +120,11 @@ export const SimulatedScreen = () => {
         <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
         <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
       </View>
+      {item.description ? (
+        <View style={[styles.descriptionBox, { backgroundColor: colors.border + '30' }]}>
+          <Text style={{ color: colors.textLight, fontSize: 12, fontStyle: 'italic' }}>{item.description}</Text>
+        </View>
+      ) : null}
     </Card>
   );
 
@@ -126,7 +140,7 @@ export const SimulatedScreen = () => {
           </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodSelectorScroll}>
-          {['1 sem', '2 sem', '3 sem', '1 mês', '2 mêses', '3 mêses'].map((option) => (
+          {['1 sem', '2 sem', '3 sem', '1 mês', '6 meses', '1 ano'].map((option) => (
             <TouchableOpacity 
               key={option}
               onPress={() => setPeriod(option)}
@@ -140,9 +154,9 @@ export const SimulatedScreen = () => {
           data={{
             labels: filteredSimulations.length > 0 ? filteredSimulations.map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]) : ["-"],
             datasets: [
-              { 
-                data: filteredSimulations.length > 0 ? filteredSimulations.map(c => Number(c.value) || 0) : [0], 
-                color: () => colors.chart.barOrange 
+              {
+                data: filteredSimulations.length > 0 ? filteredSimulations.map(c => Number(c.value) || 0) : [0],
+                color: () => colors.chart.barOrange
               }
             ]
           }}
@@ -157,7 +171,7 @@ export const SimulatedScreen = () => {
       {(() => {
         const today = new Date().toLocaleDateString('pt-BR');
         const todayItems = simulations.filter(item => item.date === today);
-        
+
         return todayItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registro atual</Text></Card>
         ) : (
@@ -169,17 +183,17 @@ export const SimulatedScreen = () => {
       {(() => {
         const today = new Date().toLocaleDateString('pt-BR');
         const olderItems = simulations.filter(item => item.date !== today);
-        
+
         return olderItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registros anteriores</Text></Card>
         ) : (
           olderItems.map(renderSimulationItem)
         );
       })()}
-      <SimuladoADD 
-        visible={modalVisible} 
-        onClose={() => setModalVisible(false)} 
-        title={editingSimulation ? "Editar no Simulador" : "Adicionar ao Simulador"} 
+      <SimuladoADD
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={editingSimulation ? "Editar no Simulador" : "Adicionar ao Simulador"}
         onAdd={handleAddOrUpdate}
         initialData={editingSimulation}
       />
@@ -203,4 +217,5 @@ const styles = StyleSheet.create({
   activePeriodBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   activePeriodBadgeText: { fontSize: 10, fontWeight: 'bold' },
   emptyCard: { padding: 40, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderWidth: 2, borderColor: '#ccc' },
+  descriptionBox: { marginTop: 10, padding: 8, borderRadius: 10 },
 });

@@ -68,7 +68,7 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
 
   const handlePressSave = () => {
     const isGoal = title.toLowerCase().includes('meta');
-    
+
     if (!value || !type || !unit) {
       setError('Preencha todos os campos');
       return;
@@ -83,7 +83,7 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
       setError('Preencha a data do registro');
       return;
     }
-    
+
     setError('');
     // Se for edição, pede confirmação
     if (initialData) {
@@ -95,15 +95,15 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
 
   const executeAdd = () => {
     if (onAdd) {
-      onAdd({ 
+      onAdd({
         id: initialData?.id,
-        value, 
-        type, 
-        unit, 
-        date, 
-        startDate, 
+        value,
+        type,
+        unit,
+        date,
+        startDate,
         endDate,
-        description 
+        description
       });
     }
     onClose();
@@ -113,7 +113,7 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ width: '100%' }}
           >
@@ -122,17 +122,24 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
                 {!confirmVisible ? (
                   <>
                     <Text style={[styles.title, { color: colors.secondary }]}>{title}</Text>
-                    
+
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                    
-                    <Input 
-                      label="Valor de Consumo" 
-                      placeholder="Ex: 50" 
-                      value={value} 
-                      onChangeText={setValue} 
+
+                    <Input
+                      label="Valor de Consumo"
+                      placeholder="Ex: 50"
+                      value={value}
+                      onChangeText={setValue}
                       keyboardType="numeric"
                     />
-                    
+
+                    <Input 
+                      label="Descrição"
+                      placeholder="Ex: Conta de luz do mês"
+                      value={description}
+                      onChangeText={setDescription}
+                    />
+
                     <View style={styles.dropdownSection}>
                       <Text style={[styles.fieldLabel, { color: colors.text }]}>Tipo de Recurso</Text>
                       <Dropdown options={typeOptions} selectedValue={type} onSelect={setType} />
@@ -146,28 +153,28 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
                     {title.toLowerCase().includes('meta') ? (
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <View style={{ width: '48%' }}>
-                          <Input 
-                            label="Data Início" 
-                            placeholder="24/04/2026" 
-                            value={startDate} 
-                            onChangeText={setStartDate} 
+                          <Input
+                            label="Data Início"
+                            placeholder="24/04/2026"
+                            value={startDate}
+                            onChangeText={setStartDate}
                           />
                         </View>
                         <View style={{ width: '48%' }}>
-                          <Input 
-                            label="Data Fim" 
-                            placeholder="24/04/2027" 
-                            value={endDate} 
-                            onChangeText={setEndDate} 
+                          <Input
+                            label="Data Fim"
+                            placeholder="24/04/2027"
+                            value={endDate}
+                            onChangeText={setEndDate}
                           />
                         </View>
                       </View>
                     ) : (
-                      <Input 
-                        label="Data do Registro" 
-                        placeholder="Ex: 24/04/2026" 
-                        value={date} 
-                        onChangeText={setDate} 
+                      <Input
+                        label="Data do Registro"
+                        placeholder="Ex: 24/04/2026"
+                        value={date}
+                        onChangeText={setDate}
                       />
                     )}
 

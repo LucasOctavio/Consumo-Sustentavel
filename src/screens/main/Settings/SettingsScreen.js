@@ -14,7 +14,7 @@ export const SettingsScreen = () => {
   const { isDarkMode, setIsDarkMode, colors } = useContext(ThemeContext);
   const [expandedSection, setExpandedSection] = useState(null);
   const [isPhotoEnlarged, setIsPhotoEnlarged] = useState(false);
-  
+
   const [name, setName] = useState(userData?.name || '');
   const [email, setEmail] = useState(userData?.email || '');
   const [password, setPassword] = useState('');
@@ -34,10 +34,10 @@ export const SettingsScreen = () => {
       aspect: [1, 1],
       quality: 0.8,
     });
-    
+
     if (!result.canceled) {
       const asset = result.assets[0];
-      
+
       // Validação de formato
       const fileType = asset.uri.split('.').pop().toLowerCase();
       if (!['jpg', 'jpeg', 'png'].includes(fileType)) {
@@ -48,9 +48,9 @@ export const SettingsScreen = () => {
       // Validação de tamanho (máx 5MB)
       // Nota: No Expo, o tamanho do arquivo nem sempre está disponível no asset de imediato sem o FileSystem
       // Mas podemos tentar fazer o upload e o backend valida também.
-      
+
       setProfileImage(asset.uri);
-      
+
       // Upload para o backend
       try {
         const formData = new FormData();
@@ -87,8 +87,8 @@ export const SettingsScreen = () => {
       "Tem certeza que deseja excluir sua conta? Todos os seus dados serão apagados permanentemente.",
       [
         { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Sim, Tenho Certeza", 
+        {
+          text: "Sim, Tenho Certeza",
           onPress: () => {
             // Segunda confirmação
             Alert.alert(
@@ -96,14 +96,14 @@ export const SettingsScreen = () => {
               "Esta ação é IRREVERSÍVEL. Você realmente deseja prosseguir?",
               [
                 { text: "Cancelar", style: "cancel" },
-                { 
-                  text: "Sim, Excluir Tudo", 
+                {
+                  text: "Sim, Excluir Tudo",
                   style: "destructive",
                   onPress: () => setExpandedSection('confirm_delete') // Passo 3: Verificação de identidade
                 }
               ]
             );
-          } 
+          }
         }
       ]
     );
@@ -125,8 +125,8 @@ export const SettingsScreen = () => {
 
   const CollapsibleCard = ({ title, icon, sectionKey, children }) => (
     <Card style={{ marginTop: 15, padding: 0, overflow: 'hidden' }}>
-      <TouchableOpacity 
-        style={[styles.collapsibleHeader, { backgroundColor: expandedSection === sectionKey ? colors.secondary + '10' : 'transparent' }]} 
+      <TouchableOpacity
+        style={[styles.collapsibleHeader, { backgroundColor: expandedSection === sectionKey ? colors.secondary + '10' : 'transparent' }]}
         onPress={() => setExpandedSection(expandedSection === sectionKey ? null : sectionKey)}
       >
         <View style={styles.collapsibleTitleRow}>
@@ -162,8 +162,8 @@ export const SettingsScreen = () => {
     <AppLayout>
       <View style={styles.profileHeaderContainer}>
         <View style={styles.avatarWrapper}>
-          <TouchableOpacity 
-            onPress={() => profileImage ? setIsPhotoEnlarged(true) : pickImage()} 
+          <TouchableOpacity
+            onPress={() => profileImage ? setIsPhotoEnlarged(true) : pickImage()}
             style={[styles.avatarLarge, { backgroundColor: colors.border }]}
           >
             {profileImage ? (
@@ -176,12 +176,12 @@ export const SettingsScreen = () => {
             <FontAwesome5 name="plus" size={12} color="#fff" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.profileNameRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.profileNameText, { color: colors.text }]}>{name}</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.pencilEditBtn, { backgroundColor: colors.border + '50' }]}
             onPress={() => setExpandedSection(expandedSection === 'profile' ? null : 'profile')}
           >
@@ -193,10 +193,10 @@ export const SettingsScreen = () => {
       <Modal visible={isPhotoEnlarged} transparent animationType="fade" onRequestClose={() => setIsPhotoEnlarged(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setIsPhotoEnlarged(false)}>
           <View style={styles.enlargedPhotoContainer}>
-             <Image source={{ uri: profileImage }} style={styles.enlargedPhoto} resizeMode="contain" />
-             <TouchableOpacity style={styles.closeEnlargeBtn} onPress={() => setIsPhotoEnlarged(false)}>
-               <FontAwesome5 name="times" size={20} color="#fff" />
-             </TouchableOpacity>
+            <Image source={{ uri: profileImage }} style={styles.enlargedPhoto} resizeMode="contain" />
+            <TouchableOpacity style={styles.closeEnlargeBtn} onPress={() => setIsPhotoEnlarged(false)}>
+              <FontAwesome5 name="times" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -300,11 +300,11 @@ const styles = StyleSheet.create({
   profileActionBtns: { marginTop: 10 },
   saveProfileBtn: { height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
   logoutBtn: { height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
-  deleteAccountButton: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginTop: 40, 
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
     marginBottom: 30,
     paddingVertical: 12,
     borderWidth: 1,

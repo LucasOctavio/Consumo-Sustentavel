@@ -31,6 +31,7 @@ const normalizeConsumption = (item) => ({
   date: normalizeDate(item.con_dt || item.dt || item.date || ''),
   unit: item.con_medida || item.medida || item.unit || '',
   simulado: item.con_simulado !== undefined ? item.con_simulado : (item.simulado || false),
+  description: item.con_descricao || item.descricao || item.description || '',
 });
 
 const normalizeGoal = (item) => ({
@@ -40,6 +41,7 @@ const normalizeGoal = (item) => ({
   unit: item.meta_medida || item.medida || item.unit || '',
   start: normalizeDate(item.meta_dt_inicio || item.dt_inicio || item.start || ''),
   end: normalizeDate(item.meta_dt_fim || item.dt_fim || item.end || ''),
+  description: item.meta_descricao || item.descricao || item.description || '',
   progress: item.progress || 0,
 });
 
@@ -95,7 +97,7 @@ export const AppNavigator = () => {
         goalService.getAll().catch(err => { console.log('Erro ao carregar metas:', err); return []; }),
         photoService.get().catch(() => null)
       ]);
-      
+
       // Backend agora retorna listas diretamente (arrays)
       if (Array.isArray(consumoData)) {
         setConsumptions(consumoData.map(normalizeConsumption));
@@ -106,7 +108,7 @@ export const AppNavigator = () => {
       if (Array.isArray(metaData)) {
         setGoals(metaData.map(normalizeGoal));
       }
-      
+
       if (photoData) {
         setPhoto(typeof photoData === 'string' ? photoData : photoData.foto || photoData.message);
       }
@@ -246,6 +248,7 @@ export const AppNavigator = () => {
       value: data.value,
       date: data.date,
       unit: data.unit,
+      description: data.description || '',
     };
     setConsumptions(prev => [localItem, ...prev]);
 
@@ -267,7 +270,8 @@ export const AppNavigator = () => {
       value: data.value,
       date: data.date,
       unit: data.unit,
-      simulado: true
+      simulado: true,
+      description: data.description || '',
     };
     setSimulations(prev => [localItem, ...prev]);
 
@@ -289,6 +293,7 @@ export const AppNavigator = () => {
       unit: data.unit,
       start: data.startDate || data.start,
       end: data.endDate || data.end,
+      description: data.description || '',
       progress: 0,
     };
     setGoals(prev => [localGoal, ...prev]);
@@ -376,7 +381,7 @@ export const AppNavigator = () => {
       // Opcional: validar senha antes de deletar se o backend exigir ou para segurança extra
       // No momento o backend deleta baseado no token Bearer
       await authService.deleteAccount();
-      
+
       // Remove token e limpa estado
       await AsyncStorage.removeItem('@CCN:token');
       setIsAuthenticated(false);
@@ -400,7 +405,7 @@ export const AppNavigator = () => {
   const goalsWithProgress = goals.map(goal => {
     const goalStart = parseDateBr(goal.start);
     const goalEnd = parseDateBr(goal.end);
-    
+
     // Soma apenas os consumos que batem com o "tipo" da meta e ocorreram dentro do período estipulado
     const totalConsumed = consumptions.reduce((acc, c) => {
       if (c.type === goal.type) {
@@ -411,22 +416,22 @@ export const AppNavigator = () => {
       }
       return acc;
     }, 0);
-    
+
     // Define a porcentagem do progresso (limita em 100% no máximo para não quebrar a UI do gráfico circular)
-    const progress = Number(goal.value) > 0 
-      ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100)) 
+    const progress = Number(goal.value) > 0
+      ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100))
       : 0;
-      
+
     return { ...goal, progress };
   });
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, colors }}>
-      <AuthContext.Provider value={{ 
-        isAuthenticated, 
-        setIsAuthenticated, 
+      <AuthContext.Provider value={{
+        isAuthenticated,
+        setIsAuthenticated,
         user: userData?.name || userData?.email,
-        userData, 
+        userData,
         login,
         register,
         logout,

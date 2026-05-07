@@ -48,19 +48,28 @@ export const GoalsScreen = ({ navigation }) => {
   const filterDataByPeriod = (data, periodStr) => {
     const now = new Date();
     let days = 7;
-    if (periodStr.includes('2 sem')) days = 14;
-    else if (periodStr.includes('3 sem')) days = 21;
-    else if (periodStr.includes('1 mês')) days = 30;
-    else if (periodStr.includes('2 mê')) days = 60;
-    else if (periodStr.includes('3 mê')) days = 90;
+    if (periodStr === '2 sem') days = 14;
+    else if (periodStr === '3 sem') days = 21;
+    else if (periodStr === '1 mês') days = 30;
+    else if (periodStr === '6 meses') days = 180;
+    else if (periodStr === '1 ano') days = 365;
 
     const cutoff = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
     
-    return data.filter(item => {
-      const [day, month, year] = item.start.split('/').map(Number);
-      const itemDate = new Date(year, month - 1, day);
-      return itemDate >= cutoff;
-    });
+    return data
+      .filter(item => {
+        const datePart = item.start.includes(' ') ? item.start.split(' ')[0] : item.start;
+        const [day, month, year] = datePart.split('/').map(Number);
+        const itemDate = new Date(year, month - 1, day);
+        return itemDate >= cutoff;
+      })
+      .sort((a, b) => {
+        const dateA = a.start.includes(' ') ? a.start.split(' ')[0] : a.start;
+        const dateB = b.start.includes(' ') ? b.start.split(' ')[0] : b.start;
+        const [da, ma, ya] = dateA.split('/').map(Number);
+        const [db, mb, yb] = dateB.split('/').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+      });
   };
 
   const filteredGoalsForChart = filterDataByPeriod(goals, period);
@@ -115,6 +124,11 @@ export const GoalsScreen = ({ navigation }) => {
           <CircularProgress percentage={goal.progress} radius={35} color={color} />
         </View>
       </View>
+      {goal.description ? (
+        <View style={[styles.descriptionBox, { backgroundColor: colors.border + '30' }]}>
+          <Text style={{ color: colors.textLight, fontSize: 12, fontStyle: 'italic' }}>{goal.description}</Text>
+        </View>
+      ) : null}
     </Card>
   );
 
@@ -122,7 +136,7 @@ export const GoalsScreen = ({ navigation }) => {
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Metas</Text>
       <AddButtonFull onPress={() => { setEditingGoal(null); setModalVisible(true); }} />
-      
+
       <Card style={{ marginBottom: 20 }}>
         <View style={styles.chartHeaderRow}>
           <Text style={[styles.cardHeader, { color: colors.text, marginBottom: 0 }]}>Análise por Recurso</Text>
@@ -131,7 +145,7 @@ export const GoalsScreen = ({ navigation }) => {
           </View>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodSelectorScroll}>
-          {['1 sem', '2 sem', '3 sem', '1 mês', '2 mêses', '3 mêses'].map((option) => (
+          {['1 sem', '2 sem', '3 sem', '1 mês', '6 meses', '1 ano'].map((option) => (
             <TouchableOpacity 
               key={option}
               onPress={() => setPeriod(option)}
@@ -146,17 +160,17 @@ export const GoalsScreen = ({ navigation }) => {
             acc[goal.type] = (acc[goal.type] || 0) + (Number(goal.value) || 0);
             return acc;
           }, {});
-          
+
           const labels = Object.keys(totals);
           const data = Object.values(totals);
-          
+
           if (labels.length === 0) return <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>Nenhuma meta para analisar</Text>;
 
           return (
             <BarChart
               data={{
                 labels: labels,
-                datasets: [{ 
+                datasets: [{
                   data: data,
                   colors: labels.map(label => {
                     if (label === 'Água') return () => colors.chart.barBlue;
@@ -177,12 +191,12 @@ export const GoalsScreen = ({ navigation }) => {
           );
         })()}
       </Card>
-      
+
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>Metas atuais</Text>
       {(() => {
         const today = new Date().toLocaleDateString('pt-BR');
         const todayGoals = goals.filter(g => g.start === today);
-        
+
         return todayGoals.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há meta atual</Text></Card>
         ) : (
@@ -194,18 +208,18 @@ export const GoalsScreen = ({ navigation }) => {
       {(() => {
         const today = new Date().toLocaleDateString('pt-BR');
         const olderGoals = goals.filter(g => g.start !== today);
-        
+
         return olderGoals.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há metas anteriores</Text></Card>
         ) : (
           olderGoals.map(goal => renderGoalItem(goal, colors.progress.blue))
         );
       })()}
-      
-      <GoalADD 
-        visible={modalVisible} 
-        onClose={() => setModalVisible(false)} 
-        title={editingGoal ? "Editar Meta" : "Adicionar Meta"} 
+
+      <GoalADD
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={editingGoal ? "Editar Meta" : "Adicionar Meta"}
         onAdd={handleAddOrUpdate}
         initialData={editingGoal}
       />
@@ -231,4 +245,5 @@ const styles = StyleSheet.create({
   activePeriodBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   activePeriodBadgeText: { fontSize: 10, fontWeight: 'bold' },
   emptyCard: { padding: 40, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', borderWidth: 2, borderColor: '#ccc' },
+  descriptionBox: { marginTop: 10, padding: 8, borderRadius: 10 },
 });

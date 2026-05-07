@@ -206,6 +206,7 @@ export const consumptionService = {
       medida: data.unit,
       dt: toIsoDateTime(data.date),
       simulado: false,
+      descricao: data.description,
     });
     return response.data;
   },
@@ -217,6 +218,7 @@ export const consumptionService = {
       medida: data.unit,
       dt: toIsoDateTime(data.date),
       simulado: true,
+      descricao: data.description,
     });
     return response.data;
   },
@@ -270,6 +272,7 @@ export const goalService = {
       medida: data.unit,
       dt_inicio: toIsoDateTime(data.startDate || data.start),
       dt_fim: toIsoDateTime(data.endDate || data.end),
+      descricao: data.description,
     });
     return response.data;
   },
