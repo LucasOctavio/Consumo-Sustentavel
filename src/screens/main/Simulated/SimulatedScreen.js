@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert } from 'react-native';
 import { AppLayout } from '../../../components/AppLayout';
 import { Card } from '../../../components/Card';
 import { SimuladoADD } from '../Simulated/SimuladoADD.js';
@@ -39,8 +39,9 @@ const AddButtonFull = ({ onPress }) => {
 
 export const SimulatedScreen = () => {
   const { colors } = useTheme();
-  const { simulations, addSimulation } = useContext(AuthContext);
+  const { simulations, addSimulation, updateSimulation, deleteSimulation } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingSimulation, setEditingSimulation] = useState(null);
   const [period, setPeriod] = useState('1 sem');
 
   const filterDataByPeriod = (data, periodStr) => {
@@ -63,15 +64,60 @@ export const SimulatedScreen = () => {
 
   const filteredSimulations = filterDataByPeriod(simulations, period);
 
-  const handleAdd = (data) => {
-    addSimulation(data);
+  const handleAddOrUpdate = (data) => {
+    if (editingSimulation) {
+      updateSimulation(data);
+    } else {
+      addSimulation(data);
+    }
     setModalVisible(false);
+    setEditingSimulation(null);
   };
+
+  const handleEdit = (simulation) => {
+    setEditingSimulation(simulation);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id) => {
+    Alert.alert(
+      "Excluir Simulação",
+      "Tem certeza que deseja excluir permanentemente esta simulação?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteSimulation(id) }
+      ]
+    );
+  };
+
+  const renderSimulationItem = (item) => (
+    <Card key={item.id} style={{ marginBottom: 15 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={[styles.registerEntryTitle, { color: colors.text, marginBottom: 0 }]}>Registro do simulador</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={() => handleEdit(item)} style={{ marginRight: 15 }}>
+            <Text style={{ color: colors.secondary, fontSize: 12, fontWeight: 'bold' }}>EDITAR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Text style={{ color: '#FF4C4C', fontSize: 12, fontWeight: 'bold' }}>EXCLUIR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.registerEntryRow}>
+        <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+        <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+      </View>
+      <View style={styles.registerEntryRow}>
+        <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+        <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+      </View>
+    </Card>
+  );
 
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Simulador</Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull onPress={() => { setEditingSimulation(null); setModalVisible(true); }} />
       <Card>
         <View style={styles.chartHeaderRow}>
           <Text style={[styles.cardHeader, { color: colors.text, marginBottom: 0 }]}>Análise Temporal</Text>
@@ -115,19 +161,7 @@ export const SimulatedScreen = () => {
         return todayItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registro atual</Text></Card>
         ) : (
-          todayItems.map(item => (
-            <Card key={item.id} style={{ marginBottom: 15 }}>
-              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-              </View>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-              </View>
-            </Card>
-          ))
+          todayItems.map(renderSimulationItem)
         );
       })()}
 
@@ -139,22 +173,16 @@ export const SimulatedScreen = () => {
         return olderItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registros anteriores</Text></Card>
         ) : (
-          olderItems.map(item => (
-            <Card key={item.id} style={{ marginBottom: 15 }}>
-              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro do simulador</Text>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-              </View>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-              </View>
-            </Card>
-          ))
+          olderItems.map(renderSimulationItem)
         );
       })()}
-      <SimuladoADD visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar ao Simulador" onAdd={handleAdd} />
+      <SimuladoADD 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        title={editingSimulation ? "Editar no Simulador" : "Adicionar ao Simulador"} 
+        onAdd={handleAddOrUpdate}
+        initialData={editingSimulation}
+      />
     </AppLayout>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert } from 'react-native';
 import { AppLayout } from '../../../components/AppLayout';
 import { Card } from '../../../components/Card';
 import { Button } from '../../../components/Button';
@@ -40,8 +40,9 @@ const AddButtonFull = ({ onPress }) => {
 
 export const ConsumptionScreen = ({ navigation }) => {
   const { colors } = useTheme();
-  const { consumptions, addConsumption } = useContext(AuthContext);
+  const { consumptions, addConsumption, updateConsumption, deleteConsumption } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [period, setPeriod] = useState('1 sem');
 
   const filterDataByPeriod = (data, periodStr) => {
@@ -64,15 +65,60 @@ export const ConsumptionScreen = ({ navigation }) => {
 
   const filteredConsumptions = filterDataByPeriod(consumptions, period);
 
-  const handleAdd = (data) => {
-    addConsumption(data);
+  const handleAddOrUpdate = (data) => {
+    if (editingItem) {
+      updateConsumption(data);
+    } else {
+      addConsumption(data);
+    }
     setModalVisible(false);
+    setEditingItem(null);
   };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id) => {
+    Alert.alert(
+      "Excluir Registro",
+      "Tem certeza que deseja excluir permanentemente este registro?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteConsumption(id) }
+      ]
+    );
+  };
+
+  const renderItem = (item) => (
+    <Card key={item.id} style={{ marginBottom: 15 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Text style={[styles.registerEntryTitle, { color: colors.text, marginBottom: 0 }]}>Registro de consumo</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={() => handleEdit(item)} style={{ marginRight: 15 }}>
+            <Text style={{ color: colors.secondary, fontSize: 12, fontWeight: 'bold' }}>EDITAR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Text style={{ color: '#FF4C4C', fontSize: 12, fontWeight: 'bold' }}>EXCLUIR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.registerEntryRow}>
+        <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
+        <Text style={{ color: colors.text }}>Data: {item.date}</Text>
+      </View>
+      <View style={styles.registerEntryRow}>
+        <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
+        <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
+      </View>
+    </Card>
+  );
 
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Consumos</Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull onPress={() => { setEditingItem(null); setModalVisible(true); }} />
       <Card>
         <View style={styles.chartHeaderRow}>
           <Text style={[styles.cardHeader, { color: colors.text, marginBottom: 0 }]}>Análise Temporal</Text>
@@ -113,19 +159,7 @@ export const ConsumptionScreen = ({ navigation }) => {
         return todayItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registro atual</Text></Card>
         ) : (
-          todayItems.map(item => (
-            <Card key={item.id} style={{ marginBottom: 15 }}>
-              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-              </View>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-              </View>
-            </Card>
-          ))
+          todayItems.map(renderItem)
         );
       })()}
 
@@ -137,23 +171,17 @@ export const ConsumptionScreen = ({ navigation }) => {
         return olderItems.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há registros anteriores</Text></Card>
         ) : (
-          olderItems.map(item => (
-            <Card key={item.id} style={{ marginBottom: 15 }}>
-              <Text style={[styles.registerEntryTitle, { color: colors.text }]}>Registro de consumo</Text>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Tipo: {item.type}</Text>
-                <Text style={{ color: colors.text }}>Data: {item.date}</Text>
-              </View>
-              <View style={styles.registerEntryRow}>
-                <Text style={{ color: colors.text }}>Consumo: {item.value}</Text>
-                <Text style={{ color: colors.text }}>Medida: {item.unit}</Text>
-              </View>
-            </Card>
-          ))
+          olderItems.map(renderItem)
         );
       })()}
 
-      <ADD visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar Consumo" onAdd={handleAdd} />
+      <ADD 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        title={editingItem ? "Editar Consumo" : "Adicionar Consumo"} 
+        onAdd={handleAddOrUpdate}
+        initialData={editingItem}
+      />
     </AppLayout>
   );
 };

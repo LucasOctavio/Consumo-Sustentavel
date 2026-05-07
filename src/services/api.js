@@ -7,17 +7,34 @@ const api = axios.create({
 });
 
 // Interceptor: adiciona o token Bearer em todas as requisições autenticadas
-api.interceptors.request.use(async (config) => {
-  try {
-    const token = await AsyncStorage.getItem('@CCN:token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem('@CCN:token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Erro ao ler token no interceptor:', error);
     }
-  } catch (error) {
-    console.error('Erro ao ler token:', error);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+/**
+ * Define o token de autorização diretamente na instância do axios.
+ * Útil para sincronização imediata após o login sem depender do AsyncStorage.
+ */
+export const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
 
 // ─── Usuário ────────────────────────────────────────────────────────────────
 
@@ -173,6 +190,11 @@ export const consumptionService = {
     return response.data;
   },
 
+  getAllSimulations: async () => {
+    const response = await api.get('/consumo/read_simulados');
+    return response.data;
+  },
+
   /**
    * POST /consumo/create  (requer Bearer token)
    * Body (ConsumoSchema): { tipo, valor, medida, dt: datetime, simulado: bool }
@@ -205,6 +227,23 @@ export const consumptionService = {
    */
   delete: async (id) => {
     const response = await api.delete(`/consumo/delete?con_id=${id}`);
+    return response.data;
+  },
+
+  /**
+   * PATCH /consumo/update (requer Bearer token)
+   * Body (ConsumoUpdate): { con_id, con_tipo, con_valor, con_medida, con_dt, con_simulado, con_descricao }
+   */
+  update: async (data) => {
+    const response = await api.patch('/consumo/update', {
+      con_id: data.id,
+      con_tipo: data.type,
+      con_valor: parseFloat(data.value),
+      con_medida: data.unit,
+      con_dt: toIsoDateTime(data.date),
+      con_simulado: data.simulated || false,
+      con_descricao: data.description,
+    });
     return response.data;
   },
 };
@@ -241,6 +280,51 @@ export const goalService = {
    */
   delete: async (id) => {
     const response = await api.delete(`/meta/delete?meta_id=${id}`);
+    return response.data;
+  },
+
+  /**
+   * PATCH /meta/update (requer Bearer token)
+   * Body (MetaUpdate): { meta_id, tipo, valor, medida, dt_inicio, dt_fim, descricao }
+   */
+  update: async (data) => {
+    const response = await api.patch('/meta/update', {
+      meta_id: data.id,
+      tipo: data.type,
+      valor: parseFloat(data.value),
+      medida: data.unit,
+      dt_inicio: toIsoDateTime(data.startDate),
+      dt_fim: toIsoDateTime(data.endDate),
+      meta_descricao: data.description,
+    });
+    return response.data;
+  },
+};
+
+// ─── Foto ─────────────────────────────────────────────────────────────────────
+
+export const photoService = {
+  /**
+   * POST /foto/create (requer Bearer token)
+   * Body: FormData { foto: binary }
+   */
+  upload: async (formData) => {
+    const response = await api.post('/foto/create', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * GET /foto/read (requer Bearer token)
+   * Retorna a foto do usuário
+   */
+  get: async () => {
+    const response = await api.get('/foto/read', {
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

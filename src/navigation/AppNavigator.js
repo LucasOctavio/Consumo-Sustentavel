@@ -4,7 +4,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { lightColors, darkColors } from '../theme/colors';
 
-import { authService, consumptionService, goalService } from '../services/api';
+import { authService, consumptionService, goalService, photoService, setAuthToken } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const AuthContext = createContext();
@@ -26,29 +26,27 @@ const normalizeDate = (dateStr) => {
 // Normaliza dados vindos do backend para o formato esperado pela UI
 const normalizeConsumption = (item) => ({
   id: item.con_id || item.id || Date.now(),  // backend retorna con_id
-  type: item.tipo || item.type || '?',
-  value: item.valor !== undefined ? item.valor : item.value,
-  date: normalizeDate(item.dt || item.date || ''),
-  unit: item.medida || item.unit || '',
-  simulado: item.simulado || false,
+  type: item.con_tipo || item.tipo || item.type || '?',
+  value: item.con_valor !== undefined ? item.con_valor : (item.valor !== undefined ? item.valor : item.value),
+  date: normalizeDate(item.con_dt || item.dt || item.date || ''),
+  unit: item.con_medida || item.medida || item.unit || '',
+  simulado: item.con_simulado !== undefined ? item.con_simulado : (item.simulado || false),
 });
 
 const normalizeGoal = (item) => ({
   id: item.meta_id || item.id || Date.now(),  // backend retorna meta_id
-  type: item.tipo || item.type || '?',
-  value: item.valor !== undefined ? item.valor : item.value,
-  unit: item.medida || item.unit || '',
-  start: normalizeDate(item.dt_inicio || item.start || ''),
-  end: normalizeDate(item.dt_fim || item.end || ''),
+  type: item.meta_tipo || item.tipo || item.type || '?',
+  value: item.meta_valor !== undefined ? item.meta_valor : (item.valor !== undefined ? item.valor : item.value),
+  unit: item.meta_medida || item.medida || item.unit || '',
+  start: normalizeDate(item.meta_dt_inicio || item.dt_inicio || item.start || ''),
+  end: normalizeDate(item.meta_dt_fim || item.dt_fim || item.end || ''),
   progress: item.progress || 0,
 });
 
 export const AppNavigator = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [users, setUsers] = useState([
-    { name: 'Admin', email: 'admin@ccn.com', password: '123', profileImage: null }
-  ]);
+  const [users, setUsers] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -56,6 +54,7 @@ export const AppNavigator = () => {
   const [consumptions, setConsumptions] = useState([]);
   const [simulations, setSimulations] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [photo, setPhoto] = useState(null);
 
   // Check token on initial load
   React.useEffect(() => {
@@ -63,6 +62,7 @@ export const AppNavigator = () => {
       try {
         const token = await AsyncStorage.getItem('@CCN:token');
         if (token) {
+          setAuthToken(token); // Garante que o header seja setado imediatamente
           const userInfo = await authService.getUserInfo();
           setUserData({
             ...userInfo,
@@ -88,19 +88,30 @@ export const AppNavigator = () => {
   const loadBackendData = async () => {
     setLoading(true);
     try {
-      const [consumoData, metaData] = await Promise.all([
-        consumptionService.getAll(),
-        goalService.getAll()
+      // Executa as chamadas em paralelo, tratando erros individuais para evitar que uma falha trave tudo
+      const [consumoData, simuladoData, metaData, photoData] = await Promise.all([
+        consumptionService.getAll().catch(err => { console.log('Erro ao carregar consumos:', err); return []; }),
+        consumptionService.getAllSimulations().catch(err => { console.log('Erro ao carregar simulados:', err); return []; }),
+        goalService.getAll().catch(err => { console.log('Erro ao carregar metas:', err); return []; }),
+        photoService.get().catch(() => null)
       ]);
-      // Normaliza os campos do backend para o formato esperado pela UI e separa consumos de simulações
+      
+      // Backend agora retorna listas diretamente (arrays)
       if (Array.isArray(consumoData)) {
-        const normalized = consumoData.map(normalizeConsumption);
-        setConsumptions(normalized.filter(c => !c.simulado)); // Apenas consumos reais
-        setSimulations(normalized.filter(c => c.simulado));   // Apenas simulações
+        setConsumptions(consumoData.map(normalizeConsumption));
       }
-      if (Array.isArray(metaData)) setGoals(metaData.map(normalizeGoal));
+      if (Array.isArray(simuladoData)) {
+        setSimulations(simuladoData.map(normalizeConsumption));
+      }
+      if (Array.isArray(metaData)) {
+        setGoals(metaData.map(normalizeGoal));
+      }
+      
+      if (photoData) {
+        setPhoto(typeof photoData === 'string' ? photoData : photoData.foto || photoData.message);
+      }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error in loadBackendData:', error);
     } finally {
       setLoading(false);
     }
@@ -131,6 +142,7 @@ export const AppNavigator = () => {
       const data = await authService.verify2fa(codigo, token2fa);
       if (data && data.access_token) {
         await AsyncStorage.setItem('@CCN:token', data.access_token);
+        setAuthToken(data.access_token); // Set imediato no header para chamadas seguintes
         if (data.refresh_token) {
           await AsyncStorage.setItem('@CCN:refresh_token', data.refresh_token);
         }
@@ -178,6 +190,7 @@ export const AppNavigator = () => {
 
   const logout = async () => {
     await AsyncStorage.removeItem('@CCN:token');
+    setAuthToken(null); // Remove o token do header
     setIsAuthenticated(false);
     setUserData(null);
   };
@@ -302,6 +315,18 @@ export const AppNavigator = () => {
     }
   };
 
+  const updateConsumption = async (data) => {
+    try {
+      await consumptionService.update(data);
+      await loadBackendData();
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating consumption:', error);
+      const message = error.response?.data?.detail || "Erro ao atualizar consumo.";
+      return { success: false, message };
+    }
+  };
+
   const deleteSimulation = async (id) => {
     setSimulations(prev => prev.filter(s => s.id !== id));
     try {
@@ -309,6 +334,18 @@ export const AppNavigator = () => {
     } catch (error) {
       console.error('Error deleting simulation:', error);
       await loadBackendData();
+    }
+  };
+
+  const updateSimulation = async (data) => {
+    try {
+      await consumptionService.update({ ...data, simulated: true });
+      await loadBackendData();
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating simulation:', error);
+      const message = error.response?.data?.detail || "Erro ao atualizar simulação.";
+      return { success: false, message };
     }
   };
 
@@ -322,19 +359,34 @@ export const AppNavigator = () => {
     }
   };
 
-  const deleteAccount = async () => {
+  const updateGoal = async (data) => {
     try {
-      // Tenta deletar no backend primeiro
-      await authService.deleteAccount();
+      await goalService.update(data);
+      await loadBackendData();
+      return { success: true };
     } catch (error) {
-      console.error('Error deleting account on backend:', error);
-      // Continua mesmo se o backend falhar (garante logout local)
+      console.error('Error updating goal:', error);
+      const message = error.response?.data?.detail || "Erro ao atualizar meta.";
+      return { success: false, message };
     }
-    // Remove token e limpa estado independente do resultado do backend
-    await AsyncStorage.removeItem('@CCN:token');
-    setIsAuthenticated(false);
-    setUserData(null);
-    return { success: true };
+  };
+
+  const deleteAccount = async (password) => {
+    try {
+      // Opcional: validar senha antes de deletar se o backend exigir ou para segurança extra
+      // No momento o backend deleta baseado no token Bearer
+      await authService.deleteAccount();
+      
+      // Remove token e limpa estado
+      await AsyncStorage.removeItem('@CCN:token');
+      setIsAuthenticated(false);
+      setUserData(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      const message = error.response?.data?.detail || "Erro ao excluir conta.";
+      return { success: false, message };
+    }
   };
 
   // Helper para parsear data DD/MM/YYYY para Date do JS e poder comparar os prazos
@@ -386,9 +438,14 @@ export const AppNavigator = () => {
         consumptions,
         simulations,
         goals: goalsWithProgress,
+        photo,
+        setPhoto,
         addConsumption,
         addSimulation,
         addGoal,
+        updateConsumption,
+        updateSimulation,
+        updateGoal,
         deleteConsumption,
         deleteSimulation,
         deleteGoal,

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Alert } from 'react-native';
 import { AppLayout } from '../../../components/AppLayout';
 import { Card } from '../../../components/Card';
 import { CircularProgress } from '../../../components/CircularProgress';
@@ -40,9 +40,10 @@ const AddButtonFull = ({ onPress }) => {
 
 export const GoalsScreen = ({ navigation }) => {
   const { colors } = useTheme();
-  const { goals, addGoal } = useContext(AuthContext);
+  const { goals, addGoal, updateGoal, deleteGoal } = useContext(AuthContext);
   const [period, setPeriod] = useState('1 sem');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
 
   const filterDataByPeriod = (data, periodStr) => {
     const now = new Date();
@@ -64,15 +65,63 @@ export const GoalsScreen = ({ navigation }) => {
 
   const filteredGoalsForChart = filterDataByPeriod(goals, period);
 
-  const handleAdd = (data) => {
-    addGoal(data);
+  const handleAddOrUpdate = (data) => {
+    if (editingGoal) {
+      updateGoal(data);
+    } else {
+      addGoal(data);
+    }
     setModalVisible(false);
+    setEditingGoal(null);
   };
+
+  const handleEdit = (goal) => {
+    setEditingGoal(goal);
+    setModalVisible(true);
+  };
+
+  const handleDelete = (id) => {
+    Alert.alert(
+      "Excluir Meta",
+      "Tem certeza que deseja excluir permanentemente esta meta?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteGoal(id) }
+      ]
+    );
+  };
+
+  const renderGoalItem = (goal, color) => (
+    <Card key={goal.id} style={{ marginBottom: 20 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ color: colors.text, fontWeight: 'bold', fontSize: 14 }}>{goal.type}</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={() => handleEdit(goal)} style={{ marginRight: 15 }}>
+            <Text style={{ color: colors.secondary, fontSize: 12, fontWeight: 'bold' }}>EDITAR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(goal.id)}>
+            <Text style={{ color: '#FF4C4C', fontSize: 12, fontWeight: 'bold' }}>EXCLUIR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.metaContentRow}>
+        <View style={styles.metaDetailsGroup}>
+          <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
+            <Text style={{ color: colors.text, fontSize: 12 }}>Valor: {goal.value} {goal.unit}</Text>
+            <Text style={{ color: colors.text, fontSize: 12 }}>Período: {goal.start} - {goal.end}</Text>
+          </View>
+        </View>
+        <View style={styles.progressBox}>
+          <CircularProgress percentage={goal.progress} radius={35} color={color} />
+        </View>
+      </View>
+    </Card>
+  );
 
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Metas</Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull onPress={() => { setEditingGoal(null); setModalVisible(true); }} />
       
       <Card style={{ marginBottom: 20 }}>
         <View style={styles.chartHeaderRow}>
@@ -137,25 +186,7 @@ export const GoalsScreen = ({ navigation }) => {
         return todayGoals.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há meta atual</Text></Card>
         ) : (
-          todayGoals.map(goal => (
-            <Card key={goal.id} style={{ marginBottom: 20 }}>
-              <View style={styles.metaContentRow}>
-                <View style={styles.metaDetailsGroup}>
-                  <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
-                  </View>
-                  <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
-                  </View>
-                </View>
-                <View style={styles.progressBox}>
-                  <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.orange} />
-                </View>
-              </View>
-            </Card>
-          ))
+          todayGoals.map(goal => renderGoalItem(goal, colors.progress.orange))
         );
       })()}
 
@@ -167,29 +198,17 @@ export const GoalsScreen = ({ navigation }) => {
         return olderGoals.length === 0 ? (
           <Card style={styles.emptyCard}><Text style={{ color: colors.textLight }}>Não há metas anteriores</Text></Card>
         ) : (
-          olderGoals.map(goal => (
-            <Card key={goal.id} style={{ marginBottom: 20 }}>
-              <View style={styles.metaContentRow}>
-                <View style={styles.metaDetailsGroup}>
-                  <View style={[styles.metaGrayBox, { backgroundColor: colors.border }]}>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Consumo: {goal.value} Medida: {goal.unit}</Text>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Tipo: {goal.type}</Text>
-                  </View>
-                  <View style={[styles.metaGrayBox, { marginTop: 10, backgroundColor: colors.border }]}>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Inicio: {goal.start}</Text>
-                    <Text style={{ color: colors.text, fontSize: 12 }}>Fim: {goal.end}</Text>
-                  </View>
-                </View>
-                <View style={styles.progressBox}>
-                  <CircularProgress percentage={goal.progress} radius={40} color={colors.progress.blue} />
-                </View>
-              </View>
-            </Card>
-          ))
+          olderGoals.map(goal => renderGoalItem(goal, colors.progress.blue))
         );
       })()}
       
-      <GoalADD visible={modalVisible} onClose={() => setModalVisible(false)} title="Adicionar Meta" onAdd={handleAdd} />
+      <GoalADD 
+        visible={modalVisible} 
+        onClose={() => setModalVisible(false)} 
+        title={editingGoal ? "Editar Meta" : "Adicionar Meta"} 
+        onAdd={handleAddOrUpdate}
+        initialData={editingGoal}
+      />
     </AppLayout>
   );
 };

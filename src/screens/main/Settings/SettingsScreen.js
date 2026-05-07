@@ -1,21 +1,24 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, Switch, Modal } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { AppLayout } from '../../../components/AppLayout';
 import { Card } from '../../../components/Card';
 import { Button } from '../../../components/Button';
 import { Input } from '../../../components/Input';
+import { authService, consumptionService, goalService, photoService } from '../services/api';
 import { AuthContext, ThemeContext } from '../../../navigation/AppNavigator';
 import * as ImagePicker from 'expo-image-picker';
 
 export const SettingsScreen = () => {
-  const { logout, userData, updateProfile, deleteAccount } = useContext(AuthContext);
+  const { logout, userData, updateProfile, deleteAccount, photo, setPhoto } = useContext(AuthContext);
   const { isDarkMode, setIsDarkMode, colors } = useContext(ThemeContext);
   const [expandedSection, setExpandedSection] = useState(null);
+  const [isPhotoEnlarged, setIsPhotoEnlarged] = useState(false);
   
   const [name, setName] = useState(userData?.name || '');
   const [email, setEmail] = useState(userData?.email || '');
-  const [password, setPassword] = useState(userData?.password || '');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState(userData?.profileImage || null);
   const [saving, setSaving] = useState(false);
 
@@ -29,31 +32,95 @@ export const SettingsScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 1,
+      quality: 0.8,
     });
+    
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      
+      // Validação de formato
+      const fileType = asset.uri.split('.').pop().toLowerCase();
+      if (!['jpg', 'jpeg', 'png'].includes(fileType)) {
+        Alert.alert('Erro', 'Apenas imagens JPG ou PNG são permitidas.');
+        return;
+      }
+
+      // Validação de tamanho (máx 5MB)
+      // Nota: No Expo, o tamanho do arquivo nem sempre está disponível no asset de imediato sem o FileSystem
+      // Mas podemos tentar fazer o upload e o backend valida também.
+      
+      setProfileImage(asset.uri);
+      
+      // Upload para o backend
+      try {
+        const formData = new FormData();
+        formData.append('foto', {
+          uri: asset.uri,
+          name: `user_photo.${fileType}`,
+          type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+        });
+
+        await photoService.upload(formData);
+        Alert.alert('Sucesso', 'Foto de perfil atualizada!');
+      } catch (error) {
+        console.error('Erro ao fazer upload da foto:', error);
+        Alert.alert('Erro', 'Não foi possível salvar a foto no servidor.');
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
-    updateProfile({ name, email, password, profileImage });
-    setTimeout(() => {
-      setSaving(false);
+    const result = await updateProfile({ name, email, password: password || undefined });
+    setSaving(false);
+    if (result.success) {
       Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
-    }, 500);
+    } else {
+      Alert.alert("Erro", result.message);
+    }
   };
 
   const handleDeleteAccount = () => {
+    // Primeira confirmação
     Alert.alert(
-      "Excluir Conta",
-      "Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.",
+      "Excluir Conta - PASSO 1/3",
+      "Tem certeza que deseja excluir sua conta? Todos os seus dados serão apagados permanentemente.",
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Excluir", style: "destructive", onPress: () => deleteAccount() }
+        { 
+          text: "Sim, Tenho Certeza", 
+          onPress: () => {
+            // Segunda confirmação
+            Alert.alert(
+              "Confirmação Final - PASSO 2/3",
+              "Esta ação é IRREVERSÍVEL. Você realmente deseja prosseguir?",
+              [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                  text: "Sim, Excluir Tudo", 
+                  style: "destructive",
+                  onPress: () => setExpandedSection('confirm_delete') // Passo 3: Verificação de identidade
+                }
+              ]
+            );
+          } 
+        }
       ]
     );
+  };
+
+  const executeDelete = async () => {
+    if (!confirmPassword) {
+      Alert.alert("Erro", "Por favor, digite sua senha para confirmar a exclusão.");
+      return;
+    }
+
+    const result = await deleteAccount(confirmPassword);
+    if (result.success) {
+      Alert.alert("Conta Excluída", "Sua conta e todos os dados foram removidos com sucesso.");
+    } else {
+      Alert.alert("Erro", result.message);
+    }
   };
 
   const CollapsibleCard = ({ title, icon, sectionKey, children }) => (
@@ -95,8 +162,15 @@ export const SettingsScreen = () => {
     <AppLayout>
       <View style={styles.profileHeaderContainer}>
         <View style={styles.avatarWrapper}>
-          <TouchableOpacity onPress={pickImage} style={[styles.avatarLarge, { backgroundColor: colors.border }]}>
-            {profileImage ? <Image source={{ uri: profileImage }} style={{ width: '100%', height: '100%' }} /> : <FontAwesome5 name="user-alt" size={40} color={colors.secondary} />}
+          <TouchableOpacity 
+            onPress={() => profileImage ? setIsPhotoEnlarged(true) : pickImage()} 
+            style={[styles.avatarLarge, { backgroundColor: colors.border }]}
+          >
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={{ width: '100%', height: '100%' }} />
+            ) : (
+              <FontAwesome5 name="user-alt" size={40} color={colors.secondary} />
+            )}
           </TouchableOpacity>
           <TouchableOpacity onPress={pickImage} style={[styles.avatarPlusBtn, { backgroundColor: colors.secondary }]}>
             <FontAwesome5 name="plus" size={12} color="#fff" />
@@ -106,7 +180,6 @@ export const SettingsScreen = () => {
         <View style={styles.profileNameRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.profileNameText, { color: colors.text }]}>{name}</Text>
-            <FontAwesome5 name="chevron-down" size={14} color={colors.text} style={{ marginLeft: 8 }} />
           </View>
           <TouchableOpacity 
             style={[styles.pencilEditBtn, { backgroundColor: colors.border + '50' }]}
@@ -117,13 +190,24 @@ export const SettingsScreen = () => {
         </View>
       </View>
 
+      <Modal visible={isPhotoEnlarged} transparent animationType="fade" onRequestClose={() => setIsPhotoEnlarged(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setIsPhotoEnlarged(false)}>
+          <View style={styles.enlargedPhotoContainer}>
+             <Image source={{ uri: profileImage }} style={styles.enlargedPhoto} resizeMode="contain" />
+             <TouchableOpacity style={styles.closeEnlargeBtn} onPress={() => setIsPhotoEnlarged(false)}>
+               <FontAwesome5 name="times" size={20} color="#fff" />
+             </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {expandedSection === 'profile' && (
         <Card style={{ marginTop: 10 }}>
           <View style={styles.editSection}>
             <Text style={[styles.editLabel, { color: colors.text }]}>Editar Informações</Text>
             <Input label="Nome" value={name} onChangeText={setName} />
-            <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-            <Input label="Senha" value={password} onChangeText={setPassword} secureTextEntry />
+            <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" editable={false} />
+            <Input label="Nova Senha" value={password} onChangeText={setPassword} secureTextEntry placeholder="Deixe em branco para manter" />
           </View>
           <View style={styles.profileActionBtns}>
             <TouchableOpacity style={[styles.saveProfileBtn, { backgroundColor: colors.secondary }]} onPress={handleSave} disabled={saving}>
@@ -135,6 +219,27 @@ export const SettingsScreen = () => {
           </View>
         </Card>
       )}
+
+      {expandedSection === 'confirm_delete' && (
+        <Card style={{ marginTop: 10, borderColor: colors.danger, borderWidth: 1 }}>
+          <View style={styles.editSection}>
+            <Text style={[styles.editLabel, { color: colors.danger }]}>Confirmação de Identidade</Text>
+            <Text style={{ color: colors.text, marginBottom: 15, fontSize: 13 }}>
+              Para sua segurança, digite sua senha atual para confirmar a exclusão definitiva da conta.
+            </Text>
+            <Input label="Sua Senha" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry placeholder="Digite sua senha" />
+          </View>
+          <View style={styles.profileActionBtns}>
+            <TouchableOpacity style={[styles.saveProfileBtn, { backgroundColor: colors.danger }]} onPress={executeDelete}>
+              <Text style={styles.btnTextWhite}>CONFIRMAR EXCLUSÃO DEFINITIVA</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.logoutBtn, { borderColor: colors.border }]} onPress={() => setExpandedSection(null)}>
+              <Text style={[styles.logoutBtnText, { color: colors.textLight }]}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      )}
+
       <Card style={{ marginTop: 20 }}>
         <View style={styles.modeToggleRow}>
           <Text style={[styles.modeText, { color: colors.text }]}><FontAwesome5 name="moon" size={18} color={colors.text} /> Modo Escuro</Text>
@@ -207,5 +312,9 @@ const styles = StyleSheet.create({
     borderRadius: 12
   },
   deleteAccountText: { fontSize: 14, fontWeight: 'bold' },
-  btnTextWhite: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  btnTextWhite: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  enlargedPhotoContainer: { width: '90%', height: '70%', justifyContent: 'center', alignItems: 'center' },
+  enlargedPhoto: { width: '100%', height: '100%' },
+  closeEnlargeBtn: { position: 'absolute', top: -40, right: 0, padding: 10 }
 });

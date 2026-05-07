@@ -14,7 +14,7 @@ const formatDatePTBR = (d) => {
   return `${day}/${month}/${year}`;
 };
 
-export const ADD = ({ visible, onClose, title, onAdd }) => {
+export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
   const { colors } = useTheme();
   const [value, setValue] = useState('');
   const [type, setType] = useState('Água');
@@ -24,44 +24,49 @@ export const ADD = ({ visible, onClose, title, onAdd }) => {
   const [endDate, setEndDate] = useState(formatDatePTBR(new Date()));
   const [error, setError] = useState('');
   const [description, setDescription] = useState('');
+  const [confirmVisible, setConfirmVisible] = useState(false);
 
   const typeOptions = ['Água', 'Energia', 'Gás', 'Combustível'];
   const unitOptions = ['L', 'kWh', 'm³', 'kg'];
 
-  // Auto-update unit based on type
+  // Auto-update unit based on type (only if not editing)
   useEffect(() => {
-    switch (type) {
-      case 'Água':
-        setUnit('L');
-        break;
-      case 'Energia':
-        setUnit('kWh');
-        break;
-      case 'Gás':
-        setUnit('m³');
-        break;
-      case 'Combustível':
-        setUnit('L');
-        break;
-      default:
-        break;
+    if (!initialData) {
+      switch (type) {
+        case 'Água': setUnit('L'); break;
+        case 'Energia': setUnit('kWh'); break;
+        case 'Gás': setUnit('m³'); break;
+        case 'Combustível': setUnit('L'); break;
+      }
     }
-  }, [type]);
+  }, [type, initialData]);
 
-  // Reset fields when modal opens/closes
+  // Reset or fill fields when modal opens/closes
   useEffect(() => {
-    if (!visible) {
-      setValue('');
-      setType('Água');
-      setUnit('L');
-      setDate(formatDatePTBR(new Date()));
-      setStartDate(formatDatePTBR(new Date()));
-      setEndDate(formatDatePTBR(new Date()));
+    if (visible) {
+      if (initialData) {
+        setValue(String(initialData.value || ''));
+        setType(initialData.type || 'Água');
+        setUnit(initialData.unit || 'L');
+        setDate(initialData.date || formatDatePTBR(new Date()));
+        setStartDate(initialData.start || formatDatePTBR(new Date()));
+        setEndDate(initialData.end || formatDatePTBR(new Date()));
+        setDescription(initialData.description || '');
+      } else {
+        setValue('');
+        setType('Água');
+        setUnit('L');
+        setDate(formatDatePTBR(new Date()));
+        setStartDate(formatDatePTBR(new Date()));
+        setEndDate(formatDatePTBR(new Date()));
+        setDescription('');
+      }
       setError('');
+      setConfirmVisible(false);
     }
-  }, [visible]);
+  }, [visible, initialData]);
 
-  const handlePressAdd = () => {
+  const handlePressSave = () => {
     const isGoal = title.toLowerCase().includes('meta');
     
     if (!value || !type || !unit) {
@@ -80,8 +85,26 @@ export const ADD = ({ visible, onClose, title, onAdd }) => {
     }
     
     setError('');
+    // Se for edição, pede confirmação
+    if (initialData) {
+      setConfirmVisible(true);
+    } else {
+      executeAdd();
+    }
+  };
+
+  const executeAdd = () => {
     if (onAdd) {
-      onAdd({ value, type, unit, date, startDate, endDate });
+      onAdd({ 
+        id: initialData?.id,
+        value, 
+        type, 
+        unit, 
+        date, 
+        startDate, 
+        endDate,
+        description 
+      });
     }
     onClose();
   };
@@ -96,61 +119,75 @@ export const ADD = ({ visible, onClose, title, onAdd }) => {
           >
             <Card style={styles.modalCard}>
               <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-                <Text style={[styles.title, { color: colors.secondary }]}>{title}</Text>
-                
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                
-                <Input 
-                  label="Valor de Consumo" 
-                  placeholder="Ex: 50" 
-                  value={value} 
-                  onChangeText={setValue} 
-                  keyboardType="numeric"
-                />
-                
-                <View style={styles.dropdownSection}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Tipo de Recurso</Text>
-                  <Dropdown options={typeOptions} selectedValue={type} onSelect={setType} />
-                </View>
-
-                <View style={styles.dropdownSection}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Unidade de Medida</Text>
-                  <Dropdown options={unitOptions} selectedValue={unit} onSelect={setUnit} />
-                </View>
-
-                {title.toLowerCase().includes('meta') ? (
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <View style={{ width: '48%' }}>
-                      <Input 
-                        label="Data Início" 
-                        placeholder="24/04/2026" 
-                        value={startDate} 
-                        onChangeText={setStartDate} 
-                      />
+                {!confirmVisible ? (
+                  <>
+                    <Text style={[styles.title, { color: colors.secondary }]}>{title}</Text>
+                    
+                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    
+                    <Input 
+                      label="Valor de Consumo" 
+                      placeholder="Ex: 50" 
+                      value={value} 
+                      onChangeText={setValue} 
+                      keyboardType="numeric"
+                    />
+                    
+                    <View style={styles.dropdownSection}>
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Tipo de Recurso</Text>
+                      <Dropdown options={typeOptions} selectedValue={type} onSelect={setType} />
                     </View>
-                    <View style={{ width: '48%' }}>
+
+                    <View style={styles.dropdownSection}>
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Unidade de Medida</Text>
+                      <Dropdown options={unitOptions} selectedValue={unit} onSelect={setUnit} />
+                    </View>
+
+                    {title.toLowerCase().includes('meta') ? (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={{ width: '48%' }}>
+                          <Input 
+                            label="Data Início" 
+                            placeholder="24/04/2026" 
+                            value={startDate} 
+                            onChangeText={setStartDate} 
+                          />
+                        </View>
+                        <View style={{ width: '48%' }}>
+                          <Input 
+                            label="Data Fim" 
+                            placeholder="24/04/2027" 
+                            value={endDate} 
+                            onChangeText={setEndDate} 
+                          />
+                        </View>
+                      </View>
+                    ) : (
                       <Input 
-                        label="Data Fim" 
-                        placeholder="24/04/2027" 
-                        value={endDate} 
-                        onChangeText={setEndDate} 
+                        label="Data do Registro" 
+                        placeholder="Ex: 24/04/2026" 
+                        value={date} 
+                        onChangeText={setDate} 
                       />
+                    )}
+
+                    <View style={styles.buttonRow}>
+                      <Button title={initialData ? "Atualizar" : "Salvar"} onPress={handlePressSave} style={styles.btn} />
+                      <Button title="Cancelar" onPress={onClose} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
+                    </View>
+                  </>
+                ) : (
+                  <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+                    <Text style={[styles.title, { color: colors.secondary }]}>Confirmar Alteração</Text>
+                    <Text style={{ color: colors.text, textAlign: 'center', marginBottom: 30 }}>
+                      Deseja salvar as alterações feitas neste registro?
+                    </Text>
+                    <View style={styles.buttonRow}>
+                      <Button title="Sim, Salvar" onPress={executeAdd} style={styles.btn} />
+                      <Button title="Voltar" onPress={() => setConfirmVisible(false)} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
                     </View>
                   </View>
-                ) : (
-                  <Input 
-                    label="Data do Registro" 
-                    placeholder="Ex: 24/04/2026" 
-                    value={date} 
-                    onChangeText={setDate} 
-                  />
-                  
                 )}
-
-                <View style={styles.buttonRow}>
-                  <Button title="Salvar" onPress={handlePressAdd} style={styles.btn} />
-                  <Button title="Cancelar" onPress={onClose} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
-                </View>
               </ScrollView>
             </Card>
           </KeyboardAvoidingView>
