@@ -5,8 +5,9 @@ from passlib.context import CryptContext
 from fastapi_mail import ConnectionConfig
 import os
 
-# Carrega as variáveis do arquivo .env de forma global para todas as configurações
-load_dotenv()
+# Carrega as variáveis do arquivo .env usando caminho absoluto para evitar erros de diretório
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Recupera a chave secreta utilizada para assinar os tokens JWT, com fallback de segurança
 SECRET_KEY = os.getenv("SECRET_KEY", "consumo-sustentavel-default-key-2025")
