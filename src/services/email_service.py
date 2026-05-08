@@ -2,13 +2,14 @@
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
 import asyncio
+import base64
+import httpx
 import random
-import smtplib
 from datetime import timedelta
-from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from jose import jwt
-from fastapi_mail import FastMail, MessageSchema, MessageType
-from src.config import conf, bcrypt_context, SECRET_KEY, ALGORITHM
+from src.config import GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_FROM, bcrypt_context, SECRET_KEY, ALGORITHM
 from src.services.usuario_service import create_token, authenticate
 
 async def atualizar_via_email(dados, user_id, session):
@@ -186,51 +187,59 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link
     """
 
 
-def _enviar_email_sincrono(destinatarios: list, assunto: str, corpo_html: str):
-    """Fallback de segurança: envia e-mail de forma síncrona via smtplib."""
-    
-    msg = EmailMessage()
-    msg.set_content("Por favor, use um leitor de e-mail compatível com HTML.")
-    msg.add_alternative(corpo_html, subtype="html")
-    msg["Subject"] = assunto
-    msg["From"] = conf.MAIL_FROM
-    msg["To"] = ", ".join(destinatarios)
+async def _obter_access_token_gmail() -> str:
+    """Obtém um access_token fresco usando o refresh_token do OAuth2 do Google."""
+    url = "https://oauth2.googleapis.com/token"
+    payload = {
+        "client_id": GMAIL_CLIENT_ID,
+        "client_secret": GMAIL_CLIENT_SECRET,
+        "refresh_token": GMAIL_REFRESH_TOKEN,
+        "grant_type": "refresh_token",
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, data=payload)
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail=f"Falha ao obter token do Gmail: {response.text}")
+    return response.json()["access_token"]
 
+
+async def _enviar_via_gmail_api(destinatarios: list, assunto: str, corpo_html: str):
+    """Envia e-mail usando a Gmail REST API via HTTPS (porta 443). Funciona no Render."""
+    access_token = await _obter_access_token_gmail()
+
+    # Monta o e-mail no formato MIME
+    mensagem = MIMEMultipart("alternative")
+    mensagem["Subject"] = assunto
+    mensagem["From"] = GMAIL_FROM
+    mensagem["To"] = ", ".join(destinatarios)
+    mensagem.attach(MIMEText("Por favor, use um leitor de e-mail compatível com HTML.", "plain"))
+    mensagem.attach(MIMEText(corpo_html, "html"))
+
+    # Codifica em base64 URL-safe conforme exigido pela Gmail API
+    raw = base64.urlsafe_b64encode(mensagem.as_bytes()).decode()
+
+    url = f"https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    payload = {"raw": raw}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=payload)
+
+    if response.status_code not in [200, 201]:
+        raise HTTPException(status_code=500, detail=f"Erro na Gmail API: {response.text}")
+
+    print(f"E-mail enviado com sucesso via Gmail API para {destinatarios}")
+
+
+async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, _message=None):
+    """Envia e-mail via Gmail REST API (HTTPS — funciona no Render)."""
     try:
-        if conf.MAIL_PORT == 465:
-            server = smtplib.SMTP_SSL(conf.MAIL_SERVER, conf.MAIL_PORT, timeout=30)
-        else:
-            server = smtplib.SMTP(conf.MAIL_SERVER, conf.MAIL_PORT, timeout=30)
-            if conf.MAIL_STARTTLS:
-                server.starttls()
-
-        server.login(conf.MAIL_USERNAME, conf.MAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print("E-mail enviado com sucesso via fallback síncrono (smtplib)!")
+        await _enviar_via_gmail_api(destinatarios, assunto, html)
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Erro no envio síncrono (fallback SMTP): {e}")
-        raise e
-
-async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, message: MessageSchema):
-    """Orquestra o envio de e-mail focado no FastMail (SMTP)."""
-    # Tentativa 1: FastMail (SMTP assíncrono - Principal)
-    try:
-        fm = FastMail(conf)
-        await fm.send_message(message)
-        print(f"E-mail enviado com sucesso via FastMail para {destinatarios}")
-        return
-    except Exception as e:
-        print(f"ERRO CRÍTICO no FastMail (SMTP): {e}")
-        print("Tentando fallback síncrono via smtplib...")
-
-    # Tentativa 2: smtplib em thread separada (SMTP síncrono - Fallback)
-    try:
-        await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
-    except Exception as e:
-        print(f"ERRO TOTAL: Falha em todos os métodos de envio SMTP: {e}")
-        # Retorna o erro real para o frontend conseguir ler e nos informar o que houve
-        raise HTTPException(status_code=500, detail=f"Erro de SMTP: {str(e)}")
+        print(f"ERRO ao enviar via Gmail API: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar e-mail: {str(e)}")
 
 async def enviar_email_verificacao(emails: list, verification_token: str):
     """Envia o e-mail de verificação de conta contendo os dados assinados."""
@@ -244,8 +253,7 @@ async def enviar_email_verificacao(emails: list, verification_token: str):
         texto_rodape="Se você não solicitou a criação desta conta, pode ignorar este e-mail."
     )
 
-    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
-    await _enviar_com_fallback(emails, assunto, html, message)
+    await _enviar_com_fallback(emails, assunto, html)
 
     return {"message": "E-mail de verificação enviado"}
 
@@ -307,8 +315,7 @@ async def enviar_email_2fa(dados, session):
         texto_rodape="Se você não solicitou este código, por favor ignore este e-mail. Ele expira em 10 minutos."
     )
 
-    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
-    await _enviar_com_fallback(emails, assunto, html, message)
+    await _enviar_com_fallback(emails, assunto, html)
 
     # Retorna o token 2FA para o frontend armazenar temporariamente
     return {"message": "Código de verificação enviado", "token_2fa": token_2fa}
@@ -332,8 +339,7 @@ async def enviar_email_exclusao(emails: list, user_id: int, session):
         texto_rodape="Se você não solicitou a exclusão, pode ignorar este e-mail."
     )
 
-    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
-    await _enviar_com_fallback(emails, assunto, html, message)
+    await _enviar_com_fallback(emails, assunto, html)
 
     return {"message": "E-mail de exclusão enviado"}
 
@@ -359,8 +365,7 @@ async def enviar_email_atualizacao(dados, emails: list, user_id: int, session):
         texto_rodape="Se você não solicitou a atualização das informações, pode ignorar este e-mail."
     )
 
-    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
-    await _enviar_com_fallback(emails, assunto, html, message)
+    await _enviar_com_fallback(emails, assunto, html)
 
     return {"message": "E-mail de atualização enviado"}
 
@@ -389,8 +394,7 @@ async def enviar_email_recuperacao_senha(email: str, session):
         texto_rodape="Se você não solicitou este código, por favor ignore este e-mail. Ele expira em 10 minutos."
     )
 
-    message = MessageSchema(subject=assunto, recipients=emails, body=html, subtype=MessageType.html)
-    await _enviar_com_fallback(emails, assunto, html, message)
+    await _enviar_com_fallback(emails, assunto, html)
 
     # Retorna o token para o frontend armazenar temporariamente e mandar junto com a nova senha
     return {"message": "Se o e-mail estiver cadastrado, você receberá um código de recuperação.", "token_reset": token_reset}
