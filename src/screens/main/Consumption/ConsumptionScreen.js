@@ -123,12 +123,11 @@ export const ConsumptionScreen = ({ navigation }) => {
       </View>
       {item.description ? (
         <View style={[styles.descriptionBox, { backgroundColor: colors.border + '30' }]}>
-          <Text style={{ color: colors.textLight, fontSize: 12, fontStyle: 'italic' }}>{item.description}</Text>
+          <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600', marginBottom: 4 }}>Descrição</Text><Text style={{ color: colors.textLight, fontSize: 12, fontStyle: 'italic' }}>{item.description}</Text>
         </View>
       ) : null}
     </Card>
   );
-
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>Consumos</Text>

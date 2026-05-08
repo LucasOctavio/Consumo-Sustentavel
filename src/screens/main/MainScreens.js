@@ -795,13 +795,18 @@ export const ConsumptionScreen = () => {
           ) : (
             todayItems.map((item, idx) => (
               <View key={item.id} style={[styles.innerListItemExtended, idx !== todayItems.length - 1 && styles.innerDividerExtended]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 15 }}>
                   <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.secondary + '15', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     <FontAwesome5 name={item.type === 'Água' ? 'faucet' : 'bolt'} size={14} color={colors.secondary} />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{item.type}</Text>
-                    <Text style={{ color: colors.textLight, fontSize: 12 }}>{item.date}</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>{item.type}</Text>
+                      {item.description ? (
+                        <Text style={{ color: colors.textLight, fontSize: 16, marginLeft: 8, flexShrink: 1, flexWrap: 'wrap', fontWeight: 'bold' }} numberOfLines={2}>{item.description}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={{ color: colors.textLight, fontSize: 13, marginTop: 4 }}>{item.date}</Text>
                   </View>
                 </View>
                 <View style={{ backgroundColor: colors.secondary + '10', padding: 12, borderRadius: 12, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
@@ -829,13 +834,18 @@ export const ConsumptionScreen = () => {
           ) : (
             olderItems.map((item, idx) => (
               <View key={item.id} style={[styles.innerListItemExtended, idx !== olderItems.length - 1 && styles.innerDividerExtended]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 15 }}>
                   <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     <FontAwesome5 name={item.type === 'Água' ? 'faucet' : 'bolt'} size={14} color={colors.textLight} />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{item.type}</Text>
-                    <Text style={{ color: colors.textLight, fontSize: 12 }}>{item.date}</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{item.type}</Text>
+                      {item.description ? (
+                        <Text style={{ color: colors.textLight, fontSize: 16, marginLeft: 8, flexShrink: 1, flexWrap: 'wrap' }} numberOfLines={2}>{item.description}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
                   </View>
                 </View>
                 <View style={{ backgroundColor: colors.border + '30', padding: 12, borderRadius: 12 }}>
