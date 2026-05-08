@@ -2,14 +2,13 @@
 from fastapi import HTTPException
 from src.models.usuario_model import Usuario
 import asyncio
-import httpx
 import random
 import smtplib
 from datetime import timedelta
 from email.message import EmailMessage
 from jose import jwt
 from fastapi_mail import FastMail, MessageSchema, MessageType
-from src.config import RESEND_API_KEY, conf, bcrypt_context, SECRET_KEY, ALGORITHM
+from src.config import conf, bcrypt_context, SECRET_KEY, ALGORITHM
 from src.services.usuario_service import create_token, authenticate
 
 async def atualizar_via_email(dados, user_id, session):
@@ -187,41 +186,9 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link
     """
 
 
-async def _enviar_email_resend(destinatarios: list, assunto: str, corpo_html: str) -> bool:
-    """Envia e-mail usando a API HTTP do Resend (porta 443), imune a bloqueios de rede em servidores cloud."""
-    if not RESEND_API_KEY:
-        print("RESEND_API_KEY não configurada. Pulando para fallback SMTP.")
-        return False
-
-    url = "https://api.resend.com/emails"
-    headers = {
-        "Authorization": f"Bearer {RESEND_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    # Enquanto o domínio não for verificado no painel do Resend, utiliza o remetente padrão deles
-    payload = {
-        "from": "Consumo Sustentavel <onboarding@resend.dev>",
-        "to": destinatarios,
-        "subject": assunto,
-        "html": corpo_html
-    }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code in [200, 201]:
-                print("E-mail enviado com sucesso via Resend!")
-                return True
-            else:
-                print(f"Erro no Resend (status {response.status_code}): {response.text}")
-                return False
-    except Exception as e:
-        print(f"Erro ao conectar no Resend: {e}")
-        return False
-
-
 def _enviar_email_sincrono(destinatarios: list, assunto: str, corpo_html: str):
     """Fallback de segurança: envia e-mail de forma síncrona via smtplib."""
+    
     msg = EmailMessage()
     msg.set_content("Por favor, use um leitor de e-mail compatível com HTML.")
     msg.add_alternative(corpo_html, subtype="html")
@@ -240,28 +207,29 @@ def _enviar_email_sincrono(destinatarios: list, assunto: str, corpo_html: str):
         server.login(conf.MAIL_USERNAME, conf.MAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
+        print("E-mail enviado com sucesso via fallback síncrono (smtplib)!")
     except Exception as e:
         print(f"Erro no envio síncrono (fallback SMTP): {e}")
-
+        raise e
 
 async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, message: MessageSchema):
-    """Orquestra as tentativas de envio: FastMail assíncrono -> Resend -> smtplib síncrono."""
-    # Tentativa 1: FastMail (SMTP assíncrono)
+    """Orquestra o envio de e-mail focado no FastMail (SMTP)."""
+    # Tentativa 1: FastMail (SMTP assíncrono - Principal)
     try:
         fm = FastMail(conf)
         await fm.send_message(message)
-        print("E-mail enviado com sucesso via FastMail!")
+        print(f"E-mail enviado com sucesso via FastMail para {destinatarios}")
         return
     except Exception as e:
-        print(f"Erro no FastMail: {e}")
-        pass
+        print(f"ERRO CRÍTICO no FastMail (SMTP): {e}")
+        print("Tentando fallback síncrono via smtplib...")
 
-    # Tentativa 2: Resend via HTTP (ideal para ambientes cloud como Render)
-    if await _enviar_email_resend(destinatarios, assunto, html):
-        return
-
-    # Tentativa 3: smtplib em thread separada (SMTP síncrono)
-    await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
+    # Tentativa 2: smtplib em thread separada (SMTP síncrono - Fallback)
+    try:
+        await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
+    except Exception as e:
+        print(f"ERRO TOTAL: Falha em todos os métodos de envio SMTP: {e}")
+        raise HTTPException(status_code=500, detail="Falha ao enviar e-mail. Verifique as configurações de SMTP.")
 
 async def enviar_email_verificacao(emails: list, verification_token: str):
     """Envia o e-mail de verificação de conta contendo os dados assinados."""

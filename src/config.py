@@ -40,6 +40,4 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True,
 )
 
-# Chave da API do Resend para envio de e-mails via HTTP (porta 443)
-# Necessária para contornar bloqueios de SMTP em ambientes cloud (ex: Render)
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+# Configuração finalizada para FastMail SMTP
