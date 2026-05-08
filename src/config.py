@@ -26,15 +26,15 @@ oauth2_schema = OAuth2PasswordBearer(tokenUrl="usuario/login")
 # Configuração de conexão SMTP para o envio de e-mails via FastMail
 # Utiliza variáveis de ambiente para proteger as credenciais no servidor
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=int(os.getenv("MAIL_PORT", "587")),
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
-    MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME", "Consumo Sustentavel"),
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "").strip(),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", "").strip(),
+    MAIL_FROM=os.getenv("MAIL_FROM", "").strip(),
+    MAIL_PORT=int(os.getenv("MAIL_PORT", "587").strip()),
+    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com").strip(),
+    MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME", "Consumo Sustentavel").strip(),
     # Usando porta 587 com STARTTLS para maior compatibilidade
-    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") in ["True", "true", "1"],
-    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") in ["True", "true", "1"],
+    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True").strip() in ["True", "true", "1"],
+    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False").strip() in ["True", "true", "1"],
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=False,
 )
