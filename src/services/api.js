@@ -8,7 +8,7 @@ const api = axios.create({
 
 // Interceptor: adiciona o token Bearer em todas as requisições autenticadas
 api.interceptors.request.use(
-  async (config) => {
+  async config => {
     try {
       const token = await AsyncStorage.getItem('@CCN:token');
       if (token) {
@@ -19,16 +19,16 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
  * Define o token de autorização diretamente na instância do axios.
  * Útil para sincronização imediata após o login sem depender do AsyncStorage.
  */
-export const setAuthToken = (token) => {
+export const setAuthToken = token => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
@@ -95,7 +95,7 @@ export const authService = {
    * Body (UsuarioUpdate): { user_name?: string, user_senha?: string }
    * Nota: e-mail NÃO pode ser alterado diretamente — apenas nome e senha
    */
-  update: async (userData) => {
+  update: async userData => {
     const payload = {};
     if (userData.name && userData.name.trim().length > 0) {
       payload.user_name = userData.name.trim();
@@ -121,7 +121,7 @@ export const authService = {
    * Envia código de recuperação de senha por e-mail.
    * Retorna: { message, token_reset }
    */
-  forgotPassword: async (email) => {
+  forgotPassword: async email => {
     const response = await api.post('/usuario/forgot_password', { email });
     return response.data;
   },
@@ -161,7 +161,7 @@ export const authService = {
  * Converte DD/MM/YYYY → "YYYY-MM-DDTHH:mm:ss"
  * O backend espera datetime (não apenas date)
  */
-const toIsoDateTime = (dateStr) => {
+const toIsoDateTime = dateStr => {
   if (!dateStr) return null;
   const s = String(dateStr);
   // Já é datetime ISO
@@ -199,7 +199,7 @@ export const consumptionService = {
    * POST /consumo/create  (requer Bearer token)
    * Body (ConsumoSchema): { tipo, valor, medida, dt: datetime, simulado: bool }
    */
-  create: async (data) => {
+  create: async data => {
     const response = await api.post('/consumo/create', {
       tipo: data.type,
       valor: parseFloat(data.value),
@@ -211,7 +211,7 @@ export const consumptionService = {
     return response.data;
   },
 
-  createSimulation: async (data) => {
+  createSimulation: async data => {
     const response = await api.post('/consumo/create', {
       tipo: data.type,
       valor: parseFloat(data.value),
@@ -227,7 +227,7 @@ export const consumptionService = {
    * DELETE /consumo/delete?con_id=<id>  (requer Bearer token)
    * Parâmetro query: con_id (não "id")
    */
-  delete: async (id) => {
+  delete: async id => {
     const response = await api.delete(`/consumo/delete?con_id=${id}`);
     return response.data;
   },
@@ -236,7 +236,7 @@ export const consumptionService = {
    * PATCH /consumo/update (requer Bearer token)
    * Body (ConsumoUpdate): { con_id, con_tipo, con_valor, con_medida, con_dt, con_simulado, con_descricao }
    */
-  update: async (data) => {
+  update: async data => {
     const response = await api.patch('/consumo/update', {
       con_id: data.id,
       con_tipo: data.type,
@@ -265,7 +265,7 @@ export const goalService = {
    * POST /meta/create  (requer Bearer token)
    * Body (MetaSchema): { tipo, valor, medida, dt_inicio: datetime, dt_fim: datetime }
    */
-  create: async (data) => {
+  create: async data => {
     const response = await api.post('/meta/create', {
       tipo: data.type,
       valor: parseFloat(data.value),
@@ -281,7 +281,7 @@ export const goalService = {
    * DELETE /meta/delete?meta_id=<id>  (requer Bearer token)
    * Parâmetro query: meta_id (não "id")
    */
-  delete: async (id) => {
+  delete: async id => {
     const response = await api.delete(`/meta/delete?meta_id=${id}`);
     return response.data;
   },
@@ -290,7 +290,7 @@ export const goalService = {
    * PATCH /meta/update (requer Bearer token)
    * Body (MetaUpdate): { meta_id, tipo, valor, medida, dt_inicio, dt_fim, descricao }
    */
-  update: async (data) => {
+  update: async data => {
     const response = await api.patch('/meta/update', {
       meta_id: data.id,
       tipo: data.type,
@@ -311,7 +311,7 @@ export const photoService = {
    * POST /foto/create (requer Bearer token)
    * Body: FormData { foto: binary }
    */
-  upload: async (formData) => {
+  upload: async formData => {
     const response = await api.post('/foto/create', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

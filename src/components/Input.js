@@ -7,11 +7,16 @@ export const Input = ({ label, style, ...props }) => {
 
   return (
     <View style={[styles.container, style]}>
-      {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
-      <TextInput 
-        style={[styles.input, { color: colors.text, borderBottomColor: colors.border }]} 
+      {label && (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      )}
+      <TextInput
+        style={[
+          styles.input,
+          { color: colors.text, borderBottomColor: colors.border },
+        ]}
         placeholderTextColor={colors.textLight}
-        {...props} 
+        {...props}
       />
     </View>
   );

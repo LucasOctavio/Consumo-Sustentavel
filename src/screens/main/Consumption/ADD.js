@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useTheme } from '../../../navigation/AppNavigator';
 import { Card } from '../../../components/Card';
 import { Input } from '../../../components/Input';
@@ -7,7 +18,7 @@ import { Button } from '../../../components/Button';
 import { Dropdown } from '../../../components/Dropdown';
 
 // Garante formato DD/MM/YYYY independente do ambiente/locale do dispositivo
-const formatDatePTBR = (d) => {
+const formatDatePTBR = d => {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -33,10 +44,18 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
   useEffect(() => {
     if (!initialData) {
       switch (type) {
-        case 'Água': setUnit('L'); break;
-        case 'Energia': setUnit('kWh'); break;
-        case 'Gás': setUnit('m³'); break;
-        case 'Combustível': setUnit('L'); break;
+        case 'Água':
+          setUnit('L');
+          break;
+        case 'Energia':
+          setUnit('kWh');
+          break;
+        case 'Gás':
+          setUnit('m³');
+          break;
+        case 'Combustível':
+          setUnit('L');
+          break;
       }
     }
   }, [type, initialData]);
@@ -103,27 +122,34 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
         date,
         startDate,
         endDate,
-        description
+        description,
       });
     }
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ width: '100%' }}
-          >
+            style={{ width: '100%' }}>
             <Card style={styles.modalCard}>
               <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
                 {!confirmVisible ? (
                   <>
-                    <Text style={[styles.title, { color: colors.secondary }]}>{title}</Text>
+                    <Text style={[styles.title, { color: colors.secondary }]}>
+                      {title}
+                    </Text>
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    {error ? (
+                      <Text style={styles.errorText}>{error}</Text>
+                    ) : null}
 
                     <Input
                       label="Valor de Consumo"
@@ -133,7 +159,7 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
                       keyboardType="numeric"
                     />
 
-                    <Input 
+                    <Input
                       label="Descrição"
                       placeholder="Ex: Conta de luz do mês"
                       value={description}
@@ -141,17 +167,33 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
                     />
 
                     <View style={styles.dropdownSection}>
-                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Tipo de Recurso</Text>
-                      <Dropdown options={typeOptions} selectedValue={type} onSelect={setType} />
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                        Tipo de Recurso
+                      </Text>
+                      <Dropdown
+                        options={typeOptions}
+                        selectedValue={type}
+                        onSelect={setType}
+                      />
                     </View>
 
                     <View style={styles.dropdownSection}>
-                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Unidade de Medida</Text>
-                      <Dropdown options={unitOptions} selectedValue={unit} onSelect={setUnit} />
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                        Unidade de Medida
+                      </Text>
+                      <Dropdown
+                        options={unitOptions}
+                        selectedValue={unit}
+                        onSelect={setUnit}
+                      />
                     </View>
 
                     {title.toLowerCase().includes('meta') ? (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                        }}>
                         <View style={{ width: '48%' }}>
                           <Input
                             label="Data Início"
@@ -179,19 +221,44 @@ export const ADD = ({ visible, onClose, title, onAdd, initialData }) => {
                     )}
 
                     <View style={styles.buttonRow}>
-                      <Button title={initialData ? "Atualizar" : "Salvar"} onPress={handlePressSave} style={styles.btn} />
-                      <Button title="Cancelar" onPress={onClose} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
+                      <Button
+                        title={initialData ? 'Atualizar' : 'Salvar'}
+                        onPress={handlePressSave}
+                        style={styles.btn}
+                      />
+                      <Button
+                        title="Cancelar"
+                        onPress={onClose}
+                        type="danger"
+                        style={[styles.btn, { backgroundColor: colors.border }]}
+                      />
                     </View>
                   </>
                 ) : (
                   <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                    <Text style={[styles.title, { color: colors.secondary }]}>Confirmar Alteração</Text>
-                    <Text style={{ color: colors.text, textAlign: 'center', marginBottom: 30 }}>
+                    <Text style={[styles.title, { color: colors.secondary }]}>
+                      Confirmar Alteração
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        textAlign: 'center',
+                        marginBottom: 30,
+                      }}>
                       Deseja salvar as alterações feitas neste registro?
                     </Text>
                     <View style={styles.buttonRow}>
-                      <Button title="Sim, Salvar" onPress={executeAdd} style={styles.btn} />
-                      <Button title="Voltar" onPress={() => setConfirmVisible(false)} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
+                      <Button
+                        title="Sim, Salvar"
+                        onPress={executeAdd}
+                        style={styles.btn}
+                      />
+                      <Button
+                        title="Voltar"
+                        onPress={() => setConfirmVisible(false)}
+                        type="danger"
+                        style={[styles.btn, { backgroundColor: colors.border }]}
+                      />
                     </View>
                   </View>
                 )}
@@ -246,5 +313,5 @@ const styles = StyleSheet.create({
   btn: {
     width: '48%',
     height: 50,
-  }
+  },
 });

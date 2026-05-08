@@ -11,12 +11,12 @@ export const lightColors = {
   border: '#E0E0E0',
   chart: {
     barBlue: '#1C315E',
-    barOrange: '#D35400'
+    barOrange: '#D35400',
   },
   progress: {
     blue: '#2F80ED',
-    orange: '#F2994A'
-  }
+    orange: '#F2994A',
+  },
 };
 
 export const darkColors = {
@@ -32,12 +32,12 @@ export const darkColors = {
   border: '#333333',
   chart: {
     barBlue: '#5DA9E9',
-    barOrange: '#F2994A'
+    barOrange: '#F2994A',
   },
   progress: {
     blue: '#5DA9E9',
-    orange: '#F2994A'
-  }
+    orange: '#F2994A',
+  },
 };
 
 // Legacy colors export for compatibility before refactor is complete

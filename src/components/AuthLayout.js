@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+} from 'react-native';
 import { Logo } from './Logo';
 import { useTheme } from '../navigation/AppNavigator';
 
@@ -7,18 +14,18 @@ export const AuthLayout = ({ children }) => {
   const { colors } = useTheme();
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         bounces={false}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
         <View style={styles.topSection}>
           <Logo showText={true} />
-          <Text style={[styles.brandTitle, { color: colors.secondary }]}>CENA</Text>
+          <Text style={[styles.brandTitle, { color: colors.secondary }]}>
+            CENA
+          </Text>
           {children}
         </View>
       </ScrollView>
@@ -47,5 +54,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 15,
     letterSpacing: 2,
-  }
+  },
 });

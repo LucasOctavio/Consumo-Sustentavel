@@ -7,15 +7,17 @@ import { Button } from '../../components/Button';
 import { AuthContext, useTheme } from '../../navigation/AppNavigator';
 
 // ─── Utilitário: formata segundos em MM:SS ────────────────────────────────────
-const formatTime = (seconds) => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+const formatTime = seconds => {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 };
 
 // ─── Constantes de segurança ──────────────────────────────────────────────────
 const EXPIRY_SECONDS = 10 * 60; // 10 minutos (alinhado ao backend)
-const MAX_ATTEMPTS = 5;         // Máximo de tentativas antes de bloquear
+const MAX_ATTEMPTS = 5; // Máximo de tentativas antes de bloquear
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LoginScreen — dois passos: credenciais → código 2FA
@@ -33,7 +35,7 @@ export const LoginScreen = ({ navigation }) => {
   const [step, setStep] = useState(1);
   const [token2fa, setToken2fa] = useState('');
   const [code, setCode] = useState('');
-  const [attempts, setAttempts] = useState(0);     // tentativas usadas
+  const [attempts, setAttempts] = useState(0); // tentativas usadas
   const [timeLeft, setTimeLeft] = useState(EXPIRY_SECONDS);
   const [expired, setExpired] = useState(false);
   const timerRef = useRef(null);
@@ -45,7 +47,7 @@ export const LoginScreen = ({ navigation }) => {
       setExpired(false);
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
             setExpired(true);
@@ -86,7 +88,9 @@ export const LoginScreen = ({ navigation }) => {
       return;
     }
     if (attempts >= MAX_ATTEMPTS) {
-      setError('Número máximo de tentativas atingido. Volte e tente novamente.');
+      setError(
+        'Número máximo de tentativas atingido. Volte e tente novamente.',
+      );
       return;
     }
     if (!code || code.length < 6) {
@@ -103,9 +107,13 @@ export const LoginScreen = ({ navigation }) => {
       const novasT = attempts + 1;
       setAttempts(novasT);
       if (novasT >= MAX_ATTEMPTS) {
-        setError(`Limite de ${MAX_ATTEMPTS} tentativas atingido. Por favor, volte e tente novamente.`);
+        setError(
+          `Limite de ${MAX_ATTEMPTS} tentativas atingido. Por favor, volte e tente novamente.`,
+        );
       } else {
-        setError(`${result.message} (${MAX_ATTEMPTS - novasT} tentativa(s) restante(s))`);
+        setError(
+          `${result.message} (${MAX_ATTEMPTS - novasT} tentativa(s) restante(s))`,
+        );
       }
     }
     // Se success, o AppNavigator detecta isAuthenticated e redireciona automaticamente
@@ -136,14 +144,19 @@ export const LoginScreen = ({ navigation }) => {
           <Text style={styles.title}>Verificação 2FA</Text>
 
           {/* Contador regressivo */}
-          <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
-            <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
-              {expired ? 'Código expirado' : `Código válido por: ${formatTime(timeLeft)}`}
+          <View
+            style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
+            <Text
+              style={[styles.timerText, expired && styles.timerTextExpired]}>
+              {expired
+                ? 'Código expirado'
+                : `Código válido por: ${formatTime(timeLeft)}`}
             </Text>
           </View>
 
           <Text style={styles.subtitle}>
-            Enviamos um código de 6 dígitos para o e-mail vinculado à conta.{'\n'}
+            Enviamos um código de 6 dígitos para o e-mail vinculado à conta.
+            {'\n'}
             Digite-o abaixo para concluir o login.
           </Text>
 
@@ -173,7 +186,10 @@ export const LoginScreen = ({ navigation }) => {
             maxLength={6}
             value={code}
             editable={!bloqueado && !expired}
-            onChangeText={(t) => { setCode(t); setError(''); }}
+            onChangeText={t => {
+              setCode(t);
+              setError('');
+            }}
             style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
           />
 
@@ -188,18 +204,24 @@ export const LoginScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={handleResend}
             disabled={loading}
-            style={{ marginTop: 14, alignItems: 'center' }}
-          >
+            style={{ marginTop: 14, alignItems: 'center' }}>
             <Text style={styles.linkBlue}>
               {loading ? 'Reenviando...' : '🔄 Reenviar código'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => { setStep(1); setCode(''); setError(''); setAttempts(0); clearInterval(timerRef.current); }}
-            style={{ marginTop: 10, alignItems: 'center' }}
-          >
-            <Text style={{ color: '#888', fontSize: 13 }}>← Voltar para o login</Text>
+            onPress={() => {
+              setStep(1);
+              setCode('');
+              setError('');
+              setAttempts(0);
+              clearInterval(timerRef.current);
+            }}
+            style={{ marginTop: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#888', fontSize: 13 }}>
+              ← Voltar para o login
+            </Text>
           </TouchableOpacity>
         </Card>
       </AuthLayout>
@@ -215,13 +237,19 @@ export const LoginScreen = ({ navigation }) => {
         <Input
           placeholder="Nome"
           value={name}
-          onChangeText={(t) => { setName(t); setError(''); }}
+          onChangeText={t => {
+            setName(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Senha"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
 
         <Button
@@ -233,8 +261,7 @@ export const LoginScreen = ({ navigation }) => {
 
         <TouchableOpacity
           onPress={() => navigation.navigate('Recovery')}
-          style={{ marginTop: 12, alignItems: 'center' }}
-        >
+          style={{ marginTop: 12, alignItems: 'center' }}>
           <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </Card>
@@ -242,7 +269,8 @@ export const LoginScreen = ({ navigation }) => {
       <View style={styles.footerLinks}>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.footerLinkText}>
-            Não tem uma conta ainda? <Text style={styles.linkBlue}>cadastrar</Text>
+            Não tem uma conta ainda?{' '}
+            <Text style={styles.linkBlue}>cadastrar</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -294,7 +322,8 @@ export const RegisterScreen = ({ navigation }) => {
         <Card style={styles.card}>
           <Text style={styles.title}>Verifique seu e-mail</Text>
           <Text style={styles.subtitle}>
-            Cadastro realizado com sucesso! Enviamos um link de verificação para {email}.{'\n\n'}
+            Cadastro realizado com sucesso! Enviamos um link de verificação para{' '}
+            {email} {'\n\n'}
             Após verificar seu e-mail, volte aqui e faça login.
           </Text>
           <Button
@@ -315,19 +344,28 @@ export const RegisterScreen = ({ navigation }) => {
         <Input
           placeholder="Nome"
           value={name}
-          onChangeText={(t) => { setName(t); setError(''); }}
+          onChangeText={t => {
+            setName(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Email"
           keyboardType="email-address"
           value={email}
-          onChangeText={(t) => { setEmail(t); setError(''); }}
+          onChangeText={t => {
+            setEmail(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Senha"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
         <Button
           title={loading ? 'Cadastrando...' : 'Cadastrar'}
@@ -337,7 +375,9 @@ export const RegisterScreen = ({ navigation }) => {
         />
       </Card>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLinks}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Login')}
+        style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
           Já tem cadastro? Faça seu <Text style={styles.linkBlue}>login</Text>
         </Text>
@@ -367,7 +407,10 @@ export const RecoveryScreen = ({ navigation }) => {
 
     if (result.success) {
       // Navega para a tela de código passando o token recebido (ou null se e-mail não existir)
-      navigation.navigate('ResetCode', { email, tokenReset: result.tokenReset });
+      navigation.navigate('ResetCode', {
+        email,
+        tokenReset: result.tokenReset,
+      });
     } else {
       setError(result.message);
     }
@@ -375,7 +418,9 @@ export const RecoveryScreen = ({ navigation }) => {
 
   return (
     <AuthLayout>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
@@ -383,7 +428,8 @@ export const RecoveryScreen = ({ navigation }) => {
         <Text style={styles.title}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
-          Insira o endereço de e-mail da sua conta e enviaremos um código de segurança para redefinir a senha.
+          Insira o endereço de e-mail da sua conta e enviaremos um código de
+          segurança para redefinir a senha.
         </Text>
 
         <Text style={styles.label}>Endereço de e-mail</Text>
@@ -391,7 +437,10 @@ export const RecoveryScreen = ({ navigation }) => {
           placeholder="Email"
           keyboardType="email-address"
           value={email}
-          onChangeText={(t) => { setEmail(t); setError(''); }}
+          onChangeText={t => {
+            setEmail(t);
+            setError('');
+          }}
         />
 
         <Button
@@ -426,7 +475,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
     setTimeLeft(EXPIRY_SECONDS);
     setExpired(false);
     timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
           setExpired(true);
@@ -449,7 +498,11 @@ export const ResetCodeScreen = ({ navigation, route }) => {
     }
     setError('');
     // Passa o código e o token para a tela de nova senha
-    navigation.navigate('NewPassword', { email, codigo: code, tokenReset: currentToken });
+    navigation.navigate('NewPassword', {
+      email,
+      codigo: code,
+      tokenReset: currentToken,
+    });
   };
 
   const handleResend = async () => {
@@ -468,7 +521,9 @@ export const ResetCodeScreen = ({ navigation, route }) => {
 
   return (
     <AuthLayout>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
@@ -478,7 +533,9 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         {/* Contador */}
         <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
           <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
-            {expired ? 'Código expirado' : `Válido por: ${formatTime(timeLeft)}`}
+            {expired
+              ? 'Código expirado'
+              : `Válido por: ${formatTime(timeLeft)}`}
           </Text>
         </View>
 
@@ -493,7 +550,10 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           maxLength={6}
           value={code}
           editable={!expired}
-          onChangeText={(t) => { setCode(t); setError(''); }}
+          onChangeText={t => {
+            setCode(t);
+            setError('');
+          }}
           style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
         />
 
@@ -507,8 +567,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         <TouchableOpacity
           onPress={handleResend}
           disabled={loading}
-          style={{ marginTop: 14, alignItems: 'center' }}
-        >
+          style={{ marginTop: 14, alignItems: 'center' }}>
           <Text style={styles.linkBlue}>
             {loading ? 'Reenviando...' : '🔄 Reenviar código'}
           </Text>
@@ -541,7 +600,10 @@ export const NewPasswordScreen = ({ navigation, route }) => {
 
     // Sem token (e-mail não cadastrado): backend retorna mensagem genérica por segurança
     if (!tokenReset) {
-      Alert.alert('Atenção', 'Código inválido ou e-mail não cadastrado. Tente novamente.');
+      Alert.alert(
+        'Atenção',
+        'Código inválido ou e-mail não cadastrado. Tente novamente.',
+      );
       navigation.navigate('Recovery');
       return;
     }
@@ -565,21 +627,25 @@ export const NewPasswordScreen = ({ navigation, route }) => {
       <Card style={styles.card}>
         <Text style={styles.title}>Nova Senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>
-          Criando nova senha para: {email}
-        </Text>
+        <Text style={styles.subtitle}>Criando nova senha para: {email}</Text>
 
         <Input
           placeholder="Nova Senha"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Confirmar Senha"
           secureTextEntry
           value={confirmPassword}
-          onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
+          onChangeText={t => {
+            setConfirmPassword(t);
+            setError('');
+          }}
         />
 
         <Button

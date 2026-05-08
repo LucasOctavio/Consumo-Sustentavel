@@ -17,7 +17,7 @@ export const RegisterScreen = ({ navigation }) => {
   // ── Estado da UI ──
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);      // true após cadastro enviado com sucesso
+  const [done, setDone] = useState(false); // true após cadastro enviado com sucesso
   const [resendMsg, setResendMsg] = useState(''); // mensagem de feedback do reenvio
 
   // ─── Validações locais antes de chamar a API ────────────────────────────────
@@ -61,11 +61,17 @@ export const RegisterScreen = ({ navigation }) => {
     setResendMsg('');
     setError('');
     setLoading(true);
-    const result = await resendVerification(name.trim(), email.trim(), password);
+    const result = await resendVerification(
+      name.trim(),
+      email.trim(),
+      password,
+    );
     setLoading(false);
 
     if (result.success) {
-      setResendMsg('✅ E-mail reenviado com sucesso! Verifique sua caixa de entrada.');
+      setResendMsg(
+        '✅ E-mail reenviado com sucesso! Verifique sua caixa de entrada.',
+      );
     } else {
       // 409 = conta já verificada; outros = erros gerais
       setError(result.message);
@@ -107,8 +113,7 @@ export const RegisterScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={handleResend}
             disabled={loading}
-            style={styles.resendBtn}
-          >
+            style={styles.resendBtn}>
             <Text style={styles.resendText}>
               {loading ? 'Reenviando...' : '🔄 Reenviar e-mail de verificação'}
             </Text>
@@ -126,9 +131,12 @@ export const RegisterScreen = ({ navigation }) => {
 
           {/* Voltar e tentar com outro e-mail */}
           <TouchableOpacity
-            onPress={() => { setDone(false); setResendMsg(''); setError(''); }}
-            style={{ marginTop: 12, alignItems: 'center' }}
-          >
+            onPress={() => {
+              setDone(false);
+              setResendMsg('');
+              setError('');
+            }}
+            style={{ marginTop: 12, alignItems: 'center' }}>
             <Text style={{ color: '#888', fontSize: 13 }}>
               ← Usar outro e-mail
             </Text>
@@ -149,20 +157,29 @@ export const RegisterScreen = ({ navigation }) => {
         <Input
           placeholder="Nome de usuário"
           value={name}
-          onChangeText={(t) => { setName(t); setError(''); }}
+          onChangeText={t => {
+            setName(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="E-mail"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
-          onChangeText={(t) => { setEmail(t); setError(''); }}
+          onChangeText={t => {
+            setEmail(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Senha (mínimo 6 caracteres)"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
 
         {/* Indicador de força da senha */}
@@ -173,12 +190,18 @@ export const RegisterScreen = ({ navigation }) => {
                 key={i}
                 style={[
                   styles.passwordBar,
-                  i < getPasswordStrength(password) ? styles.passwordBarFilled(getPasswordStrength(password)) : styles.passwordBarEmpty,
+                  i < getPasswordStrength(password)
+                    ? styles.passwordBarFilled(getPasswordStrength(password))
+                    : styles.passwordBarEmpty,
                 ]}
               />
             ))}
             <Text style={styles.passwordStrengthLabel}>
-              {['', 'Fraca', 'Regular', 'Boa', 'Forte'][getPasswordStrength(password)]}
+              {
+                ['', 'Fraca', 'Regular', 'Boa', 'Forte'][
+                  getPasswordStrength(password)
+                ]
+              }
             </Text>
           </View>
         )}
@@ -191,7 +214,9 @@ export const RegisterScreen = ({ navigation }) => {
         />
       </Card>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.footerLinks}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Login')}
+        style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
           Já tem cadastro? Faça seu <Text style={styles.linkBlue}>login</Text>
         </Text>
@@ -201,7 +226,7 @@ export const RegisterScreen = ({ navigation }) => {
 };
 
 // ─── Utilitário: calcula força da senha (1–4) ─────────────────────────────────
-const getPasswordStrength = (pwd) => {
+const getPasswordStrength = pwd => {
   let score = 0;
   if (pwd.length >= 6) score++;
   if (pwd.length >= 10) score++;
@@ -318,7 +343,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
-  passwordBarFilled: (strength) => ({
+  passwordBarFilled: strength => ({
     backgroundColor: ['', '#EF5350', '#FFA726', '#66BB6A', '#43A047'][strength],
   }),
   passwordBarEmpty: {

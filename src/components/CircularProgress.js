@@ -3,7 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme/colors';
 
-export const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = colors.progress.blue }) => {
+export const CircularProgress = ({
+  percentage,
+  radius = 40,
+  strokeWidth = 8,
+  color = colors.progress.blue,
+}) => {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
@@ -31,7 +36,11 @@ export const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, col
           transform={`rotate(-90 ${radius + strokeWidth / 2} ${radius + strokeWidth / 2})`}
         />
       </Svg>
-      <View style={[styles.textContainer, { width: radius * 2 + strokeWidth, height: radius * 2 + strokeWidth }]}>
+      <View
+        style={[
+          styles.textContainer,
+          { width: radius * 2 + strokeWidth, height: radius * 2 + strokeWidth },
+        ]}>
         <Text style={[styles.text, { color }]}>{`${percentage}%`}</Text>
       </View>
     </View>
@@ -51,5 +60,5 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     fontWeight: 'bold',
-  }
+  },
 });

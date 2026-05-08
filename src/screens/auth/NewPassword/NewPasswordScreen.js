@@ -28,7 +28,10 @@ export const NewPasswordScreen = ({ navigation, route }) => {
 
     // Se não houver token, o e-mail não estava cadastrado (segurança — não revelamos isso antes)
     if (!tokenReset) {
-      Alert.alert('Atenção', 'Código inválido ou e-mail não cadastrado. Tente novamente.');
+      Alert.alert(
+        'Atenção',
+        'Código inválido ou e-mail não cadastrado. Tente novamente.',
+      );
       navigation.navigate('Recovery');
       return;
     }
@@ -53,21 +56,25 @@ export const NewPasswordScreen = ({ navigation, route }) => {
       <Card style={styles.card}>
         <Text style={styles.title}>Nova Senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>
-          Criando nova senha para: {email}
-        </Text>
+        <Text style={styles.subtitle}>Criando nova senha para: {email}</Text>
 
         <Input
           placeholder="Nova Senha"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Confirmar Senha"
           secureTextEntry
           value={confirmPassword}
-          onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
+          onChangeText={t => {
+            setConfirmPassword(t);
+            setError('');
+          }}
         />
 
         <Button

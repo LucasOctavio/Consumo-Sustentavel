@@ -3,12 +3,19 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, Platform } from 'react-native';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../navigation/AppNavigator';
-import { HomeScreen, ConsumptionScreen, SimulatedScreen, GoalsScreen, SettingsScreen } from '../screens/main/MainScreens';
+import {
+  HomeScreen,
+  ConsumptionScreen,
+  SimulatedScreen,
+  GoalsScreen,
+  SettingsScreen,
+} from '../screens/main/MainScreens';
 
 const Tab = createBottomTabNavigator();
 
 const TabIcon = ({ name, type, focused, color }) => {
-  const IconComponent = type === 'Material' ? MaterialCommunityIcons : FontAwesome5;
+  const IconComponent =
+    type === 'Material' ? MaterialCommunityIcons : FontAwesome5;
   return (
     <View style={[styles.iconContainer, focused && styles.iconFocused]}>
       <IconComponent name={name} size={24} color={color} />
@@ -44,7 +51,14 @@ export const MainNavigator = () => {
             type = 'FontAwesome';
           }
 
-          return <TabIcon name={iconName} type={type} focused={focused} color={iconColor} />;
+          return (
+            <TabIcon
+              name={iconName}
+              type={type}
+              focused={focused}
+              color={iconColor}
+            />
+          );
         },
         tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.4)',
@@ -62,8 +76,7 @@ export const MainNavigator = () => {
           paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Adjust for notch but keep it slim
         },
         tabBarShowLabel: false,
-      })}
-    >
+      })}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Consumption" component={ConsumptionScreen} />
       <Tab.Screen name="Simulated" component={SimulatedScreen} />
@@ -84,5 +97,5 @@ const styles = StyleSheet.create({
   },
   iconFocused: {
     backgroundColor: 'rgba(255,255,255,0.1)',
-  }
+  },
 });

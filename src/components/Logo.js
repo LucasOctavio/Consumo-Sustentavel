@@ -2,7 +2,11 @@ import React, { useContext } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { ThemeContext } from '../navigation/AppNavigator';
 
-export const Logo = ({ isSmall = false, showText = false, size: customSize }) => {
+export const Logo = ({
+  isSmall = false,
+  showText = false,
+  size: customSize,
+}) => {
   const { isDarkMode } = useContext(ThemeContext);
   const size = customSize || (isSmall ? 40 : 110);
 

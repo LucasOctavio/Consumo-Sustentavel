@@ -6,8 +6,10 @@ import { Input } from '../../../components/Input';
 import { Button } from '../../../components/Button';
 import { AuthContext } from '../../../navigation/AppNavigator';
 
-const formatTime = (seconds) => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+const formatTime = seconds => {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 };
@@ -34,7 +36,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
     setTimeLeft(EXPIRY_SECONDS);
     setExpired(false);
     timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
           setExpired(true);
@@ -57,7 +59,11 @@ export const ResetCodeScreen = ({ navigation, route }) => {
     }
     setError('');
     // Passa o código e o token para a tela de nova senha
-    navigation.navigate('NewPassword', { email, codigo: code, tokenReset: currentToken });
+    navigation.navigate('NewPassword', {
+      email,
+      codigo: code,
+      tokenReset: currentToken,
+    });
   };
 
   const handleResend = async () => {
@@ -75,7 +81,9 @@ export const ResetCodeScreen = ({ navigation, route }) => {
 
   return (
     <AuthLayout>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
@@ -85,7 +93,9 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         {/* Contador */}
         <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
           <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
-            {expired ? 'Código expirado' : `Válido por: ${formatTime(timeLeft)}`}
+            {expired
+              ? 'Código expirado'
+              : `Válido por: ${formatTime(timeLeft)}`}
           </Text>
         </View>
 
@@ -100,7 +110,10 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           maxLength={6}
           value={code}
           editable={!expired}
-          onChangeText={(t) => { setCode(t); setError(''); }}
+          onChangeText={t => {
+            setCode(t);
+            setError('');
+          }}
           style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
         />
 
@@ -114,8 +127,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         <TouchableOpacity
           onPress={handleResend}
           disabled={loading}
-          style={{ marginTop: 14, alignItems: 'center' }}
-        >
+          style={{ marginTop: 14, alignItems: 'center' }}>
           <Text style={styles.linkBlue}>
             {loading ? 'Reenviando...' : '🔄 Reenviar código'}
           </Text>

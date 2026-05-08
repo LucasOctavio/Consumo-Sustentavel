@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { useTheme } from '../../../navigation/AppNavigator';
 import { Card } from '../../../components/Card';
 import { Input } from '../../../components/Input';
@@ -7,7 +18,7 @@ import { Button } from '../../../components/Button';
 import { Dropdown } from '../../../components/Dropdown';
 
 // Garante formato DD/MM/YYYY independente do ambiente/locale do dispositivo
-const formatDatePTBR = (d) => {
+const formatDatePTBR = d => {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -33,10 +44,18 @@ export const GoalADD = ({ visible, onClose, title, onAdd, initialData }) => {
   useEffect(() => {
     if (!initialData) {
       switch (type) {
-        case 'Água': setUnit('L'); break;
-        case 'Energia': setUnit('kWh'); break;
-        case 'Gás': setUnit('m³'); break;
-        case 'Combustível': setUnit('L'); break;
+        case 'Água':
+          setUnit('L');
+          break;
+        case 'Energia':
+          setUnit('kWh');
+          break;
+        case 'Gás':
+          setUnit('m³');
+          break;
+        case 'Combustível':
+          setUnit('L');
+          break;
       }
     }
   }, [type, initialData]);
@@ -68,7 +87,7 @@ export const GoalADD = ({ visible, onClose, title, onAdd, initialData }) => {
 
   const handlePressSave = () => {
     const isGoal = title.toLowerCase().includes('meta');
-    
+
     if (!value || !type || !unit) {
       setError('Preencha todos os campos');
       return;
@@ -83,7 +102,7 @@ export const GoalADD = ({ visible, onClose, title, onAdd, initialData }) => {
       setError('Preencha a data do registro');
       return;
     }
-    
+
     setError('');
     // Se for edição, pede confirmação
     if (initialData) {
@@ -95,93 +114,141 @@ export const GoalADD = ({ visible, onClose, title, onAdd, initialData }) => {
 
   const executeAdd = () => {
     if (onAdd) {
-      onAdd({ 
+      onAdd({
         id: initialData?.id,
-        value, 
-        type, 
-        unit, 
-        date, 
-        startDate, 
+        value,
+        type,
+        unit,
+        date,
+        startDate,
         endDate,
-        description 
+        description,
       });
     }
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ width: '100%' }}
-          >
+            style={{ width: '100%' }}>
             <Card style={styles.modalCard}>
               <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
                 {!confirmVisible ? (
                   <>
-                    <Text style={[styles.title, { color: colors.secondary }]}>{title}</Text>
-                    
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
-                    
-                    <Input 
-                      label="Valor da Meta" 
-                      placeholder="Ex: 50" 
-                      value={value} 
-                      onChangeText={setValue} 
+                    <Text style={[styles.title, { color: colors.secondary }]}>
+                      {title}
+                    </Text>
+
+                    {error ? (
+                      <Text style={styles.errorText}>{error}</Text>
+                    ) : null}
+
+                    <Input
+                      label="Valor da Meta"
+                      placeholder="Ex: 50"
+                      value={value}
+                      onChangeText={setValue}
                       keyboardType="numeric"
                     />
-                    <Input 
+                    <Input
                       label="Descrição"
                       placeholder="Ex: Reduzir conta de luz"
                       value={description}
                       onChangeText={setDescription}
                     />
-                    
+
                     <View style={styles.dropdownSection}>
-                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Tipo de Recurso</Text>
-                      <Dropdown options={typeOptions} selectedValue={type} onSelect={setType} />
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                        Tipo de Recurso
+                      </Text>
+                      <Dropdown
+                        options={typeOptions}
+                        selectedValue={type}
+                        onSelect={setType}
+                      />
                     </View>
 
                     <View style={styles.dropdownSection}>
-                      <Text style={[styles.fieldLabel, { color: colors.text }]}>Unidade de Medida</Text>
-                      <Dropdown options={unitOptions} selectedValue={unit} onSelect={setUnit} />
+                      <Text style={[styles.fieldLabel, { color: colors.text }]}>
+                        Unidade de Medida
+                      </Text>
+                      <Dropdown
+                        options={unitOptions}
+                        selectedValue={unit}
+                        onSelect={setUnit}
+                      />
                     </View>
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                      }}>
                       <View style={{ width: '48%' }}>
-                        <Input 
-                          label="Data Início" 
-                          placeholder="24/04/2026" 
-                          value={startDate} 
-                          onChangeText={setStartDate} 
+                        <Input
+                          label="Data Início"
+                          placeholder="24/04/2026"
+                          value={startDate}
+                          onChangeText={setStartDate}
                         />
                       </View>
                       <View style={{ width: '48%' }}>
-                        <Input 
-                          label="Data Fim" 
-                          placeholder="24/04/2027" 
-                          value={endDate} 
-                          onChangeText={setEndDate} 
+                        <Input
+                          label="Data Fim"
+                          placeholder="24/04/2027"
+                          value={endDate}
+                          onChangeText={setEndDate}
                         />
                       </View>
                     </View>
 
                     <View style={styles.buttonRow}>
-                      <Button title={initialData ? "Atualizar" : "Salvar"} onPress={handlePressSave} style={styles.btn} />
-                      <Button title="Cancelar" onPress={onClose} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
+                      <Button
+                        title={initialData ? 'Atualizar' : 'Salvar'}
+                        onPress={handlePressSave}
+                        style={styles.btn}
+                      />
+                      <Button
+                        title="Cancelar"
+                        onPress={onClose}
+                        type="danger"
+                        style={[styles.btn, { backgroundColor: colors.border }]}
+                      />
                     </View>
                   </>
                 ) : (
                   <View style={{ alignItems: 'center', paddingVertical: 20 }}>
-                    <Text style={[styles.title, { color: colors.secondary }]}>Confirmar Alteração</Text>
-                    <Text style={{ color: colors.text, textAlign: 'center', marginBottom: 30 }}>
+                    <Text style={[styles.title, { color: colors.secondary }]}>
+                      Confirmar Alteração
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.text,
+                        textAlign: 'center',
+                        marginBottom: 30,
+                      }}>
                       Deseja salvar as alterações feitas nesta meta?
                     </Text>
                     <View style={styles.buttonRow}>
-                      <Button title="Sim, Salvar" onPress={executeAdd} style={styles.btn} />
-                      <Button title="Voltar" onPress={() => setConfirmVisible(false)} type="danger" style={[styles.btn, { backgroundColor: colors.border }]} />
+                      <Button
+                        title="Sim, Salvar"
+                        onPress={executeAdd}
+                        style={styles.btn}
+                      />
+                      <Button
+                        title="Voltar"
+                        onPress={() => setConfirmVisible(false)}
+                        type="danger"
+                        style={[styles.btn, { backgroundColor: colors.border }]}
+                      />
                     </View>
                   </View>
                 )}
@@ -236,5 +303,5 @@ const styles = StyleSheet.create({
   btn: {
     width: '48%',
     height: 50,
-  }
+  },
 });

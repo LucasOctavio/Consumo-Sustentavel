@@ -9,10 +9,9 @@ export const AppLayout = ({ children, hideHeader = false }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {!hideHeader && <Header />}
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
     </View>
@@ -27,5 +26,5 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     paddingBottom: 100,
-  }
+  },
 });

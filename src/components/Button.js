@@ -7,9 +7,12 @@ export const Button = ({ title, onPress, type = 'primary', style }) => {
 
   const getBgColor = () => {
     switch (type) {
-      case 'danger': return colors.danger;
-      case 'google': return colors.google;
-      default: return colors.primary;
+      case 'danger':
+        return colors.danger;
+      case 'google':
+        return colors.google;
+      default:
+        return colors.primary;
     }
   };
 
@@ -19,11 +22,10 @@ export const Button = ({ title, onPress, type = 'primary', style }) => {
   };
 
   return (
-    <TouchableOpacity 
-      style={[styles.button, { backgroundColor: getBgColor() }, style]} 
+    <TouchableOpacity
+      style={[styles.button, { backgroundColor: getBgColor() }, style]}
       onPress={onPress}
-      activeOpacity={0.8}
-    >
+      activeOpacity={0.8}>
       <Text style={[styles.text, { color: getTextColor() }]}>{title}</Text>
     </TouchableOpacity>
   );

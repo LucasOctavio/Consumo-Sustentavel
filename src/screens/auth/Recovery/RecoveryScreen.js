@@ -25,7 +25,10 @@ export const RecoveryScreen = ({ navigation }) => {
 
     if (result.success) {
       // Navega passando o token temporário (ou null se o e-mail não existir — segurança)
-      navigation.navigate('ResetCode', { email, tokenReset: result.tokenReset });
+      navigation.navigate('ResetCode', {
+        email,
+        tokenReset: result.tokenReset,
+      });
     } else {
       setError(result.message);
     }
@@ -33,7 +36,9 @@ export const RecoveryScreen = ({ navigation }) => {
 
   return (
     <AuthLayout>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}>
         <Text style={styles.backBtnText}>{'← Voltar'}</Text>
       </TouchableOpacity>
 
@@ -41,7 +46,8 @@ export const RecoveryScreen = ({ navigation }) => {
         <Text style={styles.title}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Text style={styles.subtitle}>
-          Insira o endereço de e-mail da sua conta e enviaremos um código de segurança para redefinir a senha.
+          Insira o endereço de e-mail da sua conta e enviaremos um código de
+          segurança para redefinir a senha.
         </Text>
 
         <Text style={styles.label}>Endereço de e-mail</Text>
@@ -49,7 +55,10 @@ export const RecoveryScreen = ({ navigation }) => {
           placeholder="Email"
           keyboardType="email-address"
           value={email}
-          onChangeText={(t) => { setEmail(t); setError(''); }}
+          onChangeText={t => {
+            setEmail(t);
+            setError('');
+          }}
         />
 
         <Button

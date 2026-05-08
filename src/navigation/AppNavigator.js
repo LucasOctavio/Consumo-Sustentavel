@@ -4,7 +4,13 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { lightColors, darkColors } from '../theme/colors';
 
-import { authService, consumptionService, goalService, photoService, setAuthToken } from '../services/api';
+import {
+  authService,
+  consumptionService,
+  goalService,
+  photoService,
+  setAuthToken,
+} from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const AuthContext = createContext();
@@ -13,7 +19,7 @@ export const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 // Converte datas do backend (ISO: '2026-04-29' ou '2026-04-29T00:00:00') para DD/MM/YYYY
-const normalizeDate = (dateStr) => {
+const normalizeDate = dateStr => {
   if (!dateStr) return '';
   // Formato ISO: '2026-04-29' ou '2026-04-29T00:00:00'
   if (String(dateStr).includes('-')) {
@@ -24,22 +30,37 @@ const normalizeDate = (dateStr) => {
 };
 
 // Normaliza dados vindos do backend para o formato esperado pela UI
-const normalizeConsumption = (item) => ({
-  id: item.con_id || item.id || Date.now(),  // backend retorna con_id
+const normalizeConsumption = item => ({
+  id: item.con_id || item.id || Date.now(), // backend retorna con_id
   type: item.con_tipo || item.tipo || item.type || '?',
-  value: item.con_valor !== undefined ? item.con_valor : (item.valor !== undefined ? item.valor : item.value),
+  value:
+    item.con_valor !== undefined
+      ? item.con_valor
+      : item.valor !== undefined
+        ? item.valor
+        : item.value,
   date: normalizeDate(item.con_dt || item.dt || item.date || ''),
   unit: item.con_medida || item.medida || item.unit || '',
-  simulado: item.con_simulado !== undefined ? item.con_simulado : (item.simulado || false),
+  simulado:
+    item.con_simulado !== undefined
+      ? item.con_simulado
+      : item.simulado || false,
   description: item.con_descricao || item.descricao || item.description || '',
 });
 
-const normalizeGoal = (item) => ({
-  id: item.meta_id || item.id || Date.now(),  // backend retorna meta_id
+const normalizeGoal = item => ({
+  id: item.meta_id || item.id || Date.now(), // backend retorna meta_id
   type: item.meta_tipo || item.tipo || item.type || '?',
-  value: item.meta_valor !== undefined ? item.meta_valor : (item.valor !== undefined ? item.valor : item.value),
+  value:
+    item.meta_valor !== undefined
+      ? item.meta_valor
+      : item.valor !== undefined
+        ? item.valor
+        : item.value,
   unit: item.meta_medida || item.medida || item.unit || '',
-  start: normalizeDate(item.meta_dt_inicio || item.dt_inicio || item.start || ''),
+  start: normalizeDate(
+    item.meta_dt_inicio || item.dt_inicio || item.start || '',
+  ),
   end: normalizeDate(item.meta_dt_fim || item.dt_fim || item.end || ''),
   description: item.meta_descricao || item.descricao || item.description || '',
   progress: item.progress || 0,
@@ -91,12 +112,22 @@ export const AppNavigator = () => {
     setLoading(true);
     try {
       // Executa as chamadas em paralelo, tratando erros individuais para evitar que uma falha trave tudo
-      const [consumoData, simuladoData, metaData, photoData] = await Promise.all([
-        consumptionService.getAll().catch(err => { console.log('Erro ao carregar consumos:', err); return []; }),
-        consumptionService.getAllSimulations().catch(err => { console.log('Erro ao carregar simulados:', err); return []; }),
-        goalService.getAll().catch(err => { console.log('Erro ao carregar metas:', err); return []; }),
-        photoService.get().catch(() => null)
-      ]);
+      const [consumoData, simuladoData, metaData, photoData] =
+        await Promise.all([
+          consumptionService.getAll().catch(err => {
+            console.log('Erro ao carregar consumos:', err);
+            return [];
+          }),
+          consumptionService.getAllSimulations().catch(err => {
+            console.log('Erro ao carregar simulados:', err);
+            return [];
+          }),
+          goalService.getAll().catch(err => {
+            console.log('Erro ao carregar metas:', err);
+            return [];
+          }),
+          photoService.get().catch(() => null),
+        ]);
 
       // Backend agora retorna listas diretamente (arrays)
       if (Array.isArray(consumoData)) {
@@ -110,7 +141,11 @@ export const AppNavigator = () => {
       }
 
       if (photoData) {
-        setPhoto(typeof photoData === 'string' ? photoData : photoData.foto || photoData.message);
+        setPhoto(
+          typeof photoData === 'string'
+            ? photoData
+            : photoData.foto || photoData.message,
+        );
       }
     } catch (error) {
       console.error('Error in loadBackendData:', error);
@@ -161,7 +196,8 @@ export const AppNavigator = () => {
       return { success: false, message: 'Código inválido. Tente novamente.' };
     } catch (error) {
       console.error('2FA verify error:', error);
-      const msg = error.response?.data?.detail || 'Código incorreto ou expirado.';
+      const msg =
+        error.response?.data?.detail || 'Código incorreto ou expirado.';
       return { success: false, message: msg };
     }
   };
@@ -173,7 +209,8 @@ export const AppNavigator = () => {
       return { success: true, requiresEmailVerification: true };
     } catch (error) {
       console.error('Register error:', error);
-      const message = error.response?.data?.detail || 'Erro ao realizar cadastro.';
+      const message =
+        error.response?.data?.detail || 'Erro ao realizar cadastro.';
       return { success: false, message };
     }
   };
@@ -185,7 +222,9 @@ export const AppNavigator = () => {
       return { success: true };
     } catch (error) {
       console.error('Resend verification error:', error);
-      const message = error.response?.data?.detail || 'Erro ao reenviar e-mail de verificação.';
+      const message =
+        error.response?.data?.detail ||
+        'Erro ao reenviar e-mail de verificação.';
       return { success: false, message };
     }
   };
@@ -197,7 +236,7 @@ export const AppNavigator = () => {
     setUserData(null);
   };
 
-  const updateProfile = async (newInfo) => {
+  const updateProfile = async newInfo => {
     try {
       await authService.update(newInfo);
       // Atualiza o estado local com as informações editadas
@@ -211,19 +250,26 @@ export const AppNavigator = () => {
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
-      const message = error.response?.data?.detail || "Erro ao atualizar perfil.";
+      const message =
+        error.response?.data?.detail || 'Erro ao atualizar perfil.';
       return { success: false, message };
     }
   };
 
-  const forgotPassword = async (email) => {
+  const forgotPassword = async email => {
     try {
       const data = await authService.forgotPassword(email);
       // token_reset pode ser undefined se o e-mail não existir (segurança)
-      return { success: true, tokenReset: data.token_reset || null, message: data.message };
+      return {
+        success: true,
+        tokenReset: data.token_reset || null,
+        message: data.message,
+      };
     } catch (error) {
       console.error('Forgot password error:', error);
-      const message = error.response?.data?.detail || 'Erro ao solicitar recuperação de senha.';
+      const message =
+        error.response?.data?.detail ||
+        'Erro ao solicitar recuperação de senha.';
       return { success: false, message };
     }
   };
@@ -234,13 +280,13 @@ export const AppNavigator = () => {
       return { success: true };
     } catch (error) {
       console.error('Reset password error:', error);
-      const message = error.response?.data?.detail || 'Código incorreto ou expirado.';
+      const message =
+        error.response?.data?.detail || 'Código incorreto ou expirado.';
       return { success: false, message };
     }
   };
 
-
-  const addConsumption = async (data) => {
+  const addConsumption = async data => {
     // Adiciona localmente de imediato para UI responsiva
     const localItem = {
       id: Date.now(),
@@ -262,7 +308,7 @@ export const AppNavigator = () => {
     }
   };
 
-  const addSimulation = async (data) => {
+  const addSimulation = async data => {
     // Adiciona simulação localmente para resposta rápida da UI
     const localItem = {
       id: Date.now(),
@@ -284,7 +330,7 @@ export const AppNavigator = () => {
     }
   };
 
-  const addGoal = async (data) => {
+  const addGoal = async data => {
     // Adiciona localmente de imediato com mapeamento correto dos campos de data
     const localGoal = {
       id: Date.now(),
@@ -308,7 +354,7 @@ export const AppNavigator = () => {
     }
   };
 
-  const deleteConsumption = async (id) => {
+  const deleteConsumption = async id => {
     // Remove localmente de imediato para UI responsiva
     setConsumptions(prev => prev.filter(c => c.id !== id));
     try {
@@ -320,19 +366,20 @@ export const AppNavigator = () => {
     }
   };
 
-  const updateConsumption = async (data) => {
+  const updateConsumption = async data => {
     try {
       await consumptionService.update(data);
       await loadBackendData();
       return { success: true };
     } catch (error) {
       console.error('Error updating consumption:', error);
-      const message = error.response?.data?.detail || "Erro ao atualizar consumo.";
+      const message =
+        error.response?.data?.detail || 'Erro ao atualizar consumo.';
       return { success: false, message };
     }
   };
 
-  const deleteSimulation = async (id) => {
+  const deleteSimulation = async id => {
     setSimulations(prev => prev.filter(s => s.id !== id));
     try {
       await consumptionService.delete(id);
@@ -342,19 +389,20 @@ export const AppNavigator = () => {
     }
   };
 
-  const updateSimulation = async (data) => {
+  const updateSimulation = async data => {
     try {
       await consumptionService.update({ ...data, simulated: true });
       await loadBackendData();
       return { success: true };
     } catch (error) {
       console.error('Error updating simulation:', error);
-      const message = error.response?.data?.detail || "Erro ao atualizar simulação.";
+      const message =
+        error.response?.data?.detail || 'Erro ao atualizar simulação.';
       return { success: false, message };
     }
   };
 
-  const deleteGoal = async (id) => {
+  const deleteGoal = async id => {
     setGoals(prev => prev.filter(g => g.id !== id));
     try {
       await goalService.delete(id);
@@ -364,19 +412,19 @@ export const AppNavigator = () => {
     }
   };
 
-  const updateGoal = async (data) => {
+  const updateGoal = async data => {
     try {
       await goalService.update(data);
       await loadBackendData();
       return { success: true };
     } catch (error) {
       console.error('Error updating goal:', error);
-      const message = error.response?.data?.detail || "Erro ao atualizar meta.";
+      const message = error.response?.data?.detail || 'Erro ao atualizar meta.';
       return { success: false, message };
     }
   };
 
-  const deleteAccount = async (password) => {
+  const deleteAccount = async password => {
     try {
       // Opcional: validar senha antes de deletar se o backend exigir ou para segurança extra
       // No momento o backend deleta baseado no token Bearer
@@ -389,13 +437,13 @@ export const AppNavigator = () => {
       return { success: true };
     } catch (error) {
       console.error('Error deleting account:', error);
-      const message = error.response?.data?.detail || "Erro ao excluir conta.";
+      const message = error.response?.data?.detail || 'Erro ao excluir conta.';
       return { success: false, message };
     }
   };
 
   // Helper para parsear data DD/MM/YYYY para Date do JS e poder comparar os prazos
-  const parseDateBr = (dateStr) => {
+  const parseDateBr = dateStr => {
     if (!dateStr) return new Date();
     const [day, month, year] = String(dateStr).split('/').map(Number);
     return new Date(year, month - 1, day);
@@ -418,44 +466,46 @@ export const AppNavigator = () => {
     }, 0);
 
     // Define a porcentagem do progresso (limita em 100% no máximo para não quebrar a UI do gráfico circular)
-    const progress = Number(goal.value) > 0
-      ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100))
-      : 0;
+    const progress =
+      Number(goal.value) > 0
+        ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100))
+        : 0;
 
     return { ...goal, progress };
   });
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, colors }}>
-      <AuthContext.Provider value={{
-        isAuthenticated,
-        setIsAuthenticated,
-        user: userData?.name || userData?.email,
-        userData,
-        login,
-        register,
-        logout,
-        confirmLogin,
-        resendVerification,
-        updateProfile,
-        forgotPassword,
-        resetPasswordByCode,
-        consumptions,
-        simulations,
-        goals: goalsWithProgress,
-        photo,
-        setPhoto,
-        addConsumption,
-        addSimulation,
-        addGoal,
-        updateConsumption,
-        updateSimulation,
-        updateGoal,
-        deleteConsumption,
-        deleteSimulation,
-        deleteGoal,
-        deleteAccount
-      }}>
+      <AuthContext.Provider
+        value={{
+          isAuthenticated,
+          setIsAuthenticated,
+          user: userData?.name || userData?.email,
+          userData,
+          login,
+          register,
+          logout,
+          confirmLogin,
+          resendVerification,
+          updateProfile,
+          forgotPassword,
+          resetPasswordByCode,
+          consumptions,
+          simulations,
+          goals: goalsWithProgress,
+          photo,
+          setPhoto,
+          addConsumption,
+          addSimulation,
+          addGoal,
+          updateConsumption,
+          updateSimulation,
+          updateGoal,
+          deleteConsumption,
+          deleteSimulation,
+          deleteGoal,
+          deleteAccount,
+        }}>
         <NavigationContainer>
           {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
         </NavigationContainer>

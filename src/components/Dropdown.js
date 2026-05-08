@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  FlatList,
+} from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useTheme } from '../navigation/AppNavigator';
 
@@ -7,33 +14,48 @@ export const Dropdown = ({ options, selectedValue, onSelect }) => {
   const { colors } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
-  const handleSelect = (item) => {
+  const handleSelect = item => {
     onSelect(item);
     setModalVisible(false);
   };
 
   return (
     <View>
-      <TouchableOpacity 
-        style={[styles.dropdownButton, { backgroundColor: colors.card, borderColor: colors.border }]} 
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={[styles.dropdownText, { color: colors.text }]}>{selectedValue}</Text>
+      <TouchableOpacity
+        style={[
+          styles.dropdownButton,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+        onPress={() => setModalVisible(true)}>
+        <Text style={[styles.dropdownText, { color: colors.text }]}>
+          {selectedValue}
+        </Text>
         <FontAwesome5 name="chevron-down" size={12} color={colors.textLight} />
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent={true} animationType="fade">
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          onPress={() => setModalVisible(false)}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <FlatList
               data={options}
-              keyExtractor={(item) => item}
+              keyExtractor={item => item}
               renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={[styles.optionItem, { borderBottomColor: colors.border }]} 
-                  onPress={() => handleSelect(item)}
-                >
-                  <Text style={[styles.optionText, { color: item === selectedValue ? colors.primary : colors.text }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.optionItem,
+                    { borderBottomColor: colors.border },
+                  ]}
+                  onPress={() => handleSelect(item)}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      {
+                        color:
+                          item === selectedValue ? colors.primary : colors.text,
+                      },
+                    ]}>
                     {item}
                   </Text>
                 </TouchableOpacity>
@@ -82,5 +104,5 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     textAlign: 'center',
-  }
+  },
 });

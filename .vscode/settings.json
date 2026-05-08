@@ -1,0 +1,39 @@
+{
+  // Define o Prettier como formatador padrão
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Formata o código automaticamente ao salvar o arquivo
+  "editor.formatOnSave": true,
+
+  // Configurações específicas para JS e React
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Configurações do ESLint (Flat Config)
+  "eslint.useFlatConfig": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+
+  // Roda o ESLint Fix automaticamente ao salvar
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Melhora a visualização em React Native
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active"
+}

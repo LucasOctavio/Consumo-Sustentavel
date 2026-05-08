@@ -7,14 +7,16 @@ import { Button } from '../../../components/Button';
 import { AuthContext } from '../../../navigation/AppNavigator';
 
 // ─── Utilitário: formata segundos em MM:SS ────────────────────────────────────
-const formatTime = (seconds) => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+const formatTime = seconds => {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 };
 
 const EXPIRY_SECONDS = 10 * 60; // 10 minutos (alinhado ao backend)
-const MAX_ATTEMPTS = 5;         // Máximo de tentativas antes de bloquear
+const MAX_ATTEMPTS = 5; // Máximo de tentativas antes de bloquear
 
 export const LoginScreen = ({ navigation }) => {
   const { login, confirmLogin } = useContext(AuthContext);
@@ -41,7 +43,7 @@ export const LoginScreen = ({ navigation }) => {
       setExpired(false);
       clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
+        setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
             setExpired(true);
@@ -82,7 +84,9 @@ export const LoginScreen = ({ navigation }) => {
       return;
     }
     if (attempts >= MAX_ATTEMPTS) {
-      setError('Número máximo de tentativas atingido. Volte e tente novamente.');
+      setError(
+        'Número máximo de tentativas atingido. Volte e tente novamente.',
+      );
       return;
     }
     if (!code || code.length < 6) {
@@ -99,9 +103,13 @@ export const LoginScreen = ({ navigation }) => {
       const novasT = attempts + 1;
       setAttempts(novasT);
       if (novasT >= MAX_ATTEMPTS) {
-        setError(`Limite de ${MAX_ATTEMPTS} tentativas atingido. Por favor, volte e tente novamente.`);
+        setError(
+          `Limite de ${MAX_ATTEMPTS} tentativas atingido. Por favor, volte e tente novamente.`,
+        );
       } else {
-        setError(`${result.message} (${MAX_ATTEMPTS - novasT} tentativa(s) restante(s))`);
+        setError(
+          `${result.message} (${MAX_ATTEMPTS - novasT} tentativa(s) restante(s))`,
+        );
       }
     }
     // Se success, o AppNavigator detecta isAuthenticated e navega automaticamente
@@ -132,14 +140,19 @@ export const LoginScreen = ({ navigation }) => {
           <Text style={styles.title}>Verificação 2FA</Text>
 
           {/* Contador regressivo */}
-          <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
-            <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
-              {expired ? 'Código expirado' : `Código válido por: ${formatTime(timeLeft)}`}
+          <View
+            style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
+            <Text
+              style={[styles.timerText, expired && styles.timerTextExpired]}>
+              {expired
+                ? 'Código expirado'
+                : `Código válido por: ${formatTime(timeLeft)}`}
             </Text>
           </View>
 
           <Text style={styles.subtitle}>
-            Enviamos um código de 6 dígitos para o e-mail vinculado à conta.{'\n'}
+            Enviamos um código de 6 dígitos para o e-mail vinculado à conta.
+            {'\n'}
             Digite-o abaixo para concluir o login.
           </Text>
 
@@ -169,7 +182,10 @@ export const LoginScreen = ({ navigation }) => {
             maxLength={6}
             value={code}
             editable={!bloqueado && !expired}
-            onChangeText={(t) => { setCode(t); setError(''); }}
+            onChangeText={t => {
+              setCode(t);
+              setError('');
+            }}
             style={{ textAlign: 'center', fontSize: 26, letterSpacing: 12 }}
           />
 
@@ -184,8 +200,7 @@ export const LoginScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={handleResend}
             disabled={loading}
-            style={{ marginTop: 14, alignItems: 'center' }}
-          >
+            style={{ marginTop: 14, alignItems: 'center' }}>
             <Text style={styles.linkBlue}>
               {loading ? 'Reenviando...' : '🔄 Reenviar código'}
             </Text>
@@ -193,12 +208,16 @@ export const LoginScreen = ({ navigation }) => {
 
           <TouchableOpacity
             onPress={() => {
-              setStep(1); setCode(''); setError('');
-              setAttempts(0); clearInterval(timerRef.current);
+              setStep(1);
+              setCode('');
+              setError('');
+              setAttempts(0);
+              clearInterval(timerRef.current);
             }}
-            style={{ marginTop: 10, alignItems: 'center' }}
-          >
-            <Text style={{ color: '#888', fontSize: 13 }}>← Voltar para o login</Text>
+            style={{ marginTop: 10, alignItems: 'center' }}>
+            <Text style={{ color: '#888', fontSize: 13 }}>
+              ← Voltar para o login
+            </Text>
           </TouchableOpacity>
         </Card>
       </AuthLayout>
@@ -214,13 +233,19 @@ export const LoginScreen = ({ navigation }) => {
         <Input
           placeholder="Nome de usuário"
           value={identifier}
-          onChangeText={(t) => { setIdentifier(t); setError(''); }}
+          onChangeText={t => {
+            setIdentifier(t);
+            setError('');
+          }}
         />
         <Input
           placeholder="Senha"
           secureTextEntry
           value={password}
-          onChangeText={(t) => { setPassword(t); setError(''); }}
+          onChangeText={t => {
+            setPassword(t);
+            setError('');
+          }}
         />
         <Button
           title={loading ? 'Enviando código...' : 'Entrar'}
@@ -230,13 +255,14 @@ export const LoginScreen = ({ navigation }) => {
         />
         <TouchableOpacity
           onPress={() => navigation.navigate('Recovery')}
-          style={{ marginTop: 12, alignItems: 'center' }}
-        >
+          style={{ marginTop: 12, alignItems: 'center' }}>
           <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </Card>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.footerLinks}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Register')}
+        style={styles.footerLinks}>
         <Text style={styles.footerLinkText}>
           Não tem conta? <Text style={styles.linkBlue}>Cadastrar</Text>
         </Text>
