@@ -229,7 +229,8 @@ async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, mes
         await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
     except Exception as e:
         print(f"ERRO TOTAL: Falha em todos os métodos de envio SMTP: {e}")
-        raise HTTPException(status_code=500, detail="Falha ao enviar e-mail. Verifique as configurações de SMTP.")
+        # Retorna o erro real para o frontend conseguir ler e nos informar o que houve
+        raise HTTPException(status_code=500, detail=f"Erro de SMTP: {str(e)}")
 
 async def enviar_email_verificacao(emails: list, verification_token: str):
     """Envia o e-mail de verificação de conta contendo os dados assinados."""

@@ -29,15 +29,14 @@ conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
     MAIL_FROM=os.getenv("MAIL_FROM"),
-    MAIL_PORT=int(os.getenv("MAIL_PORT", "465")),
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.fastmail.com"),
+    MAIL_PORT=int(os.getenv("MAIL_PORT", "587")),
+    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
     MAIL_FROM_NAME=os.getenv("MAIL_FROM_NAME", "Consumo Sustentavel"),
-    # FastAPI-Mail exige booleanos — a comparação com strings "True"/"1" resolve ambiguidade do .env
-    # Para o Fastmail na porta 465, usamos SSL_TLS=True e STARTTLS=False
-    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "False") in ["True", "true", "1"],
-    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "True") in ["True", "true", "1"],
+    # Usando porta 587 com STARTTLS para maior compatibilidade
+    MAIL_STARTTLS=os.getenv("MAIL_STARTTLS", "True") in ["True", "true", "1"],
+    MAIL_SSL_TLS=os.getenv("MAIL_SSL_TLS", "False") in ["True", "true", "1"],
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
+    VALIDATE_CERTS=False,
 )
 
 # Configuração finalizada para FastMail SMTP
