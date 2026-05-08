@@ -245,18 +245,20 @@ def _enviar_email_sincrono(destinatarios: list, assunto: str, corpo_html: str):
 
 
 async def _enviar_com_fallback(destinatarios: list, assunto: str, html: str, message: MessageSchema):
-    """Orquestra as tentativas de envio: Resend -> FastMail assíncrono -> smtplib síncrono."""
-    # Tentativa 1: Resend via HTTP (ideal para ambientes cloud como Render)
-    if await _enviar_email_resend(destinatarios, assunto, html):
-        return
-
-    # Tentativa 2: FastMail (SMTP assíncrono)
+    """Orquestra as tentativas de envio: FastMail assíncrono -> Resend -> smtplib síncrono."""
+    # Tentativa 1: FastMail (SMTP assíncrono)
     try:
         fm = FastMail(conf)
         await fm.send_message(message)
+        print("E-mail enviado com sucesso via FastMail!")
         return
-    except Exception:
+    except Exception as e:
+        print(f"Erro no FastMail: {e}")
         pass
+
+    # Tentativa 2: Resend via HTTP (ideal para ambientes cloud como Render)
+    if await _enviar_email_resend(destinatarios, assunto, html):
+        return
 
     # Tentativa 3: smtplib em thread separada (SMTP síncrono)
     await asyncio.to_thread(_enviar_email_sincrono, destinatarios, assunto, html)
