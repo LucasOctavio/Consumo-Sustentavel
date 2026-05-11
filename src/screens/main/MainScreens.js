@@ -1143,6 +1143,7 @@ export const ConsumptionScreen = () => {
   const { consumptions, addConsumption, updateConsumption, deleteConsumption } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [period, setPeriod] = useState('1 sem');
+  const [filterType, setFilterType] = useState('Todos');
   const [editingItem, setEditingItem] = useState(null);
 
   const filterDataByPeriod = (data, periodStr) => {
@@ -1168,7 +1169,11 @@ export const ConsumptionScreen = () => {
       .reverse();
   };
 
-  const filteredConsumptions = filterDataByPeriod(consumptions, period);
+  const typeFiltered = filterType === 'Todos'
+    ? consumptions
+    : consumptions.filter(item => item.type === filterType);
+
+  const filteredConsumptions = filterDataByPeriod(typeFiltered, period);
 
   const handleAdd = data => {
     if (data.id) {
@@ -1191,11 +1196,37 @@ export const ConsumptionScreen = () => {
     ]);
   };
 
+  const FilterTypeSelector = () => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
+        <TouchableOpacity
+          key={type}
+          onPress={() => setFilterType(type)}
+          style={[
+            styles.filterChip,
+            { 
+              backgroundColor: filterType === type ? colors.secondary : 'transparent',
+              borderColor: filterType === type ? colors.secondary : colors.border
+            }
+          ]}
+        >
+          <Text style={[
+            styles.filterChipText, 
+            { color: filterType === type ? '#fff' : colors.textLight }
+          ]}>
+            {type}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Consumos
       </Text>
+      <FilterTypeSelector />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -1307,7 +1338,7 @@ export const ConsumptionScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const todayItems = consumptions.filter(item => item.date === today);
+          const todayItems = typeFiltered.filter(item => item.date === today);
 
           return todayItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -1442,7 +1473,7 @@ export const ConsumptionScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderItems = consumptions.filter(item => item.date !== today);
+          const olderItems = typeFiltered.filter(item => item.date !== today);
 
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -1576,6 +1607,7 @@ export const SimulatedScreen = () => {
   const { simulations, addSimulation, updateSimulation, deleteSimulation } = useContext(AuthContext);
   const [editingItem, setEditingItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [filterType, setFilterType] = useState('Todos');
   const [period, setPeriod] = useState('1 sem');
 
   const filterDataByPeriod = (data, periodStr) => {
@@ -1601,7 +1633,11 @@ export const SimulatedScreen = () => {
       .reverse();
   };
 
-  const filteredSimulations = filterDataByPeriod(simulations, period);
+  const typeFiltered = filterType === 'Todos'
+    ? simulations
+    : simulations.filter(item => item.type === filterType);
+
+  const filteredSimulations = filterDataByPeriod(typeFiltered, period);
 
   const handleAdd = data => {
     if (data.id) {
@@ -1620,11 +1656,37 @@ export const SimulatedScreen = () => {
     ]);
   };
 
+  const FilterTypeSelector = () => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
+        <TouchableOpacity
+          key={type}
+          onPress={() => setFilterType(type)}
+          style={[
+            styles.filterChip,
+            { 
+              backgroundColor: filterType === type ? colors.secondary : 'transparent',
+              borderColor: filterType === type ? colors.secondary : colors.border
+            }
+          ]}
+        >
+          <Text style={[
+            styles.filterChipText, 
+            { color: filterType === type ? '#fff' : colors.textLight }
+          ]}>
+            {type}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Simulador
       </Text>
+      <FilterTypeSelector />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -1737,7 +1799,7 @@ export const SimulatedScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const todayItems = simulations.filter(item => item.date === today);
+          const todayItems = typeFiltered.filter(item => item.date === today);
 
           return todayItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -1872,7 +1934,7 @@ export const SimulatedScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderItems = simulations.filter(item => item.date !== today);
+          const olderItems = typeFiltered.filter(item => item.date !== today);
 
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -2005,6 +2067,7 @@ export const GoalsScreen = () => {
   const { colors } = useTheme();
   const { goals, addGoal, updateGoal, deleteGoal } = useContext(AuthContext);
   const [period, setPeriod] = useState('1 sem');
+  const [filterType, setFilterType] = useState('Todos');
   const [editingItem, setEditingItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -2029,7 +2092,11 @@ export const GoalsScreen = () => {
     });
   };
 
-  const filteredGoalsForChart = filterDataByPeriod(goals, period);
+  const typeFiltered = filterType === 'Todos'
+    ? goals
+    : goals.filter(item => item.type === filterType);
+
+  const filteredGoalsForChart = filterDataByPeriod(typeFiltered, period);
 
   const handleAdd = data => {
     if (data.id) {
@@ -2052,11 +2119,37 @@ export const GoalsScreen = () => {
     ]);
   };
 
+  const FilterTypeSelector = () => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
+        <TouchableOpacity
+          key={type}
+          onPress={() => setFilterType(type)}
+          style={[
+            styles.filterChip,
+            { 
+              backgroundColor: filterType === type ? colors.secondary : 'transparent',
+              borderColor: filterType === type ? colors.secondary : colors.border
+            }
+          ]}
+        >
+          <Text style={[
+            styles.filterChipText, 
+            { color: filterType === type ? '#fff' : colors.textLight }
+          ]}>
+            {type}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Metas
       </Text>
+      <FilterTypeSelector />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -2278,7 +2371,7 @@ export const GoalsScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const todayGoals = goals.filter(g => g.start === today);
+          const todayGoals = typeFiltered.filter(g => g.start === today);
 
           return todayGoals.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -2426,7 +2519,7 @@ export const GoalsScreen = () => {
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderGoals = goals.filter(g => g.start !== today);
+          const olderGoals = typeFiltered.filter(g => g.start !== today);
 
           return olderGoals.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -3239,4 +3332,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  filterScroll: {
+    marginBottom: 15,
+    paddingLeft: 5,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterChipText: { fontSize: 13, fontWeight: '600' },
 });
