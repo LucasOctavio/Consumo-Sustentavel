@@ -32,6 +32,7 @@ import {
   ThemeContext,
   useTheme,
 } from '../../navigation/AppNavigator';
+import { photoService } from '../../services/api';
 import * as ImagePicker from 'expo-image-picker';
 
 const screenWidth = Dimensions.get('window').width - 60;
@@ -2567,7 +2568,7 @@ export const GoalsScreen = () => {
 };
 
 export const SettingsScreen = () => {
-  const { logout, userData, updateProfile, deleteAccount } =
+  const { logout, userData, updateProfile, deleteAccount, photo, setPhoto } =
     useContext(AuthContext);
   const { isDarkMode, setIsDarkMode, colors } = useContext(ThemeContext);
   const [expandedSection, setExpandedSection] = useState(null);
@@ -2576,9 +2577,16 @@ export const SettingsScreen = () => {
   const [email, setEmail] = useState(userData?.email || '');
   const [password, setPassword] = useState(userData?.password || '');
   const [profileImage, setProfileImage] = useState(
-    userData?.profileImage || null,
+    photo || userData?.profileImage || null,
   );
   const [saving, setSaving] = useState(false);
+
+  // Sincroniza a imagem de perfil quando a foto é carregada do banco de dados
+  useEffect(() => {
+    if (photo) {
+      setProfileImage(photo);
+    }
+  }, [photo]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -2593,7 +2601,31 @@ export const SettingsScreen = () => {
       quality: 1,
     });
     if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setProfileImage(uri);
+
+      // Persistência no Banco de Dados
+      try {
+        const fileType = uri.split('.').pop();
+        const formData = new FormData();
+        formData.append('foto', {
+          uri,
+          name: `user_photo.${fileType}`,
+          type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+        });
+
+        // Chama a rota da API (/foto/create)
+        await photoService.upload(formData);
+
+        // Sincroniza o estado global no AuthContext
+        if (setPhoto) {
+          setPhoto(uri);
+        }
+        Alert.alert('Sucesso', 'Sua foto de perfil foi alterada no servidor!');
+      } catch (error) {
+        console.error('Erro ao salvar foto:', error);
+        Alert.alert('Erro', 'Não foi possível salvar a foto no banco de dados.');
+      }
     }
   };
 

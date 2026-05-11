@@ -157,11 +157,12 @@ export const AppNavigator = () => {
       }
 
       if (photoData) {
-        setPhoto(
-          typeof photoData === 'string'
-            ? photoData
-            : photoData.foto || photoData.message,
-        );
+        // Converte o binário (Blob) vindo de /foto/read para Base64
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhoto(reader.result);
+        };
+        reader.readAsDataURL(photoData);
       }
     } catch (error) {
       console.error('Error in loadBackendData:', error);

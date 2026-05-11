@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,7 @@ import {
   consumptionService,
   goalService,
   photoService,
-} from '../services/api';
+} from '../../../services/api';
 import { AuthContext, ThemeContext } from '../../../navigation/AppNavigator';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -36,9 +36,16 @@ export const SettingsScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileImage, setProfileImage] = useState(
-    userData?.profileImage || null,
+    photo || userData?.profileImage || null,
   );
   const [saving, setSaving] = useState(false);
+
+  // Sincroniza a imagem de perfil quando a foto é carregada do banco de dados
+  useEffect(() => {
+    if (photo) {
+      setProfileImage(photo);
+    }
+  }, [photo]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -79,6 +86,12 @@ export const SettingsScreen = () => {
         });
 
         await photoService.upload(formData);
+
+        // Sincroniza o estado global
+        if (setPhoto) {
+          setPhoto(asset.uri);
+        }
+
         Alert.alert('Sucesso', 'Foto de perfil atualizada!');
       } catch (error) {
         console.error('Erro ao fazer upload da foto:', error);
