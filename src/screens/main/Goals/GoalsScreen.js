@@ -88,7 +88,8 @@ export const GoalsScreen = ({ navigation }) => {
 
   const handleAddOrUpdate = data => {
     if (editingGoal) {
-      updateGoal(data);
+      // Garante que o ID original seja enviado no payload de atualização
+      updateGoal({ ...data, id: editingGoal.id });
     } else {
       addGoal(data);
     }

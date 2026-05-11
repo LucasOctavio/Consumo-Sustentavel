@@ -206,7 +206,7 @@ export const LoginScreen = ({ navigation }) => {
             disabled={loading}
             style={{ marginTop: 14, alignItems: 'center' }}>
             <Text style={styles.linkBlue}>
-              {loading ? 'Reenviando...' : '🔄 Reenviar código'}
+              {loading ? 'Reenviando...' : 'Reenviar código'}
             </Text>
           </TouchableOpacity>
 

@@ -43,7 +43,7 @@ export const NewPasswordScreen = ({ navigation, route }) => {
     setLoading(false);
 
     if (result.success) {
-      Alert.alert('Sucesso! 🎉', 'Sua senha foi redefinida com sucesso!', [
+      Alert.alert('Sucesso!', 'Sua senha foi redefinida com sucesso!', [
         { text: 'Fazer Login', onPress: () => navigation.navigate('Login') },
       ]);
     } else {

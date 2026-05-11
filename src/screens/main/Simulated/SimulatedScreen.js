@@ -93,7 +93,8 @@ export const SimulatedScreen = () => {
 
   const handleAddOrUpdate = data => {
     if (editingSimulation) {
-      updateSimulation(data);
+      // Garante que o ID original seja enviado no payload de atualização
+      updateSimulation({ ...data, id: editingSimulation.id });
     } else {
       addSimulation(data);
     }

@@ -357,8 +357,9 @@ export const AppNavigator = () => {
   const deleteConsumption = async id => {
     // Remove localmente de imediato para UI responsiva
     setConsumptions(prev => prev.filter(c => c.id !== id));
+    console.log('Solicitando exclusão de consumo:', id);
     try {
-      await consumptionService.delete(id);
+      await consumptionService.delete(id); // Chama a rota consumo/delete?con_id=...
     } catch (error) {
       console.error('Error deleting consumption:', error);
       // Recarrega do backend em caso de erro para restaurar estado correto
@@ -368,7 +369,8 @@ export const AppNavigator = () => {
 
   const updateConsumption = async data => {
     try {
-      await consumptionService.update(data);
+      // Aplica a lógica do simulado: garante que o flag seja explicitamente falso para consumo real
+      await consumptionService.update({ ...data, simulated: false });
       await loadBackendData();
       return { success: true };
     } catch (error) {
@@ -404,8 +406,9 @@ export const AppNavigator = () => {
 
   const deleteGoal = async id => {
     setGoals(prev => prev.filter(g => g.id !== id));
+    console.log('Solicitando exclusão de meta:', id);
     try {
-      await goalService.delete(id);
+      await goalService.delete(id); // Usa a rota meta/delete?meta_id=... no api.js
     } catch (error) {
       console.error('Error deleting goal:', error);
       await loadBackendData();
@@ -414,7 +417,8 @@ export const AppNavigator = () => {
 
   const updateGoal = async data => {
     try {
-      await goalService.update(data);
+      // Garante a passagem correta do objeto de dados, similar ao simulado
+      await goalService.update({ ...data });
       await loadBackendData();
       return { success: true };
     } catch (error) {

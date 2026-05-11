@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
   baseURL: 'https://consumo-sustentavel.onrender.com',
+  timeout: 15000, // 15 seconds timeout to handle tunnel instability
   // baseURL: 'http://localhost:8000', // desenvolvimento local
 });
 
@@ -20,6 +21,16 @@ api.interceptors.request.use(
     return config;
   },
   error => {
+    if (error.code === 'ECONNABORTED') {
+      console.error('A requisição demorou demais (Timeout). Verifique sua conexão ou o Túnel Expo.');
+    } else if (error.message === 'Network Error') {
+      console.error('Erro de rede: O servidor remoto ou o túnel Expo caiu.');
+    } else {
+      console.error('Erro na requisição API:', error.config?.url, error.message);
+    }
+    
+    // Opcional: Aqui você poderia implementar uma lógica de renovação de token 
+    // ou redirecionamento se o erro for 401.
     return Promise.reject(error);
   },
 );
@@ -228,6 +239,7 @@ export const consumptionService = {
    * Parâmetro query: con_id (não "id")
    */
   delete: async id => {
+    // Garante que o ID seja enviado via Query String, padrão que o simulador usa
     const response = await api.delete(`/consumo/delete?con_id=${id}`);
     return response.data;
   },
@@ -237,7 +249,7 @@ export const consumptionService = {
    * Body (ConsumoUpdate): { con_id, con_tipo, con_valor, con_medida, con_dt, con_simulado, con_descricao }
    */
   update: async data => {
-    const response = await api.patch('/consumo/update', {
+    const payload = {
       con_id: data.id,
       con_tipo: data.type,
       con_valor: parseFloat(data.value),
@@ -245,7 +257,8 @@ export const consumptionService = {
       con_dt: toIsoDateTime(data.date),
       con_simulado: data.simulated || false,
       con_descricao: data.description,
-    });
+    };
+    const response = await api.patch('/consumo/update', payload);
     return response.data;
   },
 };
@@ -282,7 +295,7 @@ export const goalService = {
    * Parâmetro query: meta_id (não "id")
    */
   delete: async id => {
-    const response = await api.delete(`/meta/delete?meta_id=${id}`);
+    const response = await api.delete(`/meta/delete`, { params: { meta_id: id } });
     return response.data;
   },
 
@@ -291,13 +304,14 @@ export const goalService = {
    * Body (MetaUpdate): { meta_id, tipo, valor, medida, dt_inicio, dt_fim, descricao }
    */
   update: async data => {
+    // Aplica o padrão do simulado/consumo: usa prefixos meta_ para os campos na rota de update
     const response = await api.patch('/meta/update', {
       meta_id: data.id,
-      tipo: data.type,
-      valor: parseFloat(data.value),
-      medida: data.unit,
-      dt_inicio: toIsoDateTime(data.startDate),
-      dt_fim: toIsoDateTime(data.endDate),
+      meta_tipo: data.type,
+      meta_valor: parseFloat(data.value),
+      meta_medida: data.unit,
+      meta_dt_inicio: toIsoDateTime(data.startDate || data.start),
+      meta_dt_fim: toIsoDateTime(data.endDate || data.end),
       meta_descricao: data.description,
     });
     return response.data;

@@ -272,11 +272,11 @@ const calStyles = StyleSheet.create({
 });
 
 // ─── AddModal — modal reutilizável para adicionar consumo, simulação ou meta ──
-const AddModal = ({ visible, onClose, title, onAdd }) => {
+const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
   const { colors } = useTheme();
   const isGoal = title?.toLowerCase().includes('meta');
 
-  const [type, setType] = useState('Água');
+  const [type, setType] = useState(initialData?.type || 'Água');
   const [value, setValue] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
@@ -297,21 +297,41 @@ const AddModal = ({ visible, onClose, title, onAdd }) => {
     setShowCalendar(null);
   };
 
+  useEffect(() => {
+    if (visible) {
+      if (initialData) {
+        setType(initialData.type || 'Água');
+        setValue(String(initialData.value || ''));
+        setDescription(initialData.description || '');
+        if (isGoal) {
+          setStartDate(initialData.start || '');
+          setEndDate(initialData.end || '');
+        } else {
+          setDate(initialData.date || '');
+        }
+      } else {
+        resetForm();
+      }
+    }
+  }, [visible, initialData]);
+
   const handleSubmit = () => {
     if (!value || isNaN(Number(value))) {
       Alert.alert('Erro', 'Por favor, insira um valor numérico válido.');
       return;
     }
 
+    const payload = { id: initialData?.id, type, value: Number(value), unit };
+
     if (isGoal) {
       if (!startDate || !endDate) {
         Alert.alert('Erro', 'Por favor, selecione as datas de início e fim.');
         return;
       }
-      onAdd({ type, value: Number(value), unit, startDate, endDate });
+      onAdd({ ...payload, startDate, endDate, description });
     } else {
       const finalDate = date || new Date().toLocaleDateString('pt-BR');
-      onAdd({ type, value: Number(value), unit, date: finalDate, description });
+      onAdd({ ...payload, date: finalDate, description });
     }
     resetForm();
     onClose();
@@ -348,7 +368,7 @@ const AddModal = ({ visible, onClose, title, onAdd }) => {
                     />
                   </View>
                   <Text style={[addModalStyles.title, { color: colors.text }]}>
-                    {title}
+                    {initialData ? `Editar ${isGoal ? 'Meta' : 'Registro'}` : title}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -669,7 +689,7 @@ const AddModal = ({ visible, onClose, title, onAdd }) => {
                   color="#fff"
                   style={{ marginRight: 10 }}
                 />
-                <Text style={addModalStyles.submitBtnText}>Adicionar</Text>
+                <Text style={addModalStyles.submitBtnText}>{initialData ? 'Atualizar' : 'Adicionar'}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -1119,9 +1139,10 @@ export const HomeScreen = ({ navigation }) => {
 
 export const ConsumptionScreen = () => {
   const { colors } = useTheme();
-  const { consumptions, addConsumption } = useContext(AuthContext);
+  const { consumptions, addConsumption, updateConsumption, deleteConsumption } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [period, setPeriod] = useState('1 sem');
+  const [editingItem, setEditingItem] = useState(null);
 
   const filterDataByPeriod = (data, periodStr) => {
     const now = new Date();
@@ -1149,8 +1170,24 @@ export const ConsumptionScreen = () => {
   const filteredConsumptions = filterDataByPeriod(consumptions, period);
 
   const handleAdd = data => {
-    addConsumption(data);
+    if (data.id) {
+      updateConsumption(data);
+    } else {
+      addConsumption(data);
+    }
     setModalVisible(false);
+    setEditingItem(null);
+  };
+
+  const confirmDelete = id => {
+    Alert.alert('Excluir', 'Deseja realmente excluir este registro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { 
+        text: 'Excluir', 
+        style: 'destructive', 
+        onPress: () => deleteConsumption(id) 
+      },
+    ]);
   };
 
   return (
@@ -1158,7 +1195,12 @@ export const ConsumptionScreen = () => {
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Consumos
       </Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull
+        onPress={() => {
+          setEditingItem(null);
+          setModalVisible(true);
+        }}
+      />
       <Card>
         <View style={styles.cardHeaderArea}>
           <View
@@ -1345,6 +1387,23 @@ export const ConsumptionScreen = () => {
                     </Text>
                   </View>
                 </View>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingItem(item);
+                      setModalVisible(true);
+                    }}
+                    style={[styles.actionBtn, { backgroundColor: colors.secondary + '20' }]}>
+                    <FontAwesome5 name="pen" size={12} color={colors.secondary} />
+                    <Text style={[styles.actionBtnText, { color: colors.secondary }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(item.id)}
+                    style={[styles.actionBtn, { backgroundColor: colors.danger + '15' }]}>
+                    <FontAwesome5 name="trash-alt" size={12} color={colors.danger} />
+                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
                 <View
                   style={{
                     backgroundColor: colors.secondary + '10',
@@ -1462,6 +1521,23 @@ export const ConsumptionScreen = () => {
                     </Text>
                   </View>
                 </View>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingItem(item);
+                      setModalVisible(true);
+                    }}
+                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
+                    <FontAwesome5 name="pen" size={11} color={colors.textLight} />
+                    <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(item.id)}
+                    style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
+                    <FontAwesome5 name="trash-alt" size={11} color={colors.danger} />
+                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
                 <View
                   style={{
                     backgroundColor: colors.border + '30',
@@ -1482,9 +1558,13 @@ export const ConsumptionScreen = () => {
       </Card>
       <AddModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
         title="Adicionar Consumo"
         onAdd={handleAdd}
+        initialData={editingItem}
       />
     </AppLayout>
   );
@@ -1492,7 +1572,8 @@ export const ConsumptionScreen = () => {
 
 export const SimulatedScreen = () => {
   const { colors } = useTheme();
-  const { simulations, addSimulation } = useContext(AuthContext);
+  const { simulations, addSimulation, updateSimulation, deleteSimulation } = useContext(AuthContext);
+  const [editingItem, setEditingItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [period, setPeriod] = useState('1 sem');
 
@@ -1522,8 +1603,20 @@ export const SimulatedScreen = () => {
   const filteredSimulations = filterDataByPeriod(simulations, period);
 
   const handleAdd = data => {
-    addSimulation(data);
+    if (data.id) {
+      updateSimulation(data);
+    } else {
+      addSimulation(data);
+    }
     setModalVisible(false);
+    setEditingItem(null);
+  };
+
+  const confirmDelete = id => {
+    Alert.alert('Excluir Simulação', 'Deseja apagar este registro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => deleteSimulation(id) },
+    ]);
   };
 
   return (
@@ -1531,7 +1624,12 @@ export const SimulatedScreen = () => {
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Simulador
       </Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull
+        onPress={() => {
+          setEditingItem(null);
+          setModalVisible(true);
+        }}
+      />
       <Card>
         <View style={styles.cardHeaderArea}>
           <View
@@ -1719,6 +1817,23 @@ export const SimulatedScreen = () => {
                     </Text>
                   </View>
                 </View>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingItem(item);
+                      setModalVisible(true);
+                    }}
+                    style={[styles.actionBtn, { backgroundColor: colors.secondary + '20' }]}>
+                    <FontAwesome5 name="pen" size={12} color={colors.secondary} />
+                    <Text style={[styles.actionBtnText, { color: colors.secondary }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(item.id)}
+                    style={[styles.actionBtn, { backgroundColor: colors.danger + '15' }]}>
+                    <FontAwesome5 name="trash-alt" size={12} color={colors.danger} />
+                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
                 <View
                   style={{
                     backgroundColor: colors.secondary + '10',
@@ -1836,6 +1951,23 @@ export const SimulatedScreen = () => {
                     </Text>
                   </View>
                 </View>
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingItem(item);
+                      setModalVisible(true);
+                    }}
+                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
+                    <FontAwesome5 name="pen" size={11} color={colors.textLight} />
+                    <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(item.id)}
+                    style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
+                    <FontAwesome5 name="trash-alt" size={11} color={colors.danger} />
+                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
                 <View
                   style={{
                     backgroundColor: colors.border + '30',
@@ -1856,9 +1988,13 @@ export const SimulatedScreen = () => {
       </Card>
       <AddModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
         title="Adicionar ao Simulador"
         onAdd={handleAdd}
+        initialData={editingItem}
       />
     </AppLayout>
   );
@@ -1866,8 +2002,9 @@ export const SimulatedScreen = () => {
 
 export const GoalsScreen = () => {
   const { colors } = useTheme();
-  const { goals, addGoal } = useContext(AuthContext);
+  const { goals, addGoal, updateGoal, deleteGoal } = useContext(AuthContext);
   const [period, setPeriod] = useState('1 sem');
+  const [editingItem, setEditingItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const filterDataByPeriod = (data, periodStr) => {
@@ -1894,8 +2031,24 @@ export const GoalsScreen = () => {
   const filteredGoalsForChart = filterDataByPeriod(goals, period);
 
   const handleAdd = data => {
-    addGoal(data);
+    if (data.id) {
+      updateGoal(data);
+    } else {
+      addGoal(data);
+    }
     setModalVisible(false);
+    setEditingItem(null);
+  };
+
+  const confirmDelete = id => {
+    Alert.alert('Excluir Meta', 'Tem certeza que deseja apagar esta meta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { 
+        text: 'Excluir', 
+        style: 'destructive', 
+        onPress: () => deleteGoal(id) 
+      },
+    ]);
   };
 
   return (
@@ -1903,7 +2056,12 @@ export const GoalsScreen = () => {
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
         Metas
       </Text>
-      <AddButtonFull onPress={() => setModalVisible(true)} />
+      <AddButtonFull
+        onPress={() => {
+          setEditingItem(null);
+          setModalVisible(true);
+        }}
+      />
 
       <Card style={{ marginBottom: 20 }}>
         <View style={styles.cardHeaderArea}>
@@ -2201,11 +2359,29 @@ export const GoalsScreen = () => {
                       </View>
                     </View>
                   </View>
-                  <CircularProgress
-                    percentage={goal.progress}
-                    radius={35}
-                    color={colors.progress.orange}
-                  />
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <CircularProgress
+                      percentage={goal.progress}
+                      radius={35}
+                      color={colors.progress.orange}
+                    />
+                  <View style={[styles.actionButtonsRow, { marginTop: 10 }]}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingItem(goal);
+                          setModalVisible(true);
+                        }}
+                        style={[styles.actionBtn, { backgroundColor: colors.secondary + '20', paddingHorizontal: 8 }]}>
+                        <FontAwesome5 name="pen" size={10} color={colors.secondary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => confirmDelete(goal.id)}
+                        style={[styles.actionBtn, { backgroundColor: colors.danger + '15', paddingHorizontal: 8 }]}>
+                      <Text style={{ color: colors.danger, fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>EXCLUIR</Text>
+                        <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
                 <View
                   style={{
@@ -2338,6 +2514,23 @@ export const GoalsScreen = () => {
                       color={colors.textLight}
                     />
                   </View>
+                  <View style={[styles.actionButtonsRow, { marginTop: 10 }]}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setEditingItem(goal);
+                        setModalVisible(true);
+                      }}
+                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
+                      <FontAwesome5 name="pen" size={10} color={colors.textLight} />
+                      <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => confirmDelete(goal.id)}
+                      style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
+                      <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
+                      <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View
                   style={{
@@ -2361,9 +2554,13 @@ export const GoalsScreen = () => {
 
       <AddModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
         title="Adicionar Meta"
         onAdd={handleAdd}
+        initialData={editingItem}
       />
     </AppLayout>
   );
@@ -2991,4 +3188,23 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   logoutBtnText: { fontWeight: 'bold' },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    gap: 5,
+  },
+  actionBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
 });
