@@ -881,18 +881,10 @@ export const HomeScreen = ({ navigation }) => {
 
   const chartConsumptions = consumptions.slice(0, 5).reverse();
   const barData = {
-    labels:
-      chartConsumptions.length > 0
-        ? chartConsumptions.map(
-            c => c.date.split('/')[0] + '/' + c.date.split('/')[1],
-          )
-        : ['-'],
+    labels: chartConsumptions.map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]),
     datasets: [
       {
-        data:
-          chartConsumptions.length > 0
-            ? chartConsumptions.map(c => Number(c.value) || 0)
-            : [0],
+        data: chartConsumptions.map(c => Number(c.value) || 0),
         colors: chartConsumptions.map((_, i) =>
           i % 2 === 0
             ? () => colors.chart.barBlue
@@ -934,6 +926,7 @@ export const HomeScreen = ({ navigation }) => {
               </Text>
             </Text>
           </View>
+          {chartConsumptions.length > 0 ? (
           <BarChart
             data={barData}
             width={screenWidth}
@@ -942,6 +935,11 @@ export const HomeScreen = ({ navigation }) => {
             fromZero
             style={styles.chart}
           />
+          ) : (
+            <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>
+              Nenhum consumo registrado recentemente
+            </Text>
+          )}
         </Card>
       </TouchableOpacity>
 
@@ -959,26 +957,19 @@ export const HomeScreen = ({ navigation }) => {
               Simulador
             </Text>
           </View>
+          {simulations.length > 0 ? (
           <LineChart
             data={{
-              labels:
-                simulations.length > 0
-                  ? simulations
-                      .slice(0, 5)
-                      .reverse()
-                      .map(
-                        c => c.date.split('/')[0] + '/' + c.date.split('/')[1],
-                      )
-                  : ['-'],
+              labels: simulations
+                .slice(0, 5)
+                .reverse()
+                .map(c => c.date.split('/')[0] + '/' + c.date.split('/')[1]),
               datasets: [
                 {
-                  data:
-                    simulations.length > 0
-                      ? simulations
-                          .slice(0, 5)
-                          .reverse()
-                          .map(c => Number(c.value) || 0)
-                      : [0],
+                  data: simulations
+                    .slice(0, 5)
+                    .reverse()
+                    .map(c => Number(c.value) || 0),
                 },
               ],
             }}
@@ -988,6 +979,11 @@ export const HomeScreen = ({ navigation }) => {
             bezier
             style={styles.chart}
           />
+          ) : (
+            <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>
+              Nenhuma simulação registrada
+            </Text>
+          )}
         </Card>
       </TouchableOpacity>
 
@@ -1295,6 +1291,7 @@ export const ConsumptionScreen = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        {filteredConsumptions.length > 0 ? (
         <BarChart
           data={{
             labels:
@@ -1318,6 +1315,11 @@ export const ConsumptionScreen = () => {
           fromZero
           style={styles.chart}
         />
+        ) : (
+          <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>
+            Sem dados para o período selecionado
+          </Text>
+        )}
       </Card>
       <Card style={{ marginTop: 10 }}>
         <View style={styles.cardHeaderArea}>
@@ -1755,6 +1757,7 @@ export const SimulatedScreen = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        {filteredSimulations.length > 0 ? (
         <LineChart
           data={{
             labels:
@@ -1779,6 +1782,11 @@ export const SimulatedScreen = () => {
           bezier
           style={styles.chart}
         />
+        ) : (
+          <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>
+            Sem dados para o período selecionado
+          </Text>
+        )}
       </Card>
       <Card style={{ marginTop: 10 }}>
         <View style={styles.cardHeaderArea}>

@@ -258,6 +258,7 @@ export const SimulatedScreen = () => {
             ),
           )}
         </ScrollView>
+        {filteredSimulations.length > 0 ? (
         <LineChart
           data={{
             labels:
@@ -282,6 +283,11 @@ export const SimulatedScreen = () => {
           bezier
           style={styles.chart}
         />
+        ) : (
+          <Text style={{ color: colors.textLight, textAlign: 'center', padding: 20 }}>
+            Sem dados para o período selecionado
+          </Text>
+        )}
       </Card>
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>
         Registros atuais
