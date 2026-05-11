@@ -79,10 +79,16 @@ export const AppNavigator = () => {
   const [goals, setGoals] = useState([]);
   const [photo, setPhoto] = useState(null);
 
-  // Check token on initial load
+  // Check token and theme preference on initial load
   React.useEffect(() => {
-    const checkToken = async () => {
+    const initializeApp = async () => {
       try {
+        // Load theme preference
+        const savedTheme = await AsyncStorage.getItem('@CCN:isDarkMode');
+        if (savedTheme !== null) {
+          setIsDarkMode(JSON.parse(savedTheme));
+        }
+
         const token = await AsyncStorage.getItem('@CCN:token');
         if (token) {
           setAuthToken(token); // Garante que o header seja setado imediatamente
@@ -98,8 +104,18 @@ export const AppNavigator = () => {
         console.log('No token found or error validating token', error);
       }
     };
-    checkToken();
+    initializeApp();
   }, []);
+
+  // Wrapper function to persist theme changes
+  const toggleDarkMode = async value => {
+    setIsDarkMode(value);
+    try {
+      await AsyncStorage.setItem('@CCN:isDarkMode', JSON.stringify(value));
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
+    }
+  };
 
   // Load data from backend when authenticated
   React.useEffect(() => {
@@ -479,7 +495,7 @@ export const AppNavigator = () => {
   });
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, colors }}>
+    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode: toggleDarkMode, colors }}>
       <AuthContext.Provider
         value={{
           isAuthenticated,
