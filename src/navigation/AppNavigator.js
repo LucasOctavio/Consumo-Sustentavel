@@ -492,7 +492,8 @@ export const AppNavigator = () => {
         ? Math.min(100, Math.round((totalConsumed / Number(goal.value)) * 100))
         : 0;
 
-    return { ...goal, progress };
+    const remaining = Math.max(0, Number(goal.value) - totalConsumed);
+    return { ...goal, progress, remaining };
   });
 
   return (

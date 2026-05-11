@@ -2180,7 +2180,7 @@ export const GoalsScreen = () => {
           </View>
           <Text
             style={[styles.cardHeaderText, { color: colors.text, flex: 1 }]}>
-            Evolução das Metas (%)
+            Limite Disponível (Restante)
           </Text>
           <View
             style={[
@@ -2232,71 +2232,15 @@ export const GoalsScreen = () => {
           ))}
         </ScrollView>
         {(() => {
-          const calculateProgressData = () => {
-            const now = new Date();
-            let days = 7;
-            if (period === '2 sem') days = 14;
-            else if (period === '3 sem') days = 21;
-            else if (period === '1 mês') days = 30;
-            else if (period === '6 meses') days = 180;
-            else if (period === '1 ano') days = 365;
+          const remainingTotals = filteredGoalsForChart.reduce((acc, goal) => {
+            acc[goal.type] = (acc[goal.type] || 0) + (Number(goal.remaining) || 0);
+            return acc;
+          }, {});
 
-            const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-            const activeGoals = filteredGoalsForChart.filter(goal => {
-              const [sd, sm, sy] = String(goal.start || '')
-                .split('/')
-                .map(Number);
-              const [ed, em, ey] = String(goal.end || '')
-                .split('/')
-                .map(Number);
-              if (!sd || !sm || !sy || !ed || !em || !ey) return false;
-              const startDate = new Date(sy, sm - 1, sd);
-              const endDate = new Date(ey, em - 1, ed);
-              return endDate >= cutoff && startDate <= now;
-            });
+          const labels = Object.keys(remainingTotals);
+          const data = Object.values(remainingTotals);
 
-            if (activeGoals.length === 0) return { labels: [], data: [] };
-
-            const weeks = [];
-            const current = new Date(cutoff);
-            while (current <= now) {
-              weeks.push(new Date(current));
-              current.setDate(current.getDate() + 7);
-            }
-
-            const labels = weeks.map(
-              week => `${week.getDate()}/${week.getMonth() + 1}`,
-            );
-            const data = weeks.map(week => {
-              const weekGoals = activeGoals.filter(goal => {
-                const [sd, sm, sy] = String(goal.start || '')
-                  .split('/')
-                  .map(Number);
-                const [ed, em, ey] = String(goal.end || '')
-                  .split('/')
-                  .map(Number);
-                if (!sd || !sm || !sy || !ed || !em || !ey) return false;
-                const startDate = new Date(sy, sm - 1, sd);
-                const endDate = new Date(ey, em - 1, ed);
-                return startDate <= week && endDate >= week;
-              });
-
-              if (weekGoals.length === 0) return 0;
-              const totalProgress = weekGoals.reduce(
-                (sum, goal) => sum + (Number(goal.progress) || 0),
-                0,
-              );
-              return Math.min(
-                100,
-                Math.round(totalProgress / weekGoals.length),
-              );
-            });
-
-            return { labels, data };
-          };
-
-          const progressData = calculateProgressData();
-          if (progressData.labels.length === 0)
+          if (labels.length === 0)
             return (
               <Text
                 style={{
@@ -2304,61 +2248,33 @@ export const GoalsScreen = () => {
                   textAlign: 'center',
                   padding: 20,
                 }}>
-                Nenhuma meta para analisar
+                Sem dados para o período selecionado
               </Text>
             );
 
           return (
-            <LineChart
+            <BarChart
               data={{
-                labels: progressData.labels,
+                labels: labels,
                 datasets: [
                   {
-                    data: progressData.data,
-                    color: () => `rgba(25, 118, 210, 1)`,
-                    strokeWidth: 3,
+                    data: data,
+                    colors: labels.map(label => {
+                      if (label === 'Água') return () => colors.chart.barBlue;
+                      if (label === 'Energia') return () => colors.chart.barOrange;
+                      if (label === 'Gás') return () => colors.success;
+                      return () => colors.secondary;
+                    }),
                   },
                 ],
               }}
               width={screenWidth}
               height={180}
-              chartConfig={{
-                ...getChartConfig(colors),
-                backgroundGradientFromOpacity: 0,
-                backgroundGradientToOpacity: 0,
-                fillShadowGradient: 'rgba(25, 118, 210, 0.18)',
-                fillShadowGradientOpacity: 1,
-                propsForDots: {
-                  r: '6',
-                  strokeWidth: '2',
-                  stroke: colors.card,
-                },
-                formatYLabel: y => `${y}%`,
-                decimalPlaces: 0,
-              }}
-              bezier
-              style={[styles.chart, { backgroundColor: 'transparent' }]}
-              withDots={true}
-              withShadow={true}
-              withInnerLines={true}
-              withOuterLines={false}
-              fromZero={true}
-              yAxisSuffix="%"
-              yAxisInterval={1}
-              renderDotContent={({ x, y, index }) => (
-                <Text
-                  key={`dot-${index}`}
-                  style={{
-                    position: 'absolute',
-                    top: y - 24,
-                    left: x - 14,
-                    color: colors.text,
-                    fontSize: 10,
-                    fontWeight: '700',
-                  }}>
-                  {progressData.data[index]}%
-                </Text>
-              )}
+              chartConfig={getChartConfig(colors)}
+              fromZero
+              flatColor={true}
+              withCustomBarColorFromData={true}
+              style={styles.chart}
             />
           );
         })()}

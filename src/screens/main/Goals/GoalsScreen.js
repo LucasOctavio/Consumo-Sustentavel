@@ -208,7 +208,7 @@ export const GoalsScreen = ({ navigation }) => {
               styles.cardHeader,
               { color: colors.text, marginBottom: 0 },
             ]}>
-            Análise por Recurso
+            Limite Disponível (Restante)
           </Text>
           <View
             style={[
@@ -255,7 +255,7 @@ export const GoalsScreen = ({ navigation }) => {
         </ScrollView>
         {(() => {
           const totals = filteredGoalsForChart.reduce((acc, goal) => {
-            acc[goal.type] = (acc[goal.type] || 0) + (Number(goal.value) || 0);
+            acc[goal.type] = (acc[goal.type] || 0) + (Number(goal.remaining) || 0);
             return acc;
           }, {});
 
