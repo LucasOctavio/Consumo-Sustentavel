@@ -84,12 +84,12 @@ export const AppNavigator = () => {
     const initializeApp = async () => {
       try {
         // Load theme preference
-        const savedTheme = await AsyncStorage.getItem('@CCN:isDarkMode');
+        const savedTheme = await AsyncStorage.getItem('@CENA:isDarkMode');
         if (savedTheme !== null) {
           setIsDarkMode(JSON.parse(savedTheme));
         }
 
-        const token = await AsyncStorage.getItem('@CCN:token');
+        const token = await AsyncStorage.getItem('@CENA:token');
         if (token) {
           setAuthToken(token); // Garante que o header seja setado imediatamente
           const userInfo = await authService.getUserInfo();
@@ -111,7 +111,7 @@ export const AppNavigator = () => {
   const toggleDarkMode = async value => {
     setIsDarkMode(value);
     try {
-      await AsyncStorage.setItem('@CCN:isDarkMode', JSON.stringify(value));
+      await AsyncStorage.setItem('@CENA:isDarkMode', JSON.stringify(value));
     } catch (error) {
       console.error('Error saving theme preference:', error);
     }
@@ -195,10 +195,10 @@ export const AppNavigator = () => {
     try {
       const data = await authService.verify2fa(codigo, token2fa);
       if (data && data.access_token) {
-        await AsyncStorage.setItem('@CCN:token', data.access_token);
+        await AsyncStorage.setItem('@CENA:token', data.access_token);
         setAuthToken(data.access_token); // Set imediato no header para chamadas seguintes
         if (data.refresh_token) {
-          await AsyncStorage.setItem('@CCN:refresh_token', data.refresh_token);
+          await AsyncStorage.setItem('@CENA:refresh_token', data.refresh_token);
         }
         // Busca dados do usuário após confirmação do 2FA
         const userInfo = await authService.getUserInfo();
@@ -247,7 +247,7 @@ export const AppNavigator = () => {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('@CCN:token');
+    await AsyncStorage.removeItem('@CENA:token');
     setAuthToken(null); // Remove o token do header
     setIsAuthenticated(false);
     setUserData(null);
@@ -452,7 +452,7 @@ export const AppNavigator = () => {
       await authService.deleteAccount();
 
       // Remove token e limpa estado
-      await AsyncStorage.removeItem('@CCN:token');
+      await AsyncStorage.removeItem('@CENA:token');
       setIsAuthenticated(false);
       setUserData(null);
       return { success: true };

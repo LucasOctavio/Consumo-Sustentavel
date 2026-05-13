@@ -13,7 +13,7 @@ export const Logo = ({
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../assets/CCNXP.png')}
+        source={require('../../assets/cena.png')}
         style={{ width: size, height: size, resizeMode: 'contain' }}
       />
     </View>

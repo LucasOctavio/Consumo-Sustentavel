@@ -2965,7 +2965,7 @@ export const SettingsScreen = () => {
             style={{ marginBottom: 10 }}
           />
           <Text style={[styles.supportEmail, { color: colors.secondary }]}>
-            suporte.ccn@email.com
+            suporte.cena@email.com
           </Text>
         </View>
       </CollapsibleCard>

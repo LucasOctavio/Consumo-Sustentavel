@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "CCN",
+    "name": "CENA",
     "slug": "CCN",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/cena.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/cena.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,14 +17,23 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/cena.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.fernandotmgomes.CCN"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/cena.png"
     },
-    "plugins": ["expo-web-browser"]
+    "plugins": [
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5fadbed1-370a-4b9e-8d85-7092ec3da215"
+      }
+    },
+    "owner": "fernandotmgomes"
   }
 }

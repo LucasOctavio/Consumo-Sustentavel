@@ -1,35 +1,41 @@
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const api = axios.create({
-  baseURL: 'https://consumo-sustentavel.onrender.com',
+  baseURL: "https://consumo-sustentavel.onrender.com",
   timeout: 15000, // 15 seconds timeout to handle tunnel instability
   // baseURL: 'http://localhost:8000', // desenvolvimento local
 });
 
 // Interceptor: adiciona o token Bearer em todas as requisições autenticadas
 api.interceptors.request.use(
-  async config => {
+  async (config) => {
     try {
-      const token = await AsyncStorage.getItem('@CCN:token');
+      const token = await AsyncStorage.getItem("@CENA:token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error('Erro ao ler token no interceptor:', error);
+      console.error("Erro ao ler token no interceptor:", error);
     }
     return config;
   },
-  error => {
-    if (error.code === 'ECONNABORTED') {
-      console.error('A requisição demorou demais (Timeout). Verifique sua conexão ou o Túnel Expo.');
-    } else if (error.message === 'Network Error') {
-      console.error('Erro de rede: O servidor remoto ou o túnel Expo caiu.');
+  (error) => {
+    if (error.code === "ECONNABORTED") {
+      console.error(
+        "A requisição demorou demais (Timeout). Verifique sua conexão ou o Túnel Expo.",
+      );
+    } else if (error.message === "Network Error") {
+      console.error("Erro de rede: O servidor remoto ou o túnel Expo caiu.");
     } else {
-      console.error('Erro na requisição API:', error.config?.url, error.message);
+      console.error(
+        "Erro na requisição API:",
+        error.config?.url,
+        error.message,
+      );
     }
-    
-    // Opcional: Aqui você poderia implementar uma lógica de renovação de token 
+
+    // Opcional: Aqui você poderia implementar uma lógica de renovação de token
     // ou redirecionamento se o erro for 401.
     return Promise.reject(error);
   },
@@ -39,11 +45,11 @@ api.interceptors.request.use(
  * Define o token de autorização diretamente na instância do axios.
  * Útil para sincronização imediata após o login sem depender do AsyncStorage.
  */
-export const setAuthToken = token => {
+export const setAuthToken = (token) => {
   if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
-    delete api.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common["Authorization"];
   }
 };
 
@@ -57,7 +63,7 @@ export const authService = {
    * Retorna: { message, token_2fa }
    */
   send2fa: async (name, password) => {
-    const response = await api.post('/usuario/send_2fa_email', {
+    const response = await api.post("/usuario/send_2fa_email", {
       nome: name,
       senha: password,
     });
@@ -71,7 +77,7 @@ export const authService = {
    * Retorna: { access_token, refresh_token, token_type }
    */
   verify2fa: async (codigo, token2fa) => {
-    const response = await api.post('/usuario/verify_2fa', {
+    const response = await api.post("/usuario/verify_2fa", {
       codigo,
       token_2fa: token2fa,
     });
@@ -84,7 +90,7 @@ export const authService = {
    * Retorna confirmação de cadastro
    */
   register: async (name, email, password) => {
-    const response = await api.post('/usuario/sign_up', {
+    const response = await api.post("/usuario/sign_up", {
       nome: name,
       email: email,
       senha: password,
@@ -97,7 +103,7 @@ export const authService = {
    * Retorna dados do usuário autenticado
    */
   getUserInfo: async () => {
-    const response = await api.get('/usuario/read');
+    const response = await api.get("/usuario/read");
     return response.data;
   },
 
@@ -106,7 +112,7 @@ export const authService = {
    * Body (UsuarioUpdate): { user_name?: string, user_senha?: string }
    * Nota: e-mail NÃO pode ser alterado diretamente — apenas nome e senha
    */
-  update: async userData => {
+  update: async (userData) => {
     const payload = {};
     if (userData.name && userData.name.trim().length > 0) {
       payload.user_name = userData.name.trim();
@@ -114,7 +120,7 @@ export const authService = {
     if (userData.password && userData.password.trim().length > 0) {
       payload.user_senha = userData.password.trim();
     }
-    const response = await api.patch('/usuario/update', payload);
+    const response = await api.patch("/usuario/update", payload);
     return response.data;
   },
 
@@ -122,7 +128,7 @@ export const authService = {
    * DELETE /usuario/delete  (requer Bearer token)
    */
   deleteAccount: async () => {
-    const response = await api.delete('/usuario/delete');
+    const response = await api.delete("/usuario/delete");
     return response.data;
   },
 
@@ -132,8 +138,20 @@ export const authService = {
    * Envia código de recuperação de senha por e-mail.
    * Retorna: { message, token_reset }
    */
-  forgotPassword: async email => {
-    const response = await api.post('/usuario/forgot_password', { email });
+  forgotPassword: async (email) => {
+    const response = await api.post("/usuario/forgot_password", { email });
+    return response.data;
+  },
+
+  /**
+   * POST /usuario/verify_reset_code
+   * Body: { codigo: string, token_reset: string }
+   */
+  verifyResetCode: async (codigo, tokenReset) => {
+    const response = await api.post("/usuario/verify_reset_code", {
+      codigo,
+      token_reset: tokenReset,
+    });
     return response.data;
   },
 
@@ -143,7 +161,7 @@ export const authService = {
    * Valida o código e atualiza a senha do usuário.
    */
   resetPassword: async (codigo, tokenReset, novaSenha) => {
-    const response = await api.post('/usuario/reset_password', {
+    const response = await api.post("/usuario/reset_password", {
       codigo,
       token_reset: tokenReset,
       nova_senha: novaSenha,
@@ -157,7 +175,7 @@ export const authService = {
    * Reenvia o link de verificação de cadastro para o e-mail informado.
    */
   resendVerification: async (nome, email, senha) => {
-    const response = await api.post('/usuario/resend_verification', {
+    const response = await api.post("/usuario/resend_verification", {
       nome,
       email,
       senha,
@@ -172,18 +190,18 @@ export const authService = {
  * Converte DD/MM/YYYY → "YYYY-MM-DDTHH:mm:ss"
  * O backend espera datetime (não apenas date)
  */
-const toIsoDateTime = dateStr => {
+const toIsoDateTime = (dateStr) => {
   if (!dateStr) return null;
   const s = String(dateStr);
   // Já é datetime ISO
-  if (s.includes('T')) return s;
+  if (s.includes("T")) return s;
   // DD/MM/YYYY → YYYY-MM-DDTHH:mm:ss
-  if (s.includes('/')) {
-    const [day, month, year] = s.split('/');
+  if (s.includes("/")) {
+    const [day, month, year] = s.split("/");
     return `${year}-${month}-${day}T00:00:00`;
   }
   // YYYY-MM-DD → adiciona horário
-  if (s.includes('-') && s.length === 10) {
+  if (s.includes("-") && s.length === 10) {
     return `${s}T00:00:00`;
   }
   return s;
@@ -197,12 +215,12 @@ export const consumptionService = {
    * Retorna lista de consumos do usuário
    */
   getAll: async () => {
-    const response = await api.get('/consumo/read');
+    const response = await api.get("/consumo/read");
     return response.data;
   },
 
   getAllSimulations: async () => {
-    const response = await api.get('/consumo/read_simulados');
+    const response = await api.get("/consumo/read_simulados");
     return response.data;
   },
 
@@ -210,8 +228,8 @@ export const consumptionService = {
    * POST /consumo/create  (requer Bearer token)
    * Body (ConsumoSchema): { tipo, valor, medida, dt: datetime, simulado: bool }
    */
-  create: async data => {
-    const response = await api.post('/consumo/create', {
+  create: async (data) => {
+    const response = await api.post("/consumo/create", {
       tipo: data.type,
       valor: parseFloat(data.value),
       medida: data.unit,
@@ -222,8 +240,8 @@ export const consumptionService = {
     return response.data;
   },
 
-  createSimulation: async data => {
-    const response = await api.post('/consumo/create', {
+  createSimulation: async (data) => {
+    const response = await api.post("/consumo/create", {
       tipo: data.type,
       valor: parseFloat(data.value),
       medida: data.unit,
@@ -238,7 +256,7 @@ export const consumptionService = {
    * DELETE /consumo/delete?con_id=<id>  (requer Bearer token)
    * Parâmetro query: con_id (não "id")
    */
-  delete: async id => {
+  delete: async (id) => {
     // Garante que o ID seja enviado via Query String, padrão que o simulador usa
     const response = await api.delete(`/consumo/delete?con_id=${id}`);
     return response.data;
@@ -248,7 +266,7 @@ export const consumptionService = {
    * PATCH /consumo/update (requer Bearer token)
    * Body (ConsumoUpdate): { con_id, con_tipo, con_valor, con_medida, con_dt, con_simulado, con_descricao }
    */
-  update: async data => {
+  update: async (data) => {
     const payload = {
       con_id: data.id,
       con_tipo: data.type,
@@ -258,7 +276,7 @@ export const consumptionService = {
       con_simulado: data.simulated || false,
       con_descricao: data.description,
     };
-    const response = await api.patch('/consumo/update', payload);
+    const response = await api.patch("/consumo/update", payload);
     return response.data;
   },
 };
@@ -270,7 +288,7 @@ export const goalService = {
    * GET /meta/read  (requer Bearer token)
    */
   getAll: async () => {
-    const response = await api.get('/meta/read');
+    const response = await api.get("/meta/read");
     return response.data;
   },
 
@@ -278,8 +296,8 @@ export const goalService = {
    * POST /meta/create  (requer Bearer token)
    * Body (MetaSchema): { tipo, valor, medida, dt_inicio: datetime, dt_fim: datetime }
    */
-  create: async data => {
-    const response = await api.post('/meta/create', {
+  create: async (data) => {
+    const response = await api.post("/meta/create", {
       tipo: data.type,
       valor: parseFloat(data.value),
       medida: data.unit,
@@ -294,8 +312,10 @@ export const goalService = {
    * DELETE /meta/delete?meta_id=<id>  (requer Bearer token)
    * Parâmetro query: meta_id (não "id")
    */
-  delete: async id => {
-    const response = await api.delete(`/meta/delete`, { params: { meta_id: id } });
+  delete: async (id) => {
+    const response = await api.delete(`/meta/delete`, {
+      params: { meta_id: id },
+    });
     return response.data;
   },
 
@@ -303,9 +323,9 @@ export const goalService = {
    * PATCH /meta/update (requer Bearer token)
    * Body (MetaUpdate): { meta_id, tipo, valor, medida, dt_inicio, dt_fim, descricao }
    */
-  update: async data => {
+  update: async (data) => {
     // Aplica o padrão do simulado/consumo: usa prefixos meta_ para os campos na rota de update
-    const response = await api.patch('/meta/update', {
+    const response = await api.patch("/meta/update", {
       meta_id: data.id,
       meta_tipo: data.type,
       meta_valor: parseFloat(data.value),
@@ -325,10 +345,10 @@ export const photoService = {
    * POST /foto/create (requer Bearer token)
    * Body: FormData { foto: binary }
    */
-  upload: async formData => {
-    const response = await api.post('/foto/create', formData, {
+  upload: async (formData) => {
+    const response = await api.post("/foto/create", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -339,8 +359,8 @@ export const photoService = {
    * Retorna a foto do usuário
    */
   get: async () => {
-    const response = await api.get('/foto/read', {
-      responseType: 'blob',
+    const response = await api.get("/foto/read", {
+      responseType: "blob",
     });
     return response.data;
   },
