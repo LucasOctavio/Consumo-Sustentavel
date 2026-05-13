@@ -196,8 +196,6 @@ export const LoginScreen = ({ navigation }) => {
           <Button
             title={loading ? "Verificando..." : "Confirmar"}
             onPress={handleVerify2FA}
-            style={[styles.btn, (bloqueado || expired) && styles.btnDisabled]}
-            disabled={bloqueado || expired || loading}
             style={[styles.btn, loading && styles.btnDisabled]}
             disabled={loading}
           />

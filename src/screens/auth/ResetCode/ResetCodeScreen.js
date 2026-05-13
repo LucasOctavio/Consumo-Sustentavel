@@ -135,8 +135,8 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         <Button
           title={loading ? "Verificando..." : "Verificar"}
           onPress={handleVerify}
-          style={[styles.btn, (expired || loading) && styles.btnDisabled]}
-          disabled={expired || loading}
+          style={[styles.btn, loading && styles.btnDisabled]}
+          disabled={loading}
         />
 
         <TouchableOpacity

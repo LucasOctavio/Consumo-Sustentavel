@@ -202,8 +202,8 @@ export const LoginScreen = ({ navigation }) => {
           <Button
             title={loading ? "Verificando..." : "Confirmar"}
             onPress={handleVerify2FA}
-            style={[styles.btn, (bloqueado || expired) && styles.btnDisabled]}
-            disabled={bloqueado || expired || loading}
+            style={[styles.btn, loading && styles.btnDisabled]}
+            disabled={loading}
           />
 
           {/* Botão de reenvio — disponível após expiração ou por precaução */}
@@ -587,8 +587,8 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         <Button
           title={loading ? "Verificando..." : "Verificar"}
           onPress={handleVerify}
-          style={[styles.btn, (expired || loading) && styles.btnDisabled]}
-          disabled={expired || loading}
+          style={[styles.btn, loading && styles.btnDisabled]}
+          disabled={loading}
         />
 
         <TouchableOpacity
