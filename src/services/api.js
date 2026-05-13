@@ -143,17 +143,8 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * POST /usuario/verify_reset_code
-   * Body: { codigo: string, token_reset: string }
-   */
-  verifyResetCode: async (codigo, tokenReset) => {
-    const response = await api.post("/usuario/verify_reset_code", {
-      codigo,
-      token_reset: tokenReset,
-    });
-    return response.data;
-  },
+  // Removido verifyResetCode pois o backend não possui este endpoint separado.
+  // A validação do código ocorre diretamente no resetPassword.
 
   /**
    * POST /usuario/reset_password

@@ -23,6 +23,7 @@ const MAX_ATTEMPTS = 5; // Máximo de tentativas antes de bloquear
 // LoginScreen — dois passos: credenciais → código 2FA
 // ─────────────────────────────────────────────────────────────────────────────
 export const LoginScreen = ({ navigation }) => {
+  const { colors } = useTheme();
   const { login, confirmLogin } = useContext(AuthContext);
 
   // ── Passo 1: credenciais ──
@@ -141,14 +142,14 @@ export const LoginScreen = ({ navigation }) => {
     return (
       <AuthLayout>
         <Card style={styles.card}>
-          <Text style={styles.title}>Verificação 2FA</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Verificação 2FA</Text>
 
           {/* Contador regressivo */}
           <View
-            style={[styles.timerBadge, expired && styles.timerBadgeExpired]}
+            style={[styles.timerBadge, expired ? styles.timerBadgeExpired : { backgroundColor: colors.background + '40' }]}
           >
             <Text
-              style={[styles.timerText, expired && styles.timerTextExpired]}
+              style={[styles.timerText, expired ? styles.timerTextExpired : { color: colors.primary }]}
             >
               {expired
                 ? "Código expirado"
@@ -156,7 +157,7 @@ export const LoginScreen = ({ navigation }) => {
             </Text>
           </View>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: colors.textLight }]}>
             Enviamos um código de 6 dígitos para o e-mail vinculado à conta.
             {"\n"}
             Digite-o abaixo para concluir o login.
@@ -169,12 +170,12 @@ export const LoginScreen = ({ navigation }) => {
                 key={i}
                 style={[
                   styles.attemptDot,
-                  i < attempts ? styles.attemptDotUsed : styles.attemptDotFree,
+                  i < attempts ? styles.attemptDotUsed : { backgroundColor: colors.primary + '40' },
                 ]}
               />
             ))}
           </View>
-          <Text style={styles.attemptsLabel}>
+          <Text style={[styles.attemptsLabel, { color: colors.textLight }]}>
             {bloqueado
               ? "Limite atingido"
               : `${MAX_ATTEMPTS - attempts} tentativa(s) restante(s)`}
@@ -192,7 +193,7 @@ export const LoginScreen = ({ navigation }) => {
               setCode(t);
               setError("");
             }}
-            style={{ textAlign: "center", fontSize: 26, letterSpacing: 12 }}
+            style={{ textAlign: "center", fontSize: 26, letterSpacing: 12, color: colors.text }}
           />
 
           <Button
@@ -208,7 +209,7 @@ export const LoginScreen = ({ navigation }) => {
             disabled={loading}
             style={{ marginTop: 14, alignItems: "center" }}
           >
-            <Text style={styles.linkBlue}>
+            <Text style={[styles.linkBlue, { color: colors.primary }]}>
               {loading ? "Reenviando..." : "Reenviar código"}
             </Text>
           </TouchableOpacity>
@@ -223,7 +224,7 @@ export const LoginScreen = ({ navigation }) => {
             }}
             style={{ marginTop: 10, alignItems: "center" }}
           >
-            <Text style={{ color: "#888", fontSize: 13 }}>
+            <Text style={{ color: colors.textLight, fontSize: 13 }}>
               ← Voltar para o login
             </Text>
           </TouchableOpacity>
@@ -236,7 +237,7 @@ export const LoginScreen = ({ navigation }) => {
   return (
     <AuthLayout>
       <Card style={styles.card}>
-        <Text style={styles.title}>Faça o login</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Faça o login</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Input
           placeholder="Nome"
@@ -267,15 +268,15 @@ export const LoginScreen = ({ navigation }) => {
           onPress={() => navigation.navigate("Recovery")}
           style={{ marginTop: 12, alignItems: "center" }}
         >
-          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
+          <Text style={[styles.forgotPasswordText, { color: colors.textLight }]}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </Card>
 
       <View style={styles.footerLinks}>
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.footerLinkText}>
+          <Text style={[styles.footerLinkText, { color: colors.text }]}>
             Não tem uma conta ainda?{" "}
-            <Text style={styles.linkBlue}>cadastrar</Text>
+            <Text style={[styles.linkBlue, { color: colors.primary }]}>cadastrar</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -287,6 +288,7 @@ export const LoginScreen = ({ navigation }) => {
 // RegisterScreen — cadastro com e-mail de verificação
 // ─────────────────────────────────────────────────────────────────────────────
 export const RegisterScreen = ({ navigation }) => {
+  const { colors } = useTheme();
   const { register } = useContext(AuthContext);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -325,8 +327,8 @@ export const RegisterScreen = ({ navigation }) => {
     return (
       <AuthLayout>
         <Card style={styles.card}>
-          <Text style={styles.title}>Verifique seu e-mail</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.text }]}>Verifique seu e-mail</Text>
+          <Text style={[styles.subtitle, { color: colors.textLight }]}>
             Cadastro realizado com sucesso! Enviamos um link de verificação para{" "}
             {email} {"\n\n"}
             Após verificar seu e-mail, volte aqui e faça login.
@@ -344,7 +346,7 @@ export const RegisterScreen = ({ navigation }) => {
   return (
     <AuthLayout>
       <Card style={styles.card}>
-        <Text style={styles.title}>Faça o cadastro</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Faça o cadastro</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <Input
           placeholder="Nome"
@@ -384,8 +386,8 @@ export const RegisterScreen = ({ navigation }) => {
         onPress={() => navigation.navigate("Login")}
         style={styles.footerLinks}
       >
-        <Text style={styles.footerLinkText}>
-          Já tem cadastro? Faça seu <Text style={styles.linkBlue}>login</Text>
+        <Text style={[styles.footerLinkText, { color: colors.text }]}>
+          Já tem cadastro? Faça seu <Text style={[styles.linkBlue, { color: colors.primary }]}>login</Text>
         </Text>
       </TouchableOpacity>
     </AuthLayout>
@@ -396,6 +398,7 @@ export const RegisterScreen = ({ navigation }) => {
 // RecoveryScreen — solicita e-mail para enviar o código de recuperação
 // ─────────────────────────────────────────────────────────────────────────────
 export const RecoveryScreen = ({ navigation }) => {
+  const { colors } = useTheme();
   const { forgotPassword } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -428,18 +431,18 @@ export const RecoveryScreen = ({ navigation }) => {
         onPress={() => navigation.goBack()}
         style={styles.backBtn}
       >
-        <Text style={styles.backBtnText}>{"← Voltar"}</Text>
+        <Text style={[styles.backBtnText, { color: colors.secondary }]}>{"← Voltar"}</Text>
       </TouchableOpacity>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Redefinir senha</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Redefinir senha</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.textLight }]}>
           Insira o endereço de e-mail da sua conta e enviaremos um código de
           segurança para redefinir a senha.
         </Text>
 
-        <Text style={styles.label}>Endereço de e-mail</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Endereço de e-mail</Text>
         <Input
           placeholder="Email"
           keyboardType="email-address"
@@ -461,87 +464,7 @@ export const RecoveryScreen = ({ navigation }) => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NewPasswordScreen — define a nova senha após validar o código
-// ─────────────────────────────────────────────────────────────────────────────
-export const NewPasswordScreen = ({ navigation, route }) => {
-  const { resetPasswordByCode } = useContext(AuthContext);
-  const { email, codigo, tokenReset } = route.params || {};
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleReset = async () => {
-    if (!password || password.length < 6) {
-      setError("A senha deve conter no mínimo 6 caracteres.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("As senhas não coincidem.");
-      return;
-    }
-
-    // Sem token (e-mail não cadastrado): backend retorna mensagem genérica por segurança
-    if (!tokenReset) {
-      Alert.alert(
-        "Atenção",
-        "Código inválido ou e-mail não cadastrado. Tente novamente.",
-      );
-      navigation.navigate("Recovery");
-      return;
-    }
-
-    setError("");
-    setLoading(true);
-    const result = await resetPasswordByCode(codigo, tokenReset, password);
-    setLoading(false);
-
-    if (result.success) {
-      Alert.alert("Sucesso! 🎉", "Sua senha foi redefinida com sucesso!", [
-        { text: "Fazer Login", onPress: () => navigation.navigate("Login") },
-      ]);
-    } else {
-      setError(result.message);
-    }
-  };
-
-  return (
-    <AuthLayout>
-      <Card style={styles.card}>
-        <Text style={styles.title}>Nova Senha</Text>
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>Criando nova senha para: {email}</Text>
-
-        <Input
-          placeholder="Nova Senha"
-          secureTextEntry
-          value={password}
-          onChangeText={(t) => {
-            setPassword(t);
-            setError("");
-          }}
-        />
-        <Input
-          placeholder="Confirmar Senha"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={(t) => {
-            setConfirmPassword(t);
-            setError("");
-          }}
-        />
-
-        <Button
-          title={loading ? "Redefinindo..." : "Redefinir Senha"}
-          onPress={handleReset}
-          style={styles.btn}
-          disabled={loading}
-        />
-      </Card>
-    </AuthLayout>
-  );
-};
+// NewPasswordScreen foi integrada ao ResetCodeScreen para maior segurança e fluidez.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Estilos
@@ -563,7 +486,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 14,
-    color: "#000",
   },
   errorText: {
     color: "#FF4C4C",
@@ -576,13 +498,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginBottom: 18,
-    color: "#666",
     lineHeight: 18,
   },
   label: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#000",
     marginBottom: -3,
   },
   btn: {
@@ -598,35 +518,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 30,
   },
-  footerLinkText: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  linkBlue: {
-    color: "#009DFF",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  forgotPasswordText: {
-    color: "#009DFF",
-    fontSize: 14,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 4,
-  },
   backBtn: {
     alignSelf: "flex-start",
     marginBottom: 10,
   },
   backBtnText: {
-    color: "#1E2C5A",
     fontSize: 14,
     fontWeight: "bold",
   },
-  // ── Timer badge ──
   timerBadge: {
-    backgroundColor: "#E8F5E9",
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 16,
@@ -637,7 +537,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFEBEE",
   },
   timerText: {
-    color: "#2E7D32",
     fontWeight: "bold",
     fontSize: 13,
   },
@@ -653,7 +552,6 @@ const styles = StyleSheet.create({
   },
   attemptsLabel: {
     textAlign: "center",
-    color: "#888",
     fontSize: 12,
     marginBottom: 10,
   },
@@ -661,9 +559,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-  },
-  attemptDotFree: {
-    backgroundColor: "#A5D6A7",
   },
   attemptDotUsed: {
     backgroundColor: "#EF9A9A",

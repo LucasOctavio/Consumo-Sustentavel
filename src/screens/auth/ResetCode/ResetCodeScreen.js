@@ -1,10 +1,10 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { AuthLayout } from "../../../components/AuthLayout";
 import { Card } from "../../../components/Card";
 import { Input } from "../../../components/Input";
 import { Button } from "../../../components/Button";
-import { AuthContext } from "../../../navigation/AppNavigator";
+import { AuthContext, useTheme } from "../../../navigation/AppNavigator";
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60)
@@ -17,10 +17,14 @@ const formatTime = (seconds) => {
 const EXPIRY_SECONDS = 10 * 60;
 
 export const ResetCodeScreen = ({ navigation, route }) => {
+  const { colors } = useTheme();
   const { email, tokenReset } = route.params || {};
-  const { forgotPassword, verifyResetCode } = useContext(AuthContext);
+  const { forgotPassword, resetPasswordByCode } = useContext(AuthContext);
 
   const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentToken, setCurrentToken] = useState(tokenReset);
@@ -48,23 +52,28 @@ export const ResetCodeScreen = ({ navigation, route }) => {
     return () => clearInterval(timerRef.current);
   }, [currentToken]);
 
-  const handleVerify = async () => {
+  const handleResetPassword = async () => {
     if (code.length < 6) {
       setError("O código deve ter 6 dígitos.");
       return;
     }
+    if (!password || password.length < 6) {
+      setError("A nova senha deve conter no mínimo 6 caracteres.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
     setError("");
     setLoading(true);
-
     try {
-      const result = await verifyResetCode(code, currentToken);
+      const result = await resetPasswordByCode(code, currentToken, password);
       if (result.success) {
-        // Só navega se o código for validado com sucesso pelo backend
-        navigation.navigate("NewPassword", {
-          email,
-          codigo: code,
-          tokenReset: currentToken,
-        });
+        Alert.alert("Sucesso!", "Sua senha foi redefinida com sucesso!", [
+          { text: "Fazer Login", onPress: () => navigation.navigate("Login") },
+        ]);
       } else {
         setError(result.message);
       }
@@ -81,6 +90,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
       const result = await forgotPassword(email);
       if (result.success) {
         setCurrentToken(result.tokenReset);
+        Alert.alert("Enviado", "Um novo código foi enviado para o seu e-mail.");
       } else {
         setError(result.message || "Erro ao reenviar o código.");
       }
@@ -94,16 +104,18 @@ export const ResetCodeScreen = ({ navigation, route }) => {
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.backBtn}
+        disabled={loading}
       >
-        <Text style={styles.backBtnText}>{"← Voltar"}</Text>
+        <Text style={[styles.backBtnText, { color: colors.secondary }]}>{"← Voltar"}</Text>
       </TouchableOpacity>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>Verificar Código</Text>
+      <Card style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Redefinir Senha
+        </Text>
 
-        {/* Contador */}
-        <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
-          <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
+        <View style={[styles.timerBadge, expired ? styles.timerBadgeExpired : { backgroundColor: colors.background + '40' }]}>
+          <Text style={[styles.timerText, expired ? styles.timerTextExpired : { color: colors.primary }]}>
             {expired
               ? "Código expirado"
               : `Válido por: ${formatTime(timeLeft)}`}
@@ -111,10 +123,12 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>
-          Digite o código de 6 dígitos enviado para {email}.
+        
+        <Text style={[styles.subtitle, { color: colors.textLight }]}>
+          Digite o código de 6 dígitos enviado para {email} e crie sua nova senha abaixo.
         </Text>
 
+        <Text style={[styles.label, { color: colors.text }]}>Código de Segurança</Text>
         <Input
           placeholder="000000"
           keyboardType="numeric"
@@ -125,12 +139,36 @@ export const ResetCodeScreen = ({ navigation, route }) => {
             setCode(t);
             setError("");
           }}
-          style={{ textAlign: "center", fontSize: 26, letterSpacing: 12 }}
+          style={styles.codeInput}
+        />
+
+        <Text style={[styles.label, { color: colors.text, marginTop: 10 }]}>Nova Senha</Text>
+        <Input
+          placeholder="No mínimo 6 caracteres"
+          secureTextEntry
+          value={password}
+          editable={!loading}
+          onChangeText={(t) => {
+            setPassword(t);
+            setError("");
+          }}
+        />
+        
+        <Text style={[styles.label, { color: colors.text }]}>Confirmar Senha</Text>
+        <Input
+          placeholder="Repita a nova senha"
+          secureTextEntry
+          value={confirmPassword}
+          editable={!loading}
+          onChangeText={(t) => {
+            setConfirmPassword(t);
+            setError("");
+          }}
         />
 
         <Button
-          title={loading ? "Verificando..." : "Verificar"}
-          onPress={handleVerify}
+          title={loading ? "Redefinindo..." : "Redefinir Senha"}
+          onPress={handleResetPassword}
           style={[styles.btn, loading && styles.btnDisabled]}
           disabled={loading}
         />
@@ -138,10 +176,10 @@ export const ResetCodeScreen = ({ navigation, route }) => {
         <TouchableOpacity
           onPress={handleResend}
           disabled={loading}
-          style={{ marginTop: 14, alignItems: "center" }}
+          style={{ marginTop: 20, alignItems: "center" }}
         >
-          <Text style={styles.linkBlue}>
-            {loading ? "Aguarde..." : "🔄 Reenviar código"}
+          <Text style={[styles.linkBlue, { color: colors.primary }]}>
+            {loading ? "Aguarde..." : "Reenviar código"}
           </Text>
         </TouchableOpacity>
       </Card>
@@ -166,7 +204,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 14,
-    color: "#000",
   },
   errorText: {
     color: "#FF4C4C",
@@ -178,9 +215,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 12,
     textAlign: "center",
-    marginBottom: 14,
-    color: "#666",
+    marginBottom: 20,
     lineHeight: 18,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 5,
+    marginLeft: 5,
   },
   btn: {
     backgroundColor: "#009DFF",
@@ -196,12 +238,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   backBtnText: {
-    color: "#1E2C5A",
     fontSize: 14,
     fontWeight: "bold",
   },
   timerBadge: {
-    backgroundColor: "#E8F5E9",
     borderRadius: 12,
     paddingVertical: 6,
     paddingHorizontal: 16,
@@ -212,7 +252,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFEBEE",
   },
   timerText: {
-    color: "#2E7D32",
     fontWeight: "bold",
     fontSize: 13,
   },
@@ -220,8 +259,13 @@ const styles = StyleSheet.create({
     color: "#C62828",
   },
   linkBlue: {
-    color: "#009DFF",
     fontWeight: "bold",
     fontSize: 14,
   },
+  codeInput: {
+    textAlign: "center",
+    fontSize: 26,
+    letterSpacing: 12,
+    fontWeight: 'bold',
+  }
 });

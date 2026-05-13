@@ -4,7 +4,6 @@ import {
   LoginScreen,
   RegisterScreen,
   RecoveryScreen,
-  NewPasswordScreen,
 } from '../screens/auth/AuthScreens';
 import { ResetCodeScreen } from '../screens/auth/ResetCode/ResetCodeScreen';
 
@@ -19,7 +18,6 @@ export const AuthNavigator = () => {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Recovery" component={RecoveryScreen} />
       <Stack.Screen name="ResetCode" component={ResetCodeScreen} />
-      <Stack.Screen name="NewPassword" component={NewPasswordScreen} />
     </Stack.Navigator>
   );
 };

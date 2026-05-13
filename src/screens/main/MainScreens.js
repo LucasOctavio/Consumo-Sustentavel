@@ -602,7 +602,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                         setShowCalendar(null);
                       }}
                       colors={colors}
-                      blockFuture={true}
+                      blockFuture={title?.toLowerCase().includes('consumo')}
                     />
                   )}
                 </>
@@ -1266,26 +1266,35 @@ export const ConsumptionScreen = () => {
 
   const FilterTypeSelector = () => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
-        <TouchableOpacity
-          key={type}
-          onPress={() => setFilterType(type)}
-          style={[
-            styles.filterChip,
-            { 
-              backgroundColor: filterType === type ? colors.secondary : 'transparent',
-              borderColor: filterType === type ? colors.secondary : colors.border
-            }
-          ]}
-        >
-          <Text style={[
-            styles.filterChipText, 
-            { color: filterType === type ? '#fff' : colors.textLight }
-          ]}>
-            {type}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => {
+        const isActive = filterType === type;
+        const icon = typeIconMap[type];
+        const activeColor = type === 'Todos' ? colors.secondary : (icon?.color || colors.secondary);
+        
+        return (
+          <TouchableOpacity
+            key={type}
+            onPress={() => setFilterType(type)}
+            style={[
+              styles.filterChip,
+              { 
+                backgroundColor: isActive ? activeColor + '18' : 'transparent',
+                borderColor: isActive ? activeColor : colors.border
+              }
+            ]}
+          >
+            <Text style={[
+              styles.filterChipText, 
+              { 
+                color: isActive ? activeColor : colors.textLight,
+                fontWeight: isActive ? '700' : '600'
+              }
+            ]}>
+              {type}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </ScrollView>
   );
 
@@ -1541,7 +1550,7 @@ export const ConsumptionScreen = () => {
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há registros anteriores
+                Não há outros registros
               </Text>
             </View>
           ) : (
@@ -1721,26 +1730,35 @@ export const SimulatedScreen = () => {
 
   const FilterTypeSelector = () => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
-        <TouchableOpacity
-          key={type}
-          onPress={() => setFilterType(type)}
-          style={[
-            styles.filterChip,
-            { 
-              backgroundColor: filterType === type ? colors.secondary : 'transparent',
-              borderColor: filterType === type ? colors.secondary : colors.border
-            }
-          ]}
-        >
-          <Text style={[
-            styles.filterChipText, 
-            { color: filterType === type ? '#fff' : colors.textLight }
-          ]}>
-            {type}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => {
+        const isActive = filterType === type;
+        const icon = typeIconMap[type];
+        const activeColor = type === 'Todos' ? colors.secondary : (icon?.color || colors.secondary);
+        
+        return (
+          <TouchableOpacity
+            key={type}
+            onPress={() => setFilterType(type)}
+            style={[
+              styles.filterChip,
+              { 
+                backgroundColor: isActive ? activeColor + '18' : 'transparent',
+                borderColor: isActive ? activeColor : colors.border
+              }
+            ]}
+          >
+            <Text style={[
+              styles.filterChipText, 
+              { 
+                color: isActive ? activeColor : colors.textLight,
+                fontWeight: isActive ? '700' : '600'
+              }
+            ]}>
+              {type}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </ScrollView>
   );
 
@@ -1995,7 +2013,7 @@ export const SimulatedScreen = () => {
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há registros anteriores
+                Não há outras simulações
               </Text>
             </View>
           ) : (
@@ -2177,28 +2195,51 @@ export const GoalsScreen = () => {
 
   const FilterTypeSelector = () => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-      {['Todos', 'Água', 'Energia', 'Gás'].map(type => (
-        <TouchableOpacity
-          key={type}
-          onPress={() => setFilterType(type)}
-          style={[
-            styles.filterChip,
-            { 
-              backgroundColor: filterType === type ? colors.secondary : 'transparent',
-              borderColor: filterType === type ? colors.secondary : colors.border
-            }
-          ]}
-        >
-          <Text style={[
-            styles.filterChipText, 
-            { color: filterType === type ? '#fff' : colors.textLight }
-          ]}>
-            {type}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {['Todos', 'Água', 'Energia', 'Gás'].map(type => {
+        const isActive = filterType === type;
+        const icon = typeIconMap[type];
+        const activeColor = type === 'Todos' ? colors.secondary : (icon?.color || colors.secondary);
+        
+        return (
+          <TouchableOpacity
+            key={type}
+            onPress={() => setFilterType(type)}
+            style={[
+              styles.filterChip,
+              { 
+                backgroundColor: isActive ? activeColor + '18' : 'transparent',
+                borderColor: isActive ? activeColor : colors.border
+              }
+            ]}
+          >
+            <Text style={[
+              styles.filterChipText, 
+              { 
+                color: isActive ? activeColor : colors.textLight,
+                fontWeight: isActive ? '700' : '600'
+              }
+            ]}>
+              {type}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </ScrollView>
   );
+
+  const isGoalActive = (startStr, endStr) => {
+    try {
+      const parseDate = (str) => {
+        const [d, m, y] = str.split('/').map(Number);
+        return new Date(y, m - 1, d);
+      };
+      const start = parseDate(startStr);
+      const end = parseDate(endStr);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return now >= start && now <= end;
+    } catch (e) { return false; }
+  };
 
   return (
     <AppLayout>
@@ -2213,6 +2254,7 @@ export const GoalsScreen = () => {
       />
 
       <Card style={{ marginBottom: 20 }}>
+        {/* ... (Keep chart card as is) ... */}
         <View style={styles.cardHeaderArea}>
           <View
             style={[
@@ -2248,15 +2290,7 @@ export const GoalsScreen = () => {
           showsHorizontalScrollIndicator={false}
           style={styles.periodSelectorScroll}>
           {[
-            '1 sem',
-            '2 sem',
-            '3 sem',
-            '1 mês',
-            '3 meses',
-            '6 meses',
-            '9 meses',
-            '1 ano',
-            '2 anos',
+            '1 sem', '2 sem', '3 sem', '1 mês', '3 meses', '6 meses', '9 meses', '1 ano', '2 anos',
           ].map(option => (
             <TouchableOpacity
               key={option}
@@ -2341,22 +2375,21 @@ export const GoalsScreen = () => {
           </Text>
         </View>
         {(() => {
-          const today = new Date().toLocaleDateString('pt-BR');
-          const todayGoals = typeFiltered.filter(g => g.start === today);
+          const activeGoals = typeFiltered.filter(g => isGoalActive(g.start, g.end));
 
-          return todayGoals.length === 0 ? (
+          return activeGoals.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há meta atual
+                Não há meta ativa no momento
               </Text>
             </View>
           ) : (
-            todayGoals.map((goal, idx) => (
+            activeGoals.map((goal, idx) => (
               <View
                 key={goal.id}
                 style={[
                   styles.innerListItemExtended,
-                  idx !== todayGoals.length - 1 && styles.innerDividerExtended,
+                  idx !== activeGoals.length - 1 && styles.innerDividerExtended,
                 ]}>
                 <View style={styles.metaContentRow}>
                   <View style={styles.metaDetailsGroup}>
@@ -2377,7 +2410,7 @@ export const GoalsScreen = () => {
                           marginRight: 12,
                         }}>
                         <FontAwesome5
-                          name={goal.type === 'Água' ? 'faucet' : 'bolt'}
+                          name={goal.type === 'Água' ? 'faucet' : goal.type === 'Gás' ? 'fire' : 'bolt'}
                           size={12}
                           color={colors.secondary}
                         />
@@ -2476,85 +2509,131 @@ export const GoalsScreen = () => {
           <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
             <FontAwesome5 name="check-circle" size={12} color={colors.secondary} />
           </View>
-          <Text style={[styles.cardHeaderText, { color: colors.text }]}>Metas anteriores</Text>
+          <Text style={[styles.cardHeaderText, { color: colors.text }]}>Outras metas</Text>
         </View>
         {(() => {
-          const today = new Date().toLocaleDateString('pt-BR');
-          const targetDate = filterDate || today;
-          const olderGoals = filterDate
-            ? typeFiltered.filter(g => g.start === targetDate)
-            : typeFiltered.filter(g => g.start !== today);
+          const otherGoals = typeFiltered.filter(g => !isGoalActive(g.start, g.end));
 
-          return olderGoals.length === 0 ? (
+          return otherGoals.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                {filterDate ? 'Nenhuma meta nessa data' : 'Não há metas anteriores'}
+                Não há outras metas
               </Text>
             </View>
           ) : (
-            olderGoals.map((goal, idx) => (
+            otherGoals.map((goal, idx) => (
               <View
                 key={goal.id}
                 style={[
                   styles.innerListItemExtended,
-                  idx !== olderGoals.length - 1 && styles.innerDividerExtended,
+                  idx !== otherGoals.length - 1 && styles.innerDividerExtended,
                 ]}>
-                {/* Header: ícone + tipo + período + progress */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <View style={{
-                    width: 38, height: 38, borderRadius: 11,
-                    backgroundColor: colors.border,
-                    alignItems: 'center', justifyContent: 'center', marginRight: 12,
-                  }}>
-                    <FontAwesome5
-                      name={goal.type === 'Água' ? 'faucet' : goal.type === 'Gás' ? 'fire' : 'bolt'}
-                      size={14} color={colors.textLight}
+                <View style={styles.metaContentRow}>
+                  <View style={styles.metaDetailsGroup}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 12,
+                      }}>
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          backgroundColor: colors.border,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 12,
+                        }}>
+                        <FontAwesome5
+                          name={goal.type === 'Água' ? 'faucet' : goal.type === 'Gás' ? 'fire' : 'bolt'}
+                          size={12}
+                          color={colors.textLight}
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ color: colors.textLight, fontSize: 10 }}>
+                          Recurso
+                        </Text>
+                        <Text style={{ color: colors.text, fontWeight: '700' }}>
+                          {goal.type}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 10,
+                          backgroundColor: colors.border + '30',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 12,
+                        }}>
+                        <FontAwesome5
+                          name="calendar-alt"
+                          size={12}
+                          color={colors.textLight}
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ color: colors.textLight, fontSize: 10 }}>
+                          Período
+                        </Text>
+                        <Text
+                          style={{
+                            color: colors.text,
+                            fontWeight: '700',
+                            fontSize: 12,
+                          }}>
+                          {goal.start} - {goal.end}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <CircularProgress
+                      percentage={goal.progress}
+                      radius={35}
+                      color={colors.progress.blue}
                     />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
-                      {goal.type}
-                    </Text>
-                    <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 2 }}>
-                      {goal.start} – {goal.end}
-                    </Text>
-                  </View>
-                  <View style={{ opacity: 0.7 }}>
-                    <CircularProgress percentage={goal.progress} radius={28} color={colors.textLight} />
+                  <View style={[styles.actionButtonsRow, { marginTop: 10 }]}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingItem(goal);
+                          setModalVisible(true);
+                        }}
+                        style={[styles.actionBtn, { backgroundColor: colors.border + '50', paddingHorizontal: 8 }]}>
+                        <FontAwesome5 name="pen" size={10} color={colors.textLight} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => confirmDelete(goal.id)}
+                        style={[styles.actionBtn, { backgroundColor: colors.danger + '10', paddingHorizontal: 8 }]}>
+                      <Text style={{ color: colors.danger, fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>EXCLUIR</Text>
+                        <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-
-                {/* Valor + progresso */}
-                <View style={{ backgroundColor: colors.border + '30', padding: 10, borderRadius: 12, marginBottom: 10 }}>
-                  <Text style={{ color: colors.textLight, fontSize: 13 }}>
-                    Meta:{' '}
-                    <Text style={{ fontWeight: 'bold', color: colors.text }}>
+                <View
+                  style={{
+                    marginTop: 15,
+                    backgroundColor: colors.border + '15',
+                    padding: 12,
+                    borderRadius: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: colors.border,
+                  }}>
+                  <Text style={{ color: colors.text, fontSize: 14 }}>
+                    Meta de consumo:{' '}
+                    <Text
+                      style={{ fontWeight: 'bold', color: colors.text }}>
                       {goal.value} {goal.unit}
                     </Text>
-                    {'   '}Progresso:{' '}
-                    <Text style={{ fontWeight: 'bold', color: colors.text }}>{goal.progress}%</Text>
                   </Text>
-                  {goal.description ? (
-                    <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 5 }}>
-                      {goal.description}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {/* Ações */}
-                <View style={styles.actionButtonsRow}>
-                  <TouchableOpacity
-                    onPress={() => { setEditingItem(goal); setModalVisible(true); }}
-                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
-                    <FontAwesome5 name="pen" size={10} color={colors.textLight} />
-                    <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => confirmDelete(goal.id)}
-                    style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
-                    <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
-                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             ))
@@ -2638,13 +2717,20 @@ export const SettingsScreen = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (password && password.length < 6) {
+      Alert.alert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
     setSaving(true);
-    updateProfile({ name, email, password, profileImage });
-    setTimeout(() => {
-      setSaving(false);
+    const result = await updateProfile({ name, email, password: password || undefined, profileImage });
+    setSaving(false);
+    if (result.success) {
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-    }, 500);
+      setPassword('');
+    } else {
+      Alert.alert('Erro', result.message || 'Erro ao atualizar perfil.');
+    }
   };
 
   const handleDeleteAccount = () => {

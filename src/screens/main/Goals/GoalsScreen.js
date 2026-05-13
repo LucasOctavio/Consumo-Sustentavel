@@ -189,6 +189,22 @@ export const GoalsScreen = ({ navigation }) => {
     </Card>
   );
 
+  const isGoalActive = (startStr, endStr) => {
+    try {
+      const parseDate = (str) => {
+        const [d, m, y] = str.split('/').map(Number);
+        return new Date(y, m - 1, d);
+      };
+      const start = parseDate(startStr);
+      const end = parseDate(endStr);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      return now >= start && now <= end;
+    } catch (e) {
+      return false;
+    }
+  };
+
   return (
     <AppLayout>
       <Text style={[styles.screenTitleText, { color: colors.text }]}>
@@ -307,33 +323,31 @@ export const GoalsScreen = ({ navigation }) => {
         Metas atuais
       </Text>
       {(() => {
-        const today = new Date().toLocaleDateString('pt-BR');
-        const todayGoals = goals.filter(g => g.start === today);
+        const activeGoals = goals.filter(g => isGoalActive(g.start, g.end));
 
-        return todayGoals.length === 0 ? (
+        return activeGoals.length === 0 ? (
           <Card style={styles.emptyCard}>
-            <Text style={{ color: colors.textLight }}>Não há meta atual</Text>
+            <Text style={{ color: colors.textLight }}>Não há meta ativa no momento</Text>
           </Card>
         ) : (
-          todayGoals.map(goal => renderGoalItem(goal, colors.progress.orange))
+          activeGoals.map(goal => renderGoalItem(goal, colors.progress.orange))
         );
       })()}
 
       <Text style={[styles.listHeaderTitle, { color: colors.text }]}>
-        Metas anteriores
+        Outras metas
       </Text>
       {(() => {
-        const today = new Date().toLocaleDateString('pt-BR');
-        const olderGoals = goals.filter(g => g.start !== today);
+        const otherGoals = goals.filter(g => !isGoalActive(g.start, g.end));
 
-        return olderGoals.length === 0 ? (
+        return otherGoals.length === 0 ? (
           <Card style={styles.emptyCard}>
             <Text style={{ color: colors.textLight }}>
-              Não há metas anteriores
+              Não há outras metas
             </Text>
           </Card>
         ) : (
-          olderGoals.map(goal => renderGoalItem(goal, colors.progress.blue))
+          otherGoals.map(goal => renderGoalItem(goal, colors.progress.blue))
         );
       })()}
 

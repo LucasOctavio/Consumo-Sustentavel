@@ -101,6 +101,11 @@ export const SettingsScreen = () => {
   };
 
   const handleSave = async () => {
+    if (password && password.length < 6) {
+      Alert.alert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setSaving(true);
     const result = await updateProfile({
       name,
@@ -109,6 +114,8 @@ export const SettingsScreen = () => {
     setSaving(false);
     if (result.success) {
       Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
+      setPassword(""); // Limpa o campo após sucesso
+      setConfirmPassword("");
     } else {
       Alert.alert("Erro", result.message);
     }
