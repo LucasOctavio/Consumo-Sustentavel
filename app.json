@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/cena.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/cena.png",
       "resizeMode": "contain",
@@ -17,18 +17,16 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/cena.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "package": "com.fernandotmgomes.CCN"
     },
     "web": {
       "favicon": "./assets/cena.png"
     },
-    "plugins": [
-      "expo-web-browser"
-    ],
+    "plugins": ["expo-web-browser"],
     "extra": {
       "eas": {
         "projectId": "5fadbed1-370a-4b9e-8d85-7092ec3da215"

@@ -1,4 +1,5 @@
 import React, { useState, createContext, useContext } from 'react';
+import { Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
@@ -73,6 +74,7 @@ export const AppNavigator = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [filterDate, setFilterDate] = useState(null);
   // ⚠️ Estados declarados ANTES de loadBackendData para evitar erro de referência
   const [consumptions, setConsumptions] = useState([]);
   const [simulations, setSimulations] = useState([]);
@@ -291,6 +293,17 @@ export const AppNavigator = () => {
     }
   };
 
+  const verifyResetCode = async (codigo, tokenReset) => {
+    try {
+      await authService.verifyResetCode(codigo, tokenReset);
+      return { success: true };
+    } catch (error) {
+      console.error('Verify reset code error:', error);
+      const message = error.response?.data?.detail || 'Código incorreto ou expirado.';
+      return { success: false, message };
+    }
+  };
+
   const resetPasswordByCode = async (codigo, tokenReset, novaSenha) => {
     try {
       await authService.resetPassword(codigo, tokenReset, novaSenha);
@@ -304,6 +317,16 @@ export const AppNavigator = () => {
   };
 
   const addConsumption = async data => {
+    // Bloqueio de datas futuras (Task 8)
+    const cDate = parseDateBr(data.date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    if (cDate > today) {
+      Alert.alert('Data Inválida', 'Não é possível registrar consumos em datas futuras.');
+      return { success: false, message: 'Data futura não permitida.' };
+    }
+
     // Adiciona localmente de imediato para UI responsiva
     const localItem = {
       id: Date.now(),
@@ -470,6 +493,19 @@ export const AppNavigator = () => {
     return new Date(year, month - 1, day);
   };
 
+  // Helpers para organização de Metas e Registros (Task 2 e 4)
+  const todayStart = new Date();
+  todayStart.setHours(0,0,0,0);
+
+  const activeGoals = goals.filter(g => parseDateBr(g.end) >= todayStart);
+  const pastGoals = goals.filter(g => parseDateBr(g.end) < todayStart);
+
+  // Utilitário de filtro por dia (Task 3)
+  const getFilteredItems = (items) => {
+    if (!filterDate) return items;
+    return items.filter(item => item.date === filterDate || item.start === filterDate);
+  };
+
   // Calcula dinamicamente a porcentagem de progresso das metas com base nos consumos reais!
   const goalsWithProgress = goals.map(goal => {
     const goalStart = parseDateBr(goal.start);
@@ -512,10 +548,16 @@ export const AppNavigator = () => {
           updateProfile,
           forgotPassword,
           resetPasswordByCode,
+          verifyResetCode,
           consumptions,
+          filteredConsumptions: getFilteredItems(consumptions),
           simulations,
           goals: goalsWithProgress,
+          activeGoals: activeGoals.map(g => goalsWithProgress.find(gp => gp.id === g.id)),
+          pastGoals: pastGoals.map(g => goalsWithProgress.find(gp => gp.id === g.id)),
           photo,
+          filterDate,
+          setFilterDate,
           setPhoto,
           addConsumption,
           addSimulation,

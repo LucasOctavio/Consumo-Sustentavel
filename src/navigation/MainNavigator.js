@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../navigation/AppNavigator';
 import {
@@ -8,8 +9,8 @@ import {
   ConsumptionScreen,
   SimulatedScreen,
   GoalsScreen,
-  SettingsScreen,
 } from '../screens/main/MainScreens';
+import { SettingsScreen } from '../screens/main/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +26,8 @@ const TabIcon = ({ name, type, focused, color }) => {
 
 export const MainNavigator = () => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = 60 + insets.bottom;
 
   return (
     <Tab.Navigator
@@ -65,7 +68,7 @@ export const MainNavigator = () => {
         tabBarStyle: {
           backgroundColor: '#1E2C5A',
           borderTopWidth: 0,
-          height: 60,
+          height: tabBarHeight,
           borderTopLeftRadius: 25,
           borderTopRightRadius: 25,
           position: 'absolute',
@@ -73,7 +76,7 @@ export const MainNavigator = () => {
           left: 0,
           right: 0,
           elevation: 25,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Adjust for notch but keep it slim
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 5,
         },
         tabBarShowLabel: false,
       })}>

@@ -1,37 +1,37 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { AuthLayout } from '../../../components/AuthLayout';
-import { Card } from '../../../components/Card';
-import { Input } from '../../../components/Input';
-import { Button } from '../../../components/Button';
-import { AuthContext } from '../../../navigation/AppNavigator';
+import React, { useContext, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { AuthLayout } from "../../../components/AuthLayout";
+import { Card } from "../../../components/Card";
+import { Input } from "../../../components/Input";
+import { Button } from "../../../components/Button";
+import { AuthContext } from "../../../navigation/AppNavigator";
 
 export const RegisterScreen = ({ navigation }) => {
   const { register, resendVerification } = useContext(AuthContext);
 
   // ── Campos do formulário ──
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   // ── Estado da UI ──
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false); // true após cadastro enviado com sucesso
-  const [resendMsg, setResendMsg] = useState(''); // mensagem de feedback do reenvio
+  const [resendMsg, setResendMsg] = useState(""); // mensagem de feedback do reenvio
 
   // ─── Validações locais antes de chamar a API ────────────────────────────────
   const validar = () => {
     if (!name.trim() || !email.trim() || !password) {
-      setError('Por favor, preencha todos os campos.');
+      setError("Por favor, preencha todos os campos.");
       return false;
     }
-    if (!email.includes('@') || !email.includes('.')) {
-      setError('Formato de e-mail inválido.');
+    if (!email.includes("@") || !email.includes(".")) {
+      setError("Formato de e-mail inválido.");
       return false;
     }
     if (password.length < 6) {
-      setError('A senha deve conter no mínimo 6 caracteres.');
+      setError("A senha deve conter no mínimo 6 caracteres.");
       return false;
     }
     return true;
@@ -43,7 +43,7 @@ export const RegisterScreen = ({ navigation }) => {
   // clicar no link e o endpoint /verify_via_email for chamado.
   const handleRegister = async () => {
     if (!validar()) return;
-    setError('');
+    setError("");
     setLoading(true);
     const result = await register(name.trim(), email.trim(), password);
     setLoading(false);
@@ -58,8 +58,8 @@ export const RegisterScreen = ({ navigation }) => {
 
   // ─── Reenviar link: regera o token JWT e manda novo e-mail ──────────────────
   const handleResend = async () => {
-    setResendMsg('');
-    setError('');
+    setResendMsg("");
+    setError("");
     setLoading(true);
     const result = await resendVerification(
       name.trim(),
@@ -70,7 +70,7 @@ export const RegisterScreen = ({ navigation }) => {
 
     if (result.success) {
       setResendMsg(
-        '✅ E-mail reenviado com sucesso! Verifique sua caixa de entrada.',
+        "✅ E-mail reenviado com sucesso! Verifique sua caixa de entrada.",
       );
     } else {
       // 409 = conta já verificada; outros = erros gerais
@@ -89,13 +89,13 @@ export const RegisterScreen = ({ navigation }) => {
           <Text style={styles.title}>Verifique seu e-mail</Text>
 
           <Text style={styles.subtitle}>
-            Enviamos um link de confirmação para:{'\n'}
+            Enviamos um link de confirmação para:{"\n"}
             <Text style={styles.emailHighlight}>{email}</Text>
           </Text>
 
           <Text style={styles.instructions}>
             Clique no link recebido para concluir seu cadastro. Após confirmar,
-            volte aqui e faça login normalmente.{'\n\n'}
+            volte aqui e faça login normalmente.{"\n\n"}
             Não encontrou o e-mail? Verifique a pasta de spam.
           </Text>
 
@@ -113,9 +113,10 @@ export const RegisterScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={handleResend}
             disabled={loading}
-            style={styles.resendBtn}>
+            style={styles.resendBtn}
+          >
             <Text style={styles.resendText}>
-              {loading ? 'Reenviando...' : '🔄 Reenviar e-mail de verificação'}
+              {loading ? "Reenviando..." : "🔄 Reenviar e-mail de verificação"}
             </Text>
           </TouchableOpacity>
 
@@ -125,7 +126,7 @@ export const RegisterScreen = ({ navigation }) => {
           {/* Botão de ir para o login */}
           <Button
             title="Ir para o Login"
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate("Login")}
             style={styles.btn}
           />
 
@@ -133,11 +134,12 @@ export const RegisterScreen = ({ navigation }) => {
           <TouchableOpacity
             onPress={() => {
               setDone(false);
-              setResendMsg('');
-              setError('');
+              setResendMsg("");
+              setError("");
             }}
-            style={{ marginTop: 12, alignItems: 'center' }}>
-            <Text style={{ color: '#888', fontSize: 13 }}>
+            style={{ marginTop: 12, alignItems: "center" }}
+          >
+            <Text style={{ color: "#888", fontSize: 13 }}>
               ← Usar outro e-mail
             </Text>
           </TouchableOpacity>
@@ -157,9 +159,9 @@ export const RegisterScreen = ({ navigation }) => {
         <Input
           placeholder="Nome de usuário"
           value={name}
-          onChangeText={t => {
+          onChangeText={(t) => {
             setName(t);
-            setError('');
+            setError("");
           }}
         />
         <Input
@@ -167,18 +169,18 @@ export const RegisterScreen = ({ navigation }) => {
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
-          onChangeText={t => {
+          onChangeText={(t) => {
             setEmail(t);
-            setError('');
+            setError("");
           }}
         />
         <Input
           placeholder="Senha (mínimo 6 caracteres)"
           secureTextEntry
           value={password}
-          onChangeText={t => {
+          onChangeText={(t) => {
             setPassword(t);
-            setError('');
+            setError("");
           }}
         />
 
@@ -198,7 +200,7 @@ export const RegisterScreen = ({ navigation }) => {
             ))}
             <Text style={styles.passwordStrengthLabel}>
               {
-                ['', 'Fraca', 'Regular', 'Boa', 'Forte'][
+                ["", "Fraca", "Regular", "Boa", "Forte"][
                   getPasswordStrength(password)
                 ]
               }
@@ -207,7 +209,7 @@ export const RegisterScreen = ({ navigation }) => {
         )}
 
         <Button
-          title={loading ? 'Enviando...' : 'Cadastrar'}
+          title={loading ? "Enviando..." : "Cadastrar"}
           onPress={handleRegister}
           style={styles.btn}
           disabled={loading}
@@ -215,8 +217,9 @@ export const RegisterScreen = ({ navigation }) => {
       </Card>
 
       <TouchableOpacity
-        onPress={() => navigation.navigate('Login')}
-        style={styles.footerLinks}>
+        onPress={() => navigation.navigate("Login")}
+        style={styles.footerLinks}
+      >
         <Text style={styles.footerLinkText}>
           Já tem cadastro? Faça seu <Text style={styles.linkBlue}>login</Text>
         </Text>
@@ -226,7 +229,7 @@ export const RegisterScreen = ({ navigation }) => {
 };
 
 // ─── Utilitário: calcula força da senha (1–4) ─────────────────────────────────
-const getPasswordStrength = pwd => {
+const getPasswordStrength = (pwd) => {
   let score = 0;
   if (pwd.length >= 6) score++;
   if (pwd.length >= 10) score++;
@@ -241,8 +244,8 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     padding: 30,
     marginTop: 20,
-    width: '100%',
-    shadowColor: '#000',
+    width: "100%",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
@@ -250,89 +253,89 @@ const styles = StyleSheet.create({
   },
   emailIcon: {
     fontSize: 48,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 14,
-    color: '#000',
+    color: "#000",
   },
   subtitle: {
     fontSize: 13,
-    textAlign: 'center',
-    color: '#555',
+    textAlign: "center",
+    color: "#555",
     marginBottom: 8,
     lineHeight: 20,
   },
   emailHighlight: {
-    fontWeight: 'bold',
-    color: '#009DFF',
+    fontWeight: "bold",
+    color: "#009DFF",
   },
   instructions: {
     fontSize: 12,
-    textAlign: 'center',
-    color: '#777',
+    textAlign: "center",
+    color: "#777",
     lineHeight: 18,
     marginBottom: 16,
   },
   errorText: {
-    color: '#FF4C4C',
+    color: "#FF4C4C",
     fontSize: 13,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 12,
   },
   successBadge: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: "#E8F5E9",
     borderRadius: 10,
     padding: 10,
     marginBottom: 10,
   },
   successText: {
-    color: '#2E7D32',
+    color: "#2E7D32",
     fontSize: 13,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   resendBtn: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
   },
   resendText: {
-    color: '#009DFF',
-    fontWeight: 'bold',
+    color: "#009DFF",
+    fontWeight: "bold",
     fontSize: 14,
   },
   separator: {
     height: 1,
-    backgroundColor: '#EEE',
+    backgroundColor: "#EEE",
     marginVertical: 14,
   },
   btn: {
-    backgroundColor: '#009DFF',
+    backgroundColor: "#009DFF",
     borderRadius: 20,
     height: 55,
     marginTop: 8,
   },
   footerLinks: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 28,
   },
   footerLinkText: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: "bold",
+    color: "#000",
   },
   linkBlue: {
-    color: '#009DFF',
+    color: "#009DFF",
   },
   // ── Indicador de força da senha ──
   passwordStrengthRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     marginTop: 6,
     marginBottom: 2,
@@ -343,15 +346,15 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
-  passwordBarFilled: strength => ({
-    backgroundColor: ['', '#EF5350', '#FFA726', '#66BB6A', '#43A047'][strength],
+  passwordBarFilled: (strength) => ({
+    backgroundColor: ["", "#EF5350", "#FFA726", "#66BB6A", "#43A047"][strength],
   }),
   passwordBarEmpty: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
   },
   passwordStrengthLabel: {
     fontSize: 11,
-    color: '#888',
+    color: "#888",
     marginLeft: 6,
     minWidth: 40,
   },

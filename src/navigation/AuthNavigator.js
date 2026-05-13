@@ -4,9 +4,9 @@ import {
   LoginScreen,
   RegisterScreen,
   RecoveryScreen,
-  ResetCodeScreen,
   NewPasswordScreen,
 } from '../screens/auth/AuthScreens';
+import { ResetCodeScreen } from '../screens/auth/ResetCode/ResetCodeScreen';
 
 const Stack = createNativeStackNavigator();
 

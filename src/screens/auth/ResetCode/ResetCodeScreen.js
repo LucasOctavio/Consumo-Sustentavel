@@ -49,10 +49,6 @@ export const ResetCodeScreen = ({ navigation, route }) => {
   }, [currentToken]);
 
   const handleVerify = async () => {
-    if (expired) {
-      setError("O código expirou. Por favor, reenvie um novo código.");
-      return;
-    }
     if (code.length < 6) {
       setError("O código deve ter 6 dígitos.");
       return;
@@ -124,7 +120,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           keyboardType="numeric"
           maxLength={6}
           value={code}
-          editable={!expired}
+          editable={!loading}
           onChangeText={(t) => {
             setCode(t);
             setError("");
@@ -145,7 +141,7 @@ export const ResetCodeScreen = ({ navigation, route }) => {
           style={{ marginTop: 14, alignItems: "center" }}
         >
           <Text style={styles.linkBlue}>
-            {loading ? "Reenviando..." : "Reenviar código"}
+            {loading ? "Aguarde..." : "🔄 Reenviar código"}
           </Text>
         </TouchableOpacity>
       </Card>

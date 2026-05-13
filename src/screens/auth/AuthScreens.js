@@ -68,18 +68,16 @@ export const LoginScreen = ({ navigation }) => {
     }
     setError("");
     setLoading(true);
-    try {
-      const result = await login(name, password);
-      if (result.success) {
-        setToken2fa(result.token_2fa);
-        setAttempts(0);
-        setCode("");
-        setStep(2);
-      } else {
-        setError(result.message);
-      }
-    } finally {
-      setLoading(false);
+    const result = await login(name, password);
+    setLoading(false);
+
+    if (result.success) {
+      setToken2fa(result.token_2fa);
+      setAttempts(0);
+      setCode("");
+      setStep(2);
+    } else {
+      setError(result.message);
     }
   };
 
@@ -126,16 +124,14 @@ export const LoginScreen = ({ navigation }) => {
     setError("");
     setCode("");
     setLoading(true);
-    try {
-      const result = await login(name, password);
-      if (result.success) {
-        setToken2fa(result.token_2fa);
-        setAttempts(0);
-      } else {
-        setError(result.message || "Erro ao reenviar o código.");
-      }
-    } finally {
-      setLoading(false);
+    const result = await login(name, password);
+    setLoading(false);
+    if (result.success) {
+      setToken2fa(result.token_2fa);
+      setAttempts(0);
+      // O useEffect detecta a mudança de token2fa e reinicia o timer
+    } else {
+      setError(result.message || "Erro ao reenviar o código.");
     }
   };
 
@@ -202,8 +198,8 @@ export const LoginScreen = ({ navigation }) => {
           <Button
             title={loading ? "Verificando..." : "Confirmar"}
             onPress={handleVerify2FA}
-            style={[styles.btn, loading && styles.btnDisabled]}
-            disabled={loading}
+            style={[styles.btn, (bloqueado || expired) && styles.btnDisabled]}
+            disabled={bloqueado || expired || loading}
           />
 
           {/* Botão de reenvio — disponível após expiração ou por precaução */}
@@ -315,15 +311,13 @@ export const RegisterScreen = ({ navigation }) => {
 
     setError("");
     setLoading(true);
-    try {
-      const result = await register(name, email, password);
-      if (result.success) {
-        setDone(true);
-      } else {
-        setError(result.message);
-      }
-    } finally {
-      setLoading(false);
+    const result = await register(name, email, password);
+    setLoading(false);
+
+    if (result.success) {
+      setDone(true);
+    } else {
+      setError(result.message);
     }
   };
 
@@ -414,18 +408,17 @@ export const RecoveryScreen = ({ navigation }) => {
     }
     setError("");
     setLoading(true);
-    try {
-      const result = await forgotPassword(email);
-      if (result.success) {
-        navigation.navigate("ResetCode", {
-          email,
-          tokenReset: result.tokenReset,
-        });
-      } else {
-        setError(result.message);
-      }
-    } finally {
-      setLoading(false);
+    const result = await forgotPassword(email);
+    setLoading(false);
+
+    if (result.success) {
+      // Navega para a tela de código passando o token recebido (ou null se e-mail não existir)
+      navigation.navigate("ResetCode", {
+        email,
+        tokenReset: result.tokenReset,
+      });
+    } else {
+      setError(result.message);
     }
   };
 
@@ -469,143 +462,6 @@ export const RecoveryScreen = ({ navigation }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ResetCodeScreen — digita o código de 6 dígitos recebido por e-mail
-// ─────────────────────────────────────────────────────────────────────────────
-export const ResetCodeScreen = ({ navigation, route }) => {
-  const { email, tokenReset } = route.params || {};
-  const { forgotPassword, verifyResetCode } = useContext(AuthContext);
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [currentToken, setCurrentToken] = useState(tokenReset);
-
-  // Contador regressivo para o código de recuperação (10 min)
-  const [timeLeft, setTimeLeft] = useState(EXPIRY_SECONDS);
-  const [expired, setExpired] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    clearInterval(timerRef.current);
-    setTimeLeft(EXPIRY_SECONDS);
-    setExpired(false);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          setExpired(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [currentToken]);
-
-  const handleVerify = async () => {
-    if (expired) {
-      setError("O código expirou. Reenvie um novo código.");
-      return;
-    }
-    if (code.length < 6) {
-      setError("O código deve ter 6 dígitos.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-
-    try {
-      const result = await verifyResetCode(code, currentToken);
-      if (result.success) {
-        navigation.navigate("NewPassword", {
-          email,
-          codigo: code,
-          tokenReset: currentToken,
-        });
-      } else {
-        setError(result.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setError("");
-    setCode("");
-    setLoading(true);
-    try {
-      const result = await forgotPassword(email);
-      if (result.success) {
-        setCurrentToken(result.tokenReset);
-      } else {
-        setError(result.message || "Erro ao reenviar o código.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AuthLayout>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backBtn}
-      >
-        <Text style={styles.backBtnText}>{"← Voltar"}</Text>
-      </TouchableOpacity>
-
-      <Card style={styles.card}>
-        <Text style={styles.title}>Verificar Código</Text>
-
-        {/* Contador */}
-        <View style={[styles.timerBadge, expired && styles.timerBadgeExpired]}>
-          <Text style={[styles.timerText, expired && styles.timerTextExpired]}>
-            {expired
-              ? "Código expirado"
-              : `Válido por: ${formatTime(timeLeft)}`}
-          </Text>
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        <Text style={styles.subtitle}>
-          Digite o código de 6 dígitos enviado para {email}.
-        </Text>
-
-        <Input
-          placeholder="000000"
-          keyboardType="numeric"
-          maxLength={6}
-          value={code}
-          editable={!expired}
-          onChangeText={(t) => {
-            setCode(t);
-            setError("");
-          }}
-          style={{ textAlign: "center", fontSize: 26, letterSpacing: 12 }}
-        />
-
-        <Button
-          title={loading ? "Verificando..." : "Verificar"}
-          onPress={handleVerify}
-          style={[styles.btn, loading && styles.btnDisabled]}
-          disabled={loading}
-        />
-
-        <TouchableOpacity
-          onPress={handleResend}
-          disabled={loading}
-          style={{ marginTop: 14, alignItems: "center" }}
-        >
-          <Text style={styles.linkBlue}>
-            {loading ? "Reenviando..." : "🔄 Reenviar código"}
-          </Text>
-        </TouchableOpacity>
-      </Card>
-    </AuthLayout>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // NewPasswordScreen — define a nova senha após validar o código
 // ─────────────────────────────────────────────────────────────────────────────
 export const NewPasswordScreen = ({ navigation, route }) => {
@@ -638,17 +494,15 @@ export const NewPasswordScreen = ({ navigation, route }) => {
 
     setError("");
     setLoading(true);
-    try {
-      const result = await resetPasswordByCode(codigo, tokenReset, password);
-      if (result.success) {
-        Alert.alert("Sucesso! 🎉", "Sua senha foi redefinida com sucesso!", [
-          { text: "Fazer Login", onPress: () => navigation.navigate("Login") },
-        ]);
-      } else {
-        setError(result.message);
-      }
-    } finally {
-      setLoading(false);
+    const result = await resetPasswordByCode(codigo, tokenReset, password);
+    setLoading(false);
+
+    if (result.success) {
+      Alert.alert("Sucesso! 🎉", "Sua senha foi redefinida com sucesso!", [
+        { text: "Fazer Login", onPress: () => navigation.navigate("Login") },
+      ]);
+    } else {
+      setError(result.message);
     }
   };
 

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Text,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Logo } from './Logo';
 import { useTheme } from '../navigation/AppNavigator';
 
@@ -14,29 +15,37 @@ export const AuthLayout = ({ children }) => {
   const { colors } = useTheme();
 
   return (
-    <KeyboardAvoidingView
+    <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        bounces={false}
-        keyboardShouldPersistTaps="handled">
-        <View style={styles.topSection}>
-          <Logo showText={true} />
-          <Text style={[styles.brandTitle, { color: colors.secondary }]}>
-            CENA
-          </Text>
-          {children}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      edges={['top', 'bottom', 'left', 'right']}
+    >
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          bounces={false}
+          keyboardShouldPersistTaps="handled">
+          <View style={styles.topSection}>
+            <Logo showText={true} />
+            <Text style={[styles.brandTitle, { color: colors.secondary }]}>
+              CENA
+            </Text>
+            {children}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#72a8b0', // Consistent blue from prototype
+    backgroundColor: '#72a8b0',
+  },
+  flex: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -46,8 +55,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 25,
-    paddingTop: 40,
-    paddingBottom: 40,
+    paddingTop: 30,
+    paddingBottom: 30,
   },
   brandTitle: {
     fontSize: 32,

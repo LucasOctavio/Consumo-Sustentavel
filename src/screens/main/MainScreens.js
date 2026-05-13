@@ -103,7 +103,7 @@ const MONTH_NAMES = [
 const DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 // ─── CalendarPicker — calendário interativo customizado ──
-const CalendarPicker = ({ selectedDate, onSelectDate, colors }) => {
+const CalendarPicker = ({ selectedDate, onSelectDate, colors, blockFuture = false }) => {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -133,7 +133,17 @@ const CalendarPicker = ({ selectedDate, onSelectDate, colors }) => {
     } else setViewMonth(viewMonth + 1);
   };
 
+  const isFutureDay = day => {
+    if (!blockFuture) return false;
+    const d = new Date(viewYear, viewMonth, day);
+    d.setHours(0, 0, 0, 0);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return d > now;
+  };
+
   const handleDayPress = day => {
+    if (isFutureDay(day)) return;
     const dd = String(day).padStart(2, '0');
     const mm = String(viewMonth + 1).padStart(2, '0');
     onSelectDate(`${dd}/${mm}/${viewYear}`);
@@ -166,64 +176,128 @@ const CalendarPicker = ({ selectedDate, onSelectDate, colors }) => {
       {/* Header: nav + month/year */}
       <View style={calStyles.calHeader}>
         <TouchableOpacity onPress={goToPrevMonth} style={calStyles.calNavBtn}>
-          <FontAwesome5
-            name="chevron-left"
-            size={14}
-            color={colors.secondary}
-          />
+          <FontAwesome5 name="chevron-left" size={14} color={colors.secondary} />
         </TouchableOpacity>
         <Text style={[calStyles.calMonthLabel, { color: colors.text }]}>
           {MONTH_NAMES[viewMonth]} {viewYear}
         </Text>
         <TouchableOpacity onPress={goToNextMonth} style={calStyles.calNavBtn}>
-          <FontAwesome5
-            name="chevron-right"
-            size={14}
-            color={colors.secondary}
-          />
+          <FontAwesome5 name="chevron-right" size={14} color={colors.secondary} />
         </TouchableOpacity>
       </View>
       {/* Day-of-week labels */}
       <View style={calStyles.calRow}>
         {DAY_NAMES.map(dn => (
           <View key={dn} style={calStyles.calCell}>
-            <Text style={[calStyles.calDayName, { color: colors.textLight }]}>
-              {dn}
-            </Text>
+            <Text style={[calStyles.calDayName, { color: colors.textLight }]}>{dn}</Text>
           </View>
         ))}
       </View>
       {/* Day grid */}
       <View style={calStyles.calGrid}>
-        {cells.map((day, idx) => (
-          <View key={idx} style={calStyles.calCell}>
-            {day ? (
-              <TouchableOpacity
-                onPress={() => handleDayPress(day)}
-                style={[
-                  calStyles.calDayBtn,
-                  isToday(day) && {
-                    borderWidth: 1.5,
-                    borderColor: colors.secondary,
-                  },
-                  isSelected(day) && { backgroundColor: colors.secondary },
-                ]}>
-                <Text
+        {cells.map((day, idx) => {
+          const future = day ? isFutureDay(day) : false;
+          return (
+            <View key={idx} style={calStyles.calCell}>
+              {day ? (
+                <TouchableOpacity
+                  onPress={() => handleDayPress(day)}
+                  disabled={future}
                   style={[
-                    calStyles.calDayText,
-                    { color: colors.text },
-                    isSelected(day) && { color: '#fff', fontWeight: 'bold' },
+                    calStyles.calDayBtn,
+                    isToday(day) && { borderWidth: 1.5, borderColor: colors.secondary },
+                    isSelected(day) && { backgroundColor: colors.secondary },
+                    future && { opacity: 0.25 },
                   ]}>
-                  {day}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ))}
+                  <Text
+                    style={[
+                      calStyles.calDayText,
+                      { color: colors.text },
+                      isSelected(day) && { color: '#fff', fontWeight: 'bold' },
+                    ]}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
 };
+
+// ─── DateFilterBar — seletor de filtro por dia ────────────────────────────────
+const DateFilterBar = ({ filterDate, setFilterDate, colors }) => {
+  const [showCal, setShowCal] = useState(false);
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <TouchableOpacity
+          onPress={() => setShowCal(!showCal)}
+          style={[
+            dfStyles.chip,
+            {
+              backgroundColor: filterDate ? colors.secondary : 'transparent',
+              borderColor: filterDate ? colors.secondary : colors.border,
+            },
+          ]}>
+          <FontAwesome5
+            name="calendar-day"
+            size={12}
+            color={filterDate ? '#fff' : colors.secondary}
+          />
+          <Text style={[dfStyles.chipText, { color: filterDate ? '#fff' : colors.secondary }]}>
+            {filterDate ? filterDate : 'Filtrar por dia'}
+          </Text>
+        </TouchableOpacity>
+        {filterDate ? (
+          <TouchableOpacity
+            onPress={() => { setFilterDate(null); setShowCal(false); }}
+            style={[
+              dfStyles.chip,
+              { backgroundColor: 'transparent', borderColor: colors.danger + '60' },
+            ]}>
+            <FontAwesome5 name="times" size={12} color={colors.danger} />
+            <Text style={[dfStyles.chipText, { color: colors.danger }]}>Limpar</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      {showCal && (
+        <View style={[dfStyles.calBox, { backgroundColor: colors.card }]}>
+          <CalendarPicker
+            selectedDate={filterDate}
+            onSelectDate={d => { setFilterDate(d); setShowCal(false); }}
+            colors={colors}
+          />
+        </View>
+      )}
+    </View>
+  );
+};
+
+const dfStyles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  chipText: { fontSize: 13, fontWeight: '600' },
+  calBox: {
+    marginTop: 10,
+    borderRadius: 18,
+    padding: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+});
 
 const calStyles = StyleSheet.create({
   calendarContainer: {
@@ -528,6 +602,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                         setShowCalendar(null);
                       }}
                       colors={colors}
+                      blockFuture={true}
                     />
                   )}
                 </>
@@ -571,8 +646,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
               {/* ── Datas (metas) ── */}
               {isGoal && (
                 <>
-                  <Text
-                    style={[addModalStyles.label, { color: colors.textLight }]}>
+                  <Text style={[addModalStyles.label, { color: colors.textLight }]}>
                     Data de Início
                   </Text>
                   <TouchableOpacity
@@ -589,11 +663,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                           addModalStyles.fieldIcon,
                           { backgroundColor: '#4CAF50' + '18' },
                         ]}>
-                        <FontAwesome5
-                          name="calendar-alt"
-                          size={14}
-                          color="#4CAF50"
-                        />
+                        <FontAwesome5 name="calendar-alt" size={14} color="#4CAF50" />
                       </View>
                       <Text
                         style={[
@@ -603,11 +673,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                         {startDate || 'Selecionar data de início'}
                       </Text>
                       <FontAwesome5
-                        name={
-                          showCalendar === 'start'
-                            ? 'chevron-up'
-                            : 'chevron-down'
-                        }
+                        name={showCalendar === 'start' ? 'chevron-up' : 'chevron-down'}
                         size={12}
                         color={colors.textLight}
                       />
@@ -616,16 +682,12 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                   {showCalendar === 'start' && (
                     <CalendarPicker
                       selectedDate={startDate}
-                      onSelectDate={d => {
-                        setStartDate(d);
-                        setShowCalendar(null);
-                      }}
+                      onSelectDate={d => { setStartDate(d); setShowCalendar(null); }}
                       colors={colors}
                     />
                   )}
 
-                  <Text
-                    style={[addModalStyles.label, { color: colors.textLight }]}>
+                  <Text style={[addModalStyles.label, { color: colors.textLight }]}>
                     Data de Fim
                   </Text>
                   <TouchableOpacity
@@ -642,11 +704,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                           addModalStyles.fieldIcon,
                           { backgroundColor: '#F44336' + '18' },
                         ]}>
-                        <FontAwesome5
-                          name="calendar-alt"
-                          size={14}
-                          color="#F44336"
-                        />
+                        <FontAwesome5 name="calendar-alt" size={14} color="#F44336" />
                       </View>
                       <Text
                         style={[
@@ -656,9 +714,7 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                         {endDate || 'Selecionar data de fim'}
                       </Text>
                       <FontAwesome5
-                        name={
-                          showCalendar === 'end' ? 'chevron-up' : 'chevron-down'
-                        }
+                        name={showCalendar === 'end' ? 'chevron-up' : 'chevron-down'}
                         size={12}
                         color={colors.textLight}
                       />
@@ -667,13 +723,29 @@ const AddModal = ({ visible, onClose, title, onAdd, initialData }) => {
                   {showCalendar === 'end' && (
                     <CalendarPicker
                       selectedDate={endDate}
-                      onSelectDate={d => {
-                        setEndDate(d);
-                        setShowCalendar(null);
-                      }}
+                      onSelectDate={d => { setEndDate(d); setShowCalendar(null); }}
                       colors={colors}
                     />
                   )}
+
+                  {/* Descrição para metas */}
+                  <Text style={[addModalStyles.label, { color: colors.textLight }]}>
+                    Descrição (opcional)
+                  </Text>
+                  <View style={[addModalStyles.fieldGroup, { backgroundColor: colors.border + '18' }]}>
+                    <View style={addModalStyles.fieldRow}>
+                      <View style={[addModalStyles.fieldIcon, { backgroundColor: '#607D8B18' }]}>
+                        <FontAwesome5 name="pen" size={12} color="#607D8B" />
+                      </View>
+                      <TextInput
+                        style={[addModalStyles.fieldInput, { color: colors.text }]}
+                        placeholder="Ex: Reduzir consumo de água"
+                        placeholderTextColor={colors.textLight}
+                        value={description}
+                        onChangeText={setDescription}
+                      />
+                    </View>
+                  </View>
                 </>
               )}
 
@@ -1136,7 +1208,7 @@ export const HomeScreen = ({ navigation }) => {
 
 export const ConsumptionScreen = () => {
   const { colors } = useTheme();
-  const { consumptions, addConsumption, updateConsumption, deleteConsumption } = useContext(AuthContext);
+  const { consumptions, addConsumption, updateConsumption, deleteConsumption, filterDate, setFilterDate } = useContext(AuthContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [period, setPeriod] = useState('1 sem');
   const [filterType, setFilterType] = useState('Todos');
@@ -1219,10 +1291,9 @@ export const ConsumptionScreen = () => {
 
   return (
     <AppLayout>
-      <Text style={[styles.screenTitleText, { color: colors.text }]}>
-        Consumos
-      </Text>
+      <Text style={[styles.screenTitleText, { color: colors.text }]}>Consumos</Text>
       <FilterTypeSelector />
+      <DateFilterBar filterDate={filterDate} setFilterDate={setFilterDate} colors={colors} />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -1323,29 +1394,22 @@ export const ConsumptionScreen = () => {
       </Card>
       <Card style={{ marginTop: 10 }}>
         <View style={styles.cardHeaderArea}>
-          <View
-            style={[
-              styles.headerIconCircle,
-              { backgroundColor: colors.secondary + '10' },
-            ]}>
-            <FontAwesome5
-              name="calendar-alt"
-              size={12}
-              color={colors.secondary}
-            />
+          <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
+            <FontAwesome5 name="calendar-alt" size={12} color={colors.secondary} />
           </View>
           <Text style={[styles.cardHeaderText, { color: colors.text }]}>
-            Registros atuais
+            {filterDate ? `Registros de ${filterDate}` : 'Registros atuais'}
           </Text>
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const todayItems = typeFiltered.filter(item => item.date === today);
+          const targetDate = filterDate || today;
+          const todayItems = typeFiltered.filter(item => item.date === targetDate);
 
           return todayItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há registro atual
+                {filterDate ? 'Nenhum registro nessa data' : 'Não há registro atual'}
               </Text>
             </View>
           ) : (
@@ -1462,20 +1526,17 @@ export const ConsumptionScreen = () => {
 
       <Card style={{ marginTop: 20 }}>
         <View style={styles.cardHeaderArea}>
-          <View
-            style={[
-              styles.headerIconCircle,
-              { backgroundColor: colors.secondary + '10' },
-            ]}>
+          <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
             <FontAwesome5 name="history" size={12} color={colors.secondary} />
           </View>
           <Text style={[styles.cardHeaderText, { color: colors.text }]}>
-            Registros anteriores
+            Outros registros
           </Text>
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderItems = typeFiltered.filter(item => item.date !== today);
+          const targetDate = filterDate || today;
+          const olderItems = typeFiltered.filter(item => item.date !== targetDate);
 
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -1606,7 +1667,7 @@ export const ConsumptionScreen = () => {
 
 export const SimulatedScreen = () => {
   const { colors } = useTheme();
-  const { simulations, addSimulation, updateSimulation, deleteSimulation } = useContext(AuthContext);
+  const { simulations, addSimulation, updateSimulation, deleteSimulation, filterDate, setFilterDate } = useContext(AuthContext);
   const [editingItem, setEditingItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [filterType, setFilterType] = useState('Todos');
@@ -1685,10 +1746,9 @@ export const SimulatedScreen = () => {
 
   return (
     <AppLayout>
-      <Text style={[styles.screenTitleText, { color: colors.text }]}>
-        Simulador
-      </Text>
+      <Text style={[styles.screenTitleText, { color: colors.text }]}>Simulador</Text>
       <FilterTypeSelector />
+      <DateFilterBar filterDate={filterDate} setFilterDate={setFilterDate} colors={colors} />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -1790,29 +1850,22 @@ export const SimulatedScreen = () => {
       </Card>
       <Card style={{ marginTop: 10 }}>
         <View style={styles.cardHeaderArea}>
-          <View
-            style={[
-              styles.headerIconCircle,
-              { backgroundColor: colors.secondary + '10' },
-            ]}>
-            <FontAwesome5
-              name="clipboard-list"
-              size={12}
-              color={colors.secondary}
-            />
+          <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
+            <FontAwesome5 name="clipboard-list" size={12} color={colors.secondary} />
           </View>
           <Text style={[styles.cardHeaderText, { color: colors.text }]}>
-            Registros atuais
+            {filterDate ? `Registros de ${filterDate}` : 'Registros atuais'}
           </Text>
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const todayItems = typeFiltered.filter(item => item.date === today);
+          const targetDate = filterDate || today;
+          const todayItems = typeFiltered.filter(item => item.date === targetDate);
 
           return todayItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há registro atual
+                {filterDate ? 'Nenhum registro nessa data' : 'Não há registro atual'}
               </Text>
             </View>
           ) : (
@@ -1929,20 +1982,15 @@ export const SimulatedScreen = () => {
 
       <Card style={{ marginTop: 20 }}>
         <View style={styles.cardHeaderArea}>
-          <View
-            style={[
-              styles.headerIconCircle,
-              { backgroundColor: colors.secondary + '10' },
-            ]}>
+          <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
             <FontAwesome5 name="history" size={12} color={colors.secondary} />
           </View>
-          <Text style={[styles.cardHeaderText, { color: colors.text }]}>
-            Registros anteriores
-          </Text>
+          <Text style={[styles.cardHeaderText, { color: colors.text }]}>Outros registros</Text>
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderItems = typeFiltered.filter(item => item.date !== today);
+          const targetDate = filterDate || today;
+          const olderItems = typeFiltered.filter(item => item.date !== targetDate);
 
           return olderItems.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
@@ -2073,7 +2121,7 @@ export const SimulatedScreen = () => {
 
 export const GoalsScreen = () => {
   const { colors } = useTheme();
-  const { goals, addGoal, updateGoal, deleteGoal } = useContext(AuthContext);
+  const { goals, addGoal, updateGoal, deleteGoal, filterDate, setFilterDate } = useContext(AuthContext);
   const [period, setPeriod] = useState('1 sem');
   const [filterType, setFilterType] = useState('Todos');
   const [editingItem, setEditingItem] = useState(null);
@@ -2154,10 +2202,9 @@ export const GoalsScreen = () => {
 
   return (
     <AppLayout>
-      <Text style={[styles.screenTitleText, { color: colors.text }]}>
-        Metas
-      </Text>
+      <Text style={[styles.screenTitleText, { color: colors.text }]}>Metas</Text>
       <FilterTypeSelector />
+      <DateFilterBar filterDate={filterDate} setFilterDate={setFilterDate} colors={colors} />
       <AddButtonFull
         onPress={() => {
           setEditingItem(null);
@@ -2426,29 +2473,22 @@ export const GoalsScreen = () => {
 
       <Card style={{ marginTop: 20 }}>
         <View style={styles.cardHeaderArea}>
-          <View
-            style={[
-              styles.headerIconCircle,
-              { backgroundColor: colors.secondary + '10' },
-            ]}>
-            <FontAwesome5
-              name="check-circle"
-              size={12}
-              color={colors.secondary}
-            />
+          <View style={[styles.headerIconCircle, { backgroundColor: colors.secondary + '10' }]}>
+            <FontAwesome5 name="check-circle" size={12} color={colors.secondary} />
           </View>
-          <Text style={[styles.cardHeaderText, { color: colors.text }]}>
-            Metas anteriores
-          </Text>
+          <Text style={[styles.cardHeaderText, { color: colors.text }]}>Metas anteriores</Text>
         </View>
         {(() => {
           const today = new Date().toLocaleDateString('pt-BR');
-          const olderGoals = typeFiltered.filter(g => g.start !== today);
+          const targetDate = filterDate || today;
+          const olderGoals = filterDate
+            ? typeFiltered.filter(g => g.start === targetDate)
+            : typeFiltered.filter(g => g.start !== today);
 
           return olderGoals.length === 0 ? (
             <View style={{ paddingVertical: 10 }}>
               <Text style={{ color: colors.textLight, textAlign: 'center' }}>
-                Não há metas anteriores
+                {filterDate ? 'Nenhuma meta nessa data' : 'Não há metas anteriores'}
               </Text>
             </View>
           ) : (
@@ -2459,110 +2499,62 @@ export const GoalsScreen = () => {
                   styles.innerListItemExtended,
                   idx !== olderGoals.length - 1 && styles.innerDividerExtended,
                 ]}>
-                <View style={styles.metaContentRow}>
-                  <View style={styles.metaDetailsGroup}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        marginBottom: 12,
-                      }}>
-                      <View
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          backgroundColor: colors.border,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 12,
-                        }}>
-                        <FontAwesome5
-                          name={goal.type === 'Água' ? 'faucet' : 'bolt'}
-                          size={12}
-                          color={colors.textLight}
-                        />
-                      </View>
-                      <View>
-                        <Text style={{ color: colors.textLight, fontSize: 10 }}>
-                          Recurso
-                        </Text>
-                        <Text style={{ color: colors.text, fontWeight: '700' }}>
-                          {goal.type}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 10,
-                          backgroundColor: colors.border,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 12,
-                        }}>
-                        <FontAwesome5
-                          name="history"
-                          size={12}
-                          color={colors.textLight}
-                        />
-                      </View>
-                      <View>
-                        <Text style={{ color: colors.textLight, fontSize: 10 }}>
-                          Período Finalizado
-                        </Text>
-                        <Text
-                          style={{
-                            color: colors.text,
-                            fontWeight: '700',
-                            fontSize: 12,
-                          }}>
-                          {goal.start} - {goal.end}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={{ opacity: 0.5 }}>
-                    <CircularProgress
-                      percentage={goal.progress}
-                      radius={35}
-                      color={colors.textLight}
+                {/* Header: ícone + tipo + período + progress */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{
+                    width: 38, height: 38, borderRadius: 11,
+                    backgroundColor: colors.border,
+                    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+                  }}>
+                    <FontAwesome5
+                      name={goal.type === 'Água' ? 'faucet' : goal.type === 'Gás' ? 'fire' : 'bolt'}
+                      size={14} color={colors.textLight}
                     />
                   </View>
-                  <View style={[styles.actionButtonsRow, { marginTop: 10 }]}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditingItem(goal);
-                        setModalVisible(true);
-                      }}
-                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
-                      <FontAwesome5 name="pen" size={10} color={colors.textLight} />
-                      <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => confirmDelete(goal.id)}
-                      style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
-                      <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
-                      <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
-                    </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>
+                      {goal.type}
+                    </Text>
+                    <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 2 }}>
+                      {goal.start} – {goal.end}
+                    </Text>
+                  </View>
+                  <View style={{ opacity: 0.7 }}>
+                    <CircularProgress percentage={goal.progress} radius={28} color={colors.textLight} />
                   </View>
                 </View>
-                <View
-                  style={{
-                    marginTop: 15,
-                    backgroundColor: colors.border + '30',
-                    padding: 12,
-                    borderRadius: 12,
-                  }}>
-                  <Text style={{ color: colors.textLight, fontSize: 14 }}>
-                    Meta atingida:{' '}
-                    <Text style={{ fontWeight: 'bold' }}>
+
+                {/* Valor + progresso */}
+                <View style={{ backgroundColor: colors.border + '30', padding: 10, borderRadius: 12, marginBottom: 10 }}>
+                  <Text style={{ color: colors.textLight, fontSize: 13 }}>
+                    Meta:{' '}
+                    <Text style={{ fontWeight: 'bold', color: colors.text }}>
                       {goal.value} {goal.unit}
                     </Text>
+                    {'   '}Progresso:{' '}
+                    <Text style={{ fontWeight: 'bold', color: colors.text }}>{goal.progress}%</Text>
                   </Text>
+                  {goal.description ? (
+                    <Text style={{ color: colors.textLight, fontSize: 12, marginTop: 5 }}>
+                      {goal.description}
+                    </Text>
+                  ) : null}
+                </View>
+
+                {/* Ações */}
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    onPress={() => { setEditingItem(goal); setModalVisible(true); }}
+                    style={[styles.actionBtn, { backgroundColor: colors.border + '50' }]}>
+                    <FontAwesome5 name="pen" size={10} color={colors.textLight} />
+                    <Text style={[styles.actionBtnText, { color: colors.textLight }]}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => confirmDelete(goal.id)}
+                    style={[styles.actionBtn, { backgroundColor: colors.danger + '10' }]}>
+                    <FontAwesome5 name="trash-alt" size={10} color={colors.danger} />
+                    <Text style={[styles.actionBtnText, { color: colors.danger }]}>Excluir</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))
@@ -2866,13 +2858,26 @@ export const SettingsScreen = () => {
               ]}>
               Editar Perfil
             </Text>
-            <Input label="Nome" value={name} onChangeText={setName} />
             <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              label="Nome"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
             />
+            {/* E-mail é somente leitura — não pode ser alterado pelo usuário */}
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 12, color: colors.textLight, marginBottom: 4, fontWeight: '600' }}>
+                Email
+              </Text>
+              <View style={{
+                backgroundColor: colors.border + '30',
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+              }}>
+                <Text style={{ color: colors.textLight, fontSize: 15 }}>{email}</Text>
+              </View>
+            </View>
             <Input
               label="Nova Senha"
               value={password}

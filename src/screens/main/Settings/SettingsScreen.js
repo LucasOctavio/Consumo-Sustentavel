@@ -9,6 +9,7 @@ import {
   Image,
   Switch,
   Modal,
+  Platform,
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { AppLayout } from "../../../components/AppLayout";
@@ -32,7 +33,6 @@ export const SettingsScreen = () => {
   const [isPhotoEnlarged, setIsPhotoEnlarged] = useState(false);
 
   const [name, setName] = useState(userData?.name || "");
-  const [email, setEmail] = useState(userData?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profileImage, setProfileImage] = useState(
@@ -104,7 +104,6 @@ export const SettingsScreen = () => {
     setSaving(true);
     const result = await updateProfile({
       name,
-      email,
       password: password || undefined,
     });
     setSaving(false);
@@ -316,25 +315,25 @@ export const SettingsScreen = () => {
               Editar Informações
             </Text>
             <Input
-              label="Nome"
+              label="Seu Nome"
               value={name}
               onChangeText={setName}
               autoCapitalize="none"
             />
-            <View style={styles.readOnlyContainer}>
-              <Text style={[styles.editLabel, { color: colors.text }]}>
-                Email
+            <View style={styles.emailDisplaySection}>
+              <Text style={[styles.displayLabel, { color: colors.textLight }]}>
+                E-mail (não pode ser alterado)
               </Text>
               <View
                 style={[
-                  styles.readOnlyBox,
+                  styles.emailTextBox,
                   { backgroundColor: colors.border + "30" },
                 ]}
               >
                 <Text
-                  style={[styles.readOnlyText, { color: colors.textLight }]}
+                  style={[styles.emailDisplayValue, { color: colors.text }]}
                 >
-                  {email}
+                  {userData?.email}
                 </Text>
               </View>
             </View>
@@ -567,8 +566,8 @@ const styles = StyleSheet.create({
   },
   profileHeaderContainer: {
     alignItems: "center",
-    marginVertical: 30,
-    paddingTop: Platform.OS === "ios" ? 20 : 0,
+    marginTop: Platform.OS === "ios" ? 40 : 20,
+    marginBottom: 30,
   },
   avatarWrapper: { position: "relative" },
   avatarLarge: {
@@ -602,17 +601,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     opacity: 0.7,
   },
-  readOnlyContainer: {
+  emailDisplaySection: {
     marginBottom: 20,
   },
-  readOnlyBox: {
-    padding: 15,
-    borderRadius: 15,
-    marginTop: 5,
+  displayLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  readOnlyText: {
+  emailTextBox: {
+    padding: 16,
+    borderRadius: 15,
+  },
+  emailDisplayValue: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "bold",
+    opacity: 0.8,
   },
   profileActionBtns: { marginTop: 10 },
   saveProfileBtn: {
