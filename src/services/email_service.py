@@ -214,7 +214,6 @@ def gerar_html_feedback(titulo: str, mensagem: str, sucesso: bool = True) -> str
             <div class="icon">{icone}</div>
             <h1>{titulo}</h1>
             <p>{mensagem}</p>
-            <a href="https://consumo-sustentavel.onrender.com" class="btn">Voltar para o App</a>
         </div>
     </body>
     </html>
