@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from src.schemas.usuario_schema import UsuarioLogin, UsuarioUpdate, Usuario2FA, UsuarioResetRequest, UsuarioResetPassword, UsuarioResendVerification
 from src.schemas.mail_schema import EmailSchema
 from src.dependencia import pegar_sessao, verificar_token, verificar_token_query, verificar_dados_query
@@ -14,7 +15,8 @@ from src.services.email_service import (
     atualizar_via_email,
     enviar_email_recuperacao_senha,
     verificar_recuperacao_senha,
-    reenviar_email_verificacao
+    reenviar_email_verificacao,
+    gerar_html_feedback
 )
 from src.services.usuario_service import deletar_usuario
 
@@ -61,28 +63,37 @@ async def verify_2fa(dados: Usuario2FA, session: Session = Depends(pegar_sessao)
     return await verificar_2fa(dados.codigo, dados.token_2fa, session)
 
 # Endpoint que efetiva a verificação da conta quando o usuário clica no link do seu e-mail
-@email_router.get("/verify_via_email", summary='Verificar via e-mail')
+@email_router.get("/verify_via_email", summary='Verificar via e-mail', response_class=HTMLResponse)
 async def verify_via_email(token: str, session: Session = Depends(pegar_sessao)):
     '''\n \n \n Verificar uma conta pelo e-mail. \n \n \
     '''
-    # Passa a string do token diretamente para ser validada e criar o usuário no banco
-    return await verificar_via_email(session, token)
+    try:
+        resultado = await verificar_via_email(session, token)
+        return gerar_html_feedback("Conta Verificada!", resultado.get("message"), True)
+    except HTTPException as e:
+        return gerar_html_feedback("Falha na Verificação", e.detail, False)
 
 # Endpoint que efetiva a exclusão completa do usuário após ele clicar no botão recebido no e-mail
-@email_router.get("/delete_via_email", summary='Deletar via e-mail')
+@email_router.get("/delete_via_email", summary='Deletar via e-mail', response_class=HTMLResponse)
 async def delete_via_email(token: Usuario = Depends(verificar_token_query), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Deletar uma conta por e-mail. \n \n \
     '''
-    # Reutiliza o serviço padrão de exclusão da conta
-    return deletar_usuario(token.user_id, session)
+    try:
+        resultado = deletar_usuario(token.user_id, session)
+        return gerar_html_feedback("Conta Excluída", resultado.get("mensagem"), True)
+    except HTTPException as e:
+        return gerar_html_feedback("Erro ao Excluir", e.detail, False)
 
 # Endpoint que consolida a atualização de um dado sensível só após confirmação do e-mail
-@email_router.get("/update_via_email", summary='Atualizar via e-mail')
+@email_router.get("/update_via_email", summary='Atualizar via e-mail', response_class=HTMLResponse)
 async def update_via_email(dados: dict = Depends(verificar_dados_query), token: Usuario = Depends(verificar_token_query), session: Session = Depends(pegar_sessao)):
     '''\n \n \n Atualizar uma conta por e-mail. \n \n \
     '''
-    # Conclui as modificações com segurança baseada em token validado pelo cliente de e-mail do usuário
-    return await atualizar_via_email(dados, token.user_id, session)
+    try:
+        resultado = await atualizar_via_email(dados, token.user_id, session)
+        return gerar_html_feedback("Dados Atualizados", resultado.get("mensagem"), True)
+    except HTTPException as e:
+        return gerar_html_feedback("Erro na Atualização", e.detail, False)
 
 # Endpoint para requisitar redefinição de senha
 @email_router.post("/forgot_password", summary='Solicitar recuperação de senha')

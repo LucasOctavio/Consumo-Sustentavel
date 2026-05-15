@@ -187,6 +187,40 @@ def _gerar_html_email(titulo: str, subtitulo: str, texto_botao: str = None, link
     """
 
 
+def gerar_html_feedback(titulo: str, mensagem: str, sucesso: bool = True) -> str:
+    """Gera um HTML simples para exibição de feedback visual no navegador."""
+    cor_status = "#28a745" if sucesso else "#dc3545"
+    icone = "✓" if sucesso else "✕"
+    
+    return f"""
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{titulo}</title>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+            .container {{ background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; max-width: 450px; width: 90%; }}
+            .icon {{ font-size: 70px; color: {cor_status}; margin-bottom: 20px; font-weight: bold; }}
+            h1 {{ color: #333; margin-bottom: 15px; font-size: 28px; }}
+            p {{ color: #666; line-height: 1.6; font-size: 18px; margin-bottom: 30px; }}
+            .btn {{ display: inline-block; padding: 14px 35px; background-color: #28a745; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; transition: transform 0.2s; }}
+            .btn:hover {{ transform: scale(1.05); background-color: #218838; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="icon">{icone}</div>
+            <h1>{titulo}</h1>
+            <p>{mensagem}</p>
+            <a href="https://consumo-sustentavel.onrender.com" class="btn">Voltar para o App</a>
+        </div>
+    </body>
+    </html>
+    """
+
+
 async def _obter_access_token_gmail() -> str:
     """Obtém um access_token fresco usando o refresh_token do OAuth2 do Google."""
     url = "https://oauth2.googleapis.com/token"
